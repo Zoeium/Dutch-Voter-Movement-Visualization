@@ -1,0 +1,11 @@
+party: sgp
+vote_last_election_in_percentile:
+  sgp: 80
+  not_voted: 5
+  fvd: 4
+  nsc: 3
+  glpvda: 3
+  pvv: 1
+  vvd: 1
+  cda: 1
+  pvdd: 1

@@ -1,0 +1,13 @@
+party: sp
+vote_last_election_in_percentile:
+  vvd: 2
+  pvv: 3
+  cda: 3
+  d66: 4
+  groenlinks: 5
+  sp: 56
+  pvda: 6
+  christenunie: 1
+  "50plus": 4
+  fvd: 2
+  not_voted: 7

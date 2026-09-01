@@ -1,0 +1,36 @@
+date: 2025-10-29
+electorate: 13589128
+not_voted: 2948804
+total_votes: 10640324
+non_valid_votes: 28206
+blanco_votes: 40128
+valid_votes: 10571990
+parties_votes:
+  d66: 1790634
+  pvv: 1760966
+  vvd: 1505829
+  glpvda: 1352163
+  cda: 1246874
+  ja21: 628517
+  fvd: 480393
+  bbb: 279916
+  denk: 250368
+  sgp: 238093
+  pvdd: 219371
+  christenunie: 201361
+  sp: 199585
+  "50plus": 151053
+  volt: 116468
+  bij1: 40360
+  nsc: 39408
+  bvnl: 18477
+  vrede_voor_dieren: 16819
+  piratenpartij: 10575
+  fnp: 9331
+  lp: 8248
+  de_linie: 3478
+  nl_plan: 2299
+  vrij_verbond: 1048
+  ellect: 205
+  partij_voor_de_rechtsstaat: 151
+

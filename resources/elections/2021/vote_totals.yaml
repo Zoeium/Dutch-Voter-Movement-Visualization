@@ -1,0 +1,45 @@
+date: 2021-03-17
+electorate: 13293186
+not_voted: 2830509
+total_votes: 10462677
+non_valid_votes: 22652
+blanco_votes: 17173
+valid_votes: 10422852
+parties_votes:
+  vvd: 2279130
+  d66: 1565861
+  pvv: 1124482
+  cda: 990601
+  pvda: 597192
+  groenlinks: 537308
+  sp: 623371
+  christenunie: 351275
+  sgp: 215249
+  denk: 211237
+  fvd: 523083
+  "50plus": 106702
+  pvdd: 399750
+  volt: 252480
+  ja21: 246620
+  bbb: 104319
+  bij1: 87238
+  code_oranje: 40731
+  nida: 33834
+  splinter: 30328
+  piratenpartij: 22816
+  jong: 15297
+  trots: 13198
+  lijst_henk_krol: 9264
+  nlbeter: 8657
+  lijst30: 8277
+  lp: 5546
+  oprecht: 5449
+  jezus_leeft: 5015
+  dfp: 3744
+  u-buntu_connected_front: 1880
+  vrij_en_sociaal_nederland: 942
+  partij-van-de-eenheid: 804
+  wij_zijn_nederland: 553
+  partij_voor_de_republiek: 255
+  modern_nederland: 245
+  de_groenen: 119

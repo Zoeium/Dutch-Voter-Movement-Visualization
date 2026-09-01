@@ -1,0 +1,12 @@
+party: bbb
+vote_last_election_in_percentile:
+  bbb: 42
+  pvv: 22
+  nsc: 14
+  sp: 6
+  glpvda: 3
+  vvd: 3
+  cda: 1
+  not_voted: 1
+  christenunie: 1
+  pvdd: 1

@@ -1,0 +1,12 @@
+party: pvdd
+vote_last_election_in_percentile:
+  pvdd: 50
+  glpvda: 14
+  not_voted: 13
+  nsc: 6
+  pvv: 4
+  sp: 2
+  vvd: 2
+  d66: 1
+  sgp: 1
+
