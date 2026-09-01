@@ -32,13 +32,13 @@ const movementModules = import.meta.glob('@/../resources/elections/*/voters_move
 
 // Extract year from a path like "resources/elections/2021/vote_totals.yaml"
 function extractYear(path: string): string {
-  const match = path.match(/\/elections\/(\d{4})\//);
+  const match = new RegExp(/\/elections\/(\d{4})\//).exec(path);
   return match ? match[1] : '';
 }
 
 // Extract party slug from a voters_movement path like ".../voters_movement/vvd.yaml"
 function extractPartySlug(path: string): string {
-  const match = path.match(/\/voters_movement\/(.+)\.yaml$/);
+  const match = new RegExp(/\/voters_movement\/(.+)\.yaml$/).exec(path);
   return match ? match[1] : '';
 }
 
@@ -57,7 +57,7 @@ export function loadElections(): ElectionYear[] {
     years.add(extractYear(path));
   }
 
-  const sortedYears = Array.from(years).sort();
+  const sortedYears = Array.from(years).sort((a, b) => a.localeCompare(b));
 
   return sortedYears.map((year) => {
     const totalsPath = Object.keys(totalsModules).find((p) => extractYear(p) === year);

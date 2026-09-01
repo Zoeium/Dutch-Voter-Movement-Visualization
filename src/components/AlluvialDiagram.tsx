@@ -1,12 +1,15 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import type { DiagramNode, DiagramLink } from '@/types';
 
+export type SortMode = 'votes' | 'alphabetical';
+
 interface AlluvialDiagramProps {
   nodes: DiagramNode[];
   links: DiagramLink[];
   numColumns: number;
   electionLabels: string[];
   selectedParty: string | null;
+  sortMode?: SortMode;
 }
 
 interface PositionedNode extends DiagramNode {
@@ -42,7 +45,8 @@ export default function AlluvialDiagram({
   numColumns,
   electionLabels,
   selectedParty,
-}: AlluvialDiagramProps) {
+  sortMode = 'votes',
+}: Readonly<AlluvialDiagramProps>) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredRibbon, setHoveredRibbon] = useState<PositionedRibbon | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -87,18 +91,13 @@ export default function AlluvialDiagram({
     const selectedBase = selectedParty ? getBaseId(selectedParty) : null;
 
     for (const node of nodes) {
-      const flow = Math.max(
-        nodeInflow[node.id] ?? 0,
-        nodeOutflow[node.id] ?? 0,
-        node.value
-      );
       columns[node.columnIndex].push({
         ...node,
         x: 0,
         y: 0,
         width: NODE_WIDTH,
         nodeHeight: 0,
-        value: flow,
+        value: node.value,
       });
     }
 
@@ -107,11 +106,13 @@ export default function AlluvialDiagram({
         const aBase = getBaseId(a.id);
         const bBase = getBaseId(b.id);
         if (selectedBase) {
-          // Check if either matches via resolvePartyName equivalence
           const aMatch = aBase === selectedBase;
           const bMatch = bBase === selectedBase;
           if (aMatch && !bMatch) return -1;
           if (bMatch && !aMatch) return 1;
+        }
+        if (sortMode === 'alphabetical') {
+          return a.label.localeCompare(b.label);
         }
         return b.value - a.value;
       });
@@ -309,7 +310,7 @@ export default function AlluvialDiagram({
       svgWidth: availableWidth,
       contentHeight: actualHeight,
     };
-  }, [nodes, links, numColumns, containerWidth, selectedParty]);
+  }, [nodes, links, numColumns, containerWidth, selectedParty, sortMode]);
 
   const isRibbonActive = (ribbon: PositionedRibbon): boolean => {
     if (!hoveredNode) return true;

@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Users, Filter, BarChart3, Info } from 'lucide-react';
-import AlluvialDiagram from '@/components/AlluvialDiagram';
+import { Users, Filter, BarChart3, Info, ArrowDownUp } from 'lucide-react';
+import AlluvialDiagram, { type SortMode } from '@/components/AlluvialDiagram';
 import {
   loadParties,
   loadElections,
   buildMultiElectionFlows,
-  getPartyDisplayName,
-  getPartyColor,
 } from '@/data/loader';
 
 const parties = loadParties();
@@ -15,6 +13,7 @@ const elections = loadElections();
 export default function App() {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [threshold, setThreshold] = useState<number>(1);
+  const [sortMode, setSortMode] = useState<SortMode>('votes');
 
   const electionLabels = elections.map((e) => e.year);
 
@@ -124,7 +123,7 @@ export default function App() {
         </div>
 
         {/* Threshold slider */}
-        <div className="mb-6 flex items-center gap-4">
+        <div className="mb-6 flex items-center gap-4 flex-wrap">
           <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
             Min flow: {threshold}%
           </span>
@@ -139,6 +138,31 @@ export default function App() {
           <span className="text-xs text-gray-500">
             Hide flows below this percentage of a party's voters
           </span>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <ArrowDownUp className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Sort:</span>
+            <button
+              onClick={() => setSortMode('votes')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                sortMode === 'votes'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              By votes
+            </button>
+            <button
+              onClick={() => setSortMode('alphabetical')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                sortMode === 'alphabetical'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              Alphabetical
+            </button>
+          </div>
         </div>
 
         {/* Stats bar */}
@@ -173,6 +197,7 @@ export default function App() {
               numColumns={elections.length}
               electionLabels={electionLabels}
               selectedParty={selectedParty}
+              sortMode={sortMode}
             />
           )}
         </div>
@@ -184,7 +209,7 @@ export default function App() {
           </h3>
           <div className="flex flex-wrap gap-2">
             {Array.from(new Set(nodes.map((n) => n.label)))
-              .sort()
+              .sort((a, b) => a.localeCompare(b))
               .map((label) => {
                 const node = nodes.find((n) => n.label === label);
                 if (!node) return null;
