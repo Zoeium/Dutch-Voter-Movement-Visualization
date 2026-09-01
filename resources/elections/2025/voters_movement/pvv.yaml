@@ -1,0 +1,11 @@
+party: pvv
+vote_last_election_in_percentile:
+  pvv: 77
+  not_voted: 7
+  vvd: 4
+  nsc: 3
+  bbb: 2
+  sp: 1
+  fvd: 1
+  cda: 1
+  glpvda: 1

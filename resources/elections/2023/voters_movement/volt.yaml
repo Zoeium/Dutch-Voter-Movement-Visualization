@@ -1,0 +1,11 @@
+party: volt
+vote_last_election_in_percentile:
+  volt: 51
+  d66: 20
+  vvd: 14
+  pvda: 4
+  cda: 3
+  not_voted: 3
+  "50plus": 2
+  sp: 1
+  pvdd: 1

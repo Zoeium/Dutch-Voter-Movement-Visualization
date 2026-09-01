@@ -1,9 +1,0 @@
-party: sgp
-vote_last_election_in_percentile:
-  sgp: 62
-  not_voted: 15
-  cda: 12
-  christenunie: 6
-  vvd: 3
-  pvda: 1
-  "50plus": 1

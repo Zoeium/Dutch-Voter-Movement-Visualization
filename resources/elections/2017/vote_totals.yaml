@@ -1,0 +1,36 @@
+date: 2017-03-15
+electorate: 12950685
+not_voted: 2387229
+total_votes: 10563456
+non_valid_votes: 31539
+blanco_votes: 15876
+valid_votes: 10516041
+parties_votes:
+  vvd: 2238351
+  pvv: 1372941
+  cda: 1301796
+  d66: 1285819
+  groenlinks: 959600
+  sp: 955633
+  pvda: 599699
+  christenunie: 356271
+  pvdd: 335214
+  "50plus": 327131
+  sgp: 218950
+  denk: 216147
+  fvd: 187162
+  vnl: 38209
+  piratenpartij: 35478
+  artikel_1: 28700
+  nieuwe_wegen: 14362
+  ondernemerspartij: 12570
+  lokaal_in_de_kamer: 6858
+  niet_stemmers: 6025
+  de_burger_beweging: 5221
+  geenpeil: 4945
+  jezus_leeft: 3099
+  vrijzinnige_partij: 2938
+  lp: 1492
+  mens_enspirit_basisinkomen_partij_v-r: 942
+  stemnl: 527
+  vrije_democratische_partij: 177

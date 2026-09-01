@@ -1,0 +1,12 @@
+party: fvd
+vote_last_election_in_percentile:
+  fvd: 76
+  not_voted: 4
+  vvd: 3
+  pvv: 3
+  pvdd: 3
+  sp: 1
+  pvda: 1
+  ja21: 1
+  "50plus": 1
+
