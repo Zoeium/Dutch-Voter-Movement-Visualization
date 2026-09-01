@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Users, Filter, BarChart3, Info, ArrowDownUp } from 'lucide-react';
+import { Users, Info, ArrowDownUp } from 'lucide-react';
 import AlluvialDiagram, { type SortMode } from '@/components/AlluvialDiagram';
 import {
   loadParties,
@@ -47,16 +47,6 @@ export default function App() {
               <h1 className="text-lg font-bold tracking-tight">Voter Flow</h1>
               <p className="text-xs text-gray-400">Dutch election voter movement analysis</p>
             </div>
-          </div>
-          <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
-            <span className="flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4" />
-              {elections.length} elections
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Filter className="w-4 h-4" />
-              {availableParties.length} parties tracked
-            </span>
           </div>
         </div>
       </header>
