@@ -1,0 +1,12 @@
+party: bij1
+vote_last_election_in_percentile:
+  not_voted: 40
+  pvda: 20
+  groenlinks: 10
+  sp: 8
+  d66: 6
+  pvdd: 5
+  denk: 4
+  vvd: 3
+  "50plus": 2
+  cda: 2

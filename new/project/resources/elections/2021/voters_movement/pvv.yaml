@@ -1,0 +1,11 @@
+party: pvv
+vote_last_election_in_percentile:
+  pvv: 60
+  not_voted: 18
+  vvd: 6
+  cda: 4
+  fvd: 5
+  pvda: 2
+  sp: 2
+  "50plus": 2
+  d66: 1

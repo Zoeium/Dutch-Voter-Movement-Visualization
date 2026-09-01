@@ -1,0 +1,12 @@
+party: sp
+vote_last_election_in_percentile:
+  sp: 48
+  not_voted: 20
+  pvda: 10
+  groenlinks: 8
+  d66: 3
+  vvd: 3
+  pvv: 3
+  pvdd: 2
+  cda: 2
+  fvd: 1

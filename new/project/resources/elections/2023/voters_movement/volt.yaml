@@ -1,0 +1,12 @@
+party: volt
+vote_last_election_in_percentile:
+  volt: 45
+  not_voted: 25
+  d66: 12
+  groenlinks: 6
+  pvda: 4
+  vvd: 3
+  sp: 2
+  cda: 1
+  pvv: 1
+  christenunie: 1

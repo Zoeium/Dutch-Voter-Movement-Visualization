@@ -1,0 +1,12 @@
+party: ja21
+vote_last_election_in_percentile:
+  not_voted: 30
+  vvd: 22
+  fvd: 15
+  cda: 8
+  pvv: 8
+  pvda: 5
+  d66: 4
+  sp: 3
+  "50plus": 3
+  sgp: 2

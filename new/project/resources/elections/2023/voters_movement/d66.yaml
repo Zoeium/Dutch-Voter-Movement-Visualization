@@ -1,0 +1,14 @@
+party: d66
+vote_last_election_in_percentile:
+  d66: 42
+  not_voted: 20
+  vvd: 12
+  pvda: 6
+  groenlinks: 5
+  volt: 4
+  cda: 3
+  sp: 2
+  pvv: 2
+  christenunie: 2
+  "50plus": 1
+  fvd: 1

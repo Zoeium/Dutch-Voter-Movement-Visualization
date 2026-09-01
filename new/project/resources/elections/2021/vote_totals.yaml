@@ -1,0 +1,27 @@
+date: 2021-03-17
+electorate: 12944272
+not_voted: 2813643
+total_votes: 10130629
+non_valid_votes: 23840
+blanco_votes: 19425
+valid_votes: 10087364
+parties_votes:
+  vvd: 1513824
+  pvda: 1054433
+  pvdd: 629476
+  cda: 589801
+  d66: 759721
+  sp: 508246
+  groenlinks: 660409
+  fvd: 525136
+  pvv: 734544
+  christenunie: 319383
+  sgp: 218993
+  volt: 176545
+  ja21: 167156
+  bbb: 143849
+  denk: 163220
+  "50plus": 143811
+  bij1: 51497
+  splinter: 32190
+  piraten_de_groenen: 20608

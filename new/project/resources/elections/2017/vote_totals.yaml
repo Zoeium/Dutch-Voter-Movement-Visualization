@@ -1,0 +1,27 @@
+date: 2017-03-15
+electorate: 12289820
+not_voted: 2811540
+total_votes: 9478280
+non_valid_votes: 21014
+blanco_votes: 17721
+valid_votes: 9459545
+parties_votes:
+  vvd: 2013002
+  pvda: 599314
+  pvdd: 335215
+  cda: 381291
+  d66: 1265809
+  sp: 339760
+  groenlinks: 302145
+  fvd: 0
+  pvv: 1335195
+  christenunie: 246282
+  sgp: 166588
+  volt: 0
+  ja21: 0
+  bbb: 0
+  denk: 0
+  "50plus": 156846
+  bij1: 0
+  splinter: 0
+  piraten_de_groenen: 0

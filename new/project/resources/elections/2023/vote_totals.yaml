@@ -1,0 +1,34 @@
+date: 2023-11-22
+electorate: 13473750
+not_voted: 2998547
+total_votes: 10475203
+non_valid_votes: 22822
+blanco_votes: 19655
+valid_votes: 10432726
+parties_votes:
+  pvv: 2450878
+  glpvda: 1643073
+  vvd: 1589519
+  nsc: 1343287
+  d66: 656292
+  bbb: 485551
+  cda: 345822
+  sp: 328225
+  denk: 246765
+  pvdd: 235148
+  fvd: 232963
+  sgp: 217270
+  christenunie: 212532
+  volt: 178802
+  ja21: 71345
+  bvnl: 52913
+  "50plus": 51043
+  bij1: 44253
+  splinter: 12838
+  piraten_de_groenen: 9117
+  nederland_met_een_plan: 5487
+  samen_voor_nederland: 5325
+  lef: 5122
+  lp: 4152
+  partijvdsport: 3966
+  politieke_partij_voor_basisinkomen: 1038

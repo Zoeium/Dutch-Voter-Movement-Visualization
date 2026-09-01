@@ -1,0 +1,9 @@
+party: ja21
+vote_last_election_in_percentile:
+  ja21: 32
+  not_voted: 28
+  vvd: 15
+  fvd: 12
+  cda: 5
+  pvv: 5
+  bbb: 3

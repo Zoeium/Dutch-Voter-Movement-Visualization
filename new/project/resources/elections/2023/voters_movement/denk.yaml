@@ -1,0 +1,11 @@
+party: denk
+vote_last_election_in_percentile:
+  denk: 40
+  not_voted: 28
+  pvda: 10
+  d66: 6
+  groenlinks: 5
+  sp: 4
+  vvd: 3
+  pvv: 2
+  volt: 2

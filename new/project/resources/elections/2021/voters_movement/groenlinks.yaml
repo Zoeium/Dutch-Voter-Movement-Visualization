@@ -1,0 +1,11 @@
+party: groenlinks
+vote_last_election_in_percentile:
+  groenlinks: 48
+  not_voted: 20
+  pvda: 12
+  d66: 6
+  sp: 5
+  pvdd: 4
+  vvd: 3
+  cda: 1
+  pvv: 1
