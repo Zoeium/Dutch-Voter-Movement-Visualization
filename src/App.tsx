@@ -67,7 +67,7 @@ export default function App() {
           {/* Party filter */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Party filter:</span>
-            <button
+            <button type={"button"}
               onClick={() => setSelectedParty(null)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 selectedParty === null
@@ -78,7 +78,7 @@ export default function App() {
               All parties
             </button>
             {availableParties.map((p) => (
-              <button
+              <button type={"button"}
                 key={p.party}
                 onClick={() =>
                   setSelectedParty(selectedParty === p.party ? null : p.party)
@@ -128,7 +128,7 @@ export default function App() {
           <div className="flex items-center gap-2 ml-auto">
             <ArrowDownUp className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Sort:</span>
-            <button
+            <button type={"button"}
               onClick={() => setSortMode('votes')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 sortMode === 'votes'
@@ -138,7 +138,7 @@ export default function App() {
             >
               By votes
             </button>
-            <button
+            <button type={"button"}
               onClick={() => setSortMode('alphabetical')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 sortMode === 'alphabetical'
@@ -170,34 +170,6 @@ export default function App() {
               sortMode={sortMode}
             />
           )}
-        </div>
-
-        {/* How to read */}
-        <div className="mt-8 bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            How to read this diagram
-          </h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li className="flex gap-2">
-              <span className="text-emerald-400 font-bold">•</span>
-              Each vertical block represents a party in a specific election. Block height
-              reflects the number of voters.
-            </li>
-            <li className="flex gap-2">
-              <span className="text-emerald-400 font-bold">•</span>
-              Flowing bands between blocks show how voters moved from one party to another
-              between elections. Band width represents the number of voters.
-            </li>
-            <li className="flex gap-2">
-              <span className="text-emerald-400 font-bold">•</span>
-              "Did not vote" appears as a block — flows to and from it show turnout changes.
-            </li>
-            <li className="flex gap-2">
-              <span className="text-emerald-400 font-bold">•</span>
-              Hover over a block to highlight all flows connected to that party. Hover over
-              a flow to see the exact vote count.
-            </li>
-          </ul>
         </div>
       </main>
 
