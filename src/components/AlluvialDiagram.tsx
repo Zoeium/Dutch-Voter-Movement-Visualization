@@ -111,6 +111,12 @@ export default function AlluvialDiagram({
           if (aMatch && !bMatch) return -1;
           if (bMatch && !aMatch) return 1;
         }
+        if (aBase === 'not_voted') {
+          return -1;
+        }
+        if (bBase === 'not_voted') {
+          return -1;
+        }
         if (sortMode === 'alphabetical') {
           return a.label.localeCompare(b.label);
         }

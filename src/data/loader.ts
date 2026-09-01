@@ -36,12 +36,6 @@ function extractYear(path: string): string {
   return match ? match[1] : '';
 }
 
-// Extract party slug from a voters_movement path like ".../voters_movement/vvd.yaml"
-function extractPartySlug(path: string): string {
-  const match = new RegExp(/\/voters_movement\/(.+)\.yaml$/).exec(path);
-  return match ? match[1] : '';
-}
-
 export function loadParties(): PartyInfo[] {
   return Object.values(partyModules).map((raw) => yaml.load(raw) as PartyInfo);
 }
@@ -96,7 +90,6 @@ export function getPartyColor(name: string, parties: PartyInfo[]): string {
   const resolved = resolvePartyName(name, parties);
   const party = parties.find((p) => p.party === resolved);
   if (party) return party.color;
-  if (name === 'not_voted') return '#9ca3af';
   return '#6b7280';
 }
 
@@ -105,7 +98,6 @@ export function getPartyColor(name: string, parties: PartyInfo[]): string {
  * NOT the resolved/canonical name.
  */
 export function getPartyDisplayName(name: string, parties: PartyInfo[]): string {
-  if (name === 'not_voted') return 'Did not vote';
   const party = parties.find((p) => p.party === name);
   if (party) return party.display_name;
   for (const p of parties) {
@@ -121,6 +113,118 @@ export function getPartyDisplayName(name: string, parties: PartyInfo[]): string 
  */
 export function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolean {
   return resolvePartyName(nameA, parties) === resolvePartyName(nameB, parties);
+}
+
+function shouldIncludeFlow(
+  sourceName: string,
+  targetParty: string,
+  selectedParty: string | null,
+  parties: PartyInfo[]
+): boolean {
+  if (!selectedParty) {
+    return true;
+  }
+
+  const sourceMatches = isSameParty(sourceName, selectedParty, parties);
+  const targetMatches = isSameParty(targetParty, selectedParty, parties);
+  return sourceMatches || targetMatches;
+}
+
+function buildPairFlows(
+  toYear: ElectionYear,
+  parties: PartyInfo[],
+  selectedParty: string | null,
+  threshold: number,
+  toTotals: Record<string, number>
+): Flow[] {
+  const flows: Flow[] = [];
+
+  for (const movement of toYear.movements) {
+    const targetParty = movement.party;
+    const targetVotes = toTotals[targetParty] ?? 0;
+    if (targetVotes === 0) continue;
+
+    for (const [sourceName, pct] of Object.entries(movement.vote_last_election_in_percentile)) {
+      if (pct < threshold) continue;
+      if (!shouldIncludeFlow(sourceName, targetParty, selectedParty, parties)) continue;
+
+      const value = Math.round((pct / 100) * targetVotes);
+      if (value > 0) {
+        flows.push({ source: sourceName, target: targetParty, value });
+      }
+    }
+  }
+
+  return flows;
+}
+
+function getPartyVoteCount(id: string, totals: Record<string, number>): number {
+  return totals[id] ?? 0;
+}
+
+function buildColumnNodes(
+  ids: Set<string>,
+  columnIndex: number,
+  totals: Record<string, number>,
+  flows: Flow[],
+  parties: PartyInfo[],
+  isSource: boolean
+): DiagramNode[] {
+  return Array.from(ids)
+    .sort((a, b) => {
+      const aVotes = isSource ? getPartyVoteCount(a, totals) : totals[a] ?? 0;
+      const bVotes = isSource ? getPartyVoteCount(b, totals) : totals[b] ?? 0;
+      return bVotes - aVotes;
+    })
+    .map((id) => {
+      const value = flows
+        .filter((f) => (isSource ? f.source === id : f.target === id))
+        .reduce((sum, f) => sum + f.value, 0);
+
+      return {
+        id: `${columnIndex}:${id}`,
+        label: getPartyDisplayName(id, parties),
+        color: getPartyColor(id, parties),
+        columnIndex,
+        value,
+      };
+    });
+}
+
+function buildLinks(
+  flows: Flow[],
+  fromCol: number,
+  toCol: number,
+  parties: PartyInfo[]
+): DiagramLink[] {
+  return flows.map((f) => ({
+    source: `${fromCol}:${f.source}`,
+    target: `${toCol}:${f.target}`,
+    value: f.value,
+    color: getPartyColor(f.target, parties),
+  }));
+}
+
+function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
+  const nodeMap: Record<string, DiagramNode> = {};
+
+  for (const node of nodes) {
+    const existingNode = nodeMap[node.id];
+    if (existingNode) {
+      nodeMap[node.id] = { ...node, value: Math.max(existingNode.value, node.value) };
+      continue;
+    }
+
+    nodeMap[node.id] = node;
+  }
+
+  return Object.values(nodeMap);
+}
+
+function getTotals(electionYear: ElectionYear) {
+    const totals = electionYear.voteTotals.parties_votes;
+    totals['not_voted'] = electionYear.voteTotals.not_voted;
+    return totals;
 }
 
 export function buildMultiElectionFlows(
@@ -142,92 +246,23 @@ export function buildMultiElectionFlows(
     const fromCol = i;
     const toCol = i + 1;
 
-    const fromTotals = fromYear.voteTotals.parties_votes;
-    const toTotals = toYear.voteTotals.parties_votes;
-    const fromNotVoted = fromYear.voteTotals.not_voted;
-
-    const flows: Flow[] = [];
-
-    for (const movement of toYear.movements) {
-      const targetParty = movement.party;
-      const targetVotes = toTotals[targetParty] ?? 0;
-      if (targetVotes === 0) continue;
-
-      for (const [sourceName, pct] of Object.entries(movement.vote_last_election_in_percentile)) {
-        if (pct < threshold) continue;
-
-        const sourceId = sourceName;
-
-        if (selectedParty) {
-          const sourceMatches = isSameParty(sourceId, selectedParty, parties);
-          const targetMatches = isSameParty(targetParty, selectedParty, parties);
-          if (!sourceMatches && !targetMatches) {
-            continue;
-          }
-        }
-
-        const value = Math.round((pct / 100) * targetVotes);
-        if (value > 0) {
-          flows.push({ source: sourceId, target: targetParty, value });
-        }
-      }
-    }
+    const fromTotals = getTotals(fromYear);
+    const toTotals = getTotals(toYear);
+    const flows = buildPairFlows(toYear, parties, selectedParty, threshold, toTotals);
 
     const sourceIds = new Set<string>();
     const targetIds = new Set<string>();
-    for (const f of flows) {
-      sourceIds.add(f.source);
-      targetIds.add(f.target);
+    for (const flow of flows) {
+      sourceIds.add(flow.source);
+      targetIds.add(flow.target);
     }
 
-    for (const id of Array.from(sourceIds).sort((a, b) => {
-      const aVotes = fromTotals[a] ?? (a === 'not_voted' ? fromNotVoted : 0);
-      const bVotes = fromTotals[b] ?? (b === 'not_voted' ? fromNotVoted : 0);
-      return bVotes - aVotes;
-    })) {
-      const outflow = flows.filter((f) => f.source === id).reduce((s, f) => s + f.value, 0);
-      allNodes.push({
-        id: `${fromCol}:${id}`,
-        label: getPartyDisplayName(id, parties),
-        color: getPartyColor(id, parties),
-        columnIndex: fromCol,
-        value: outflow,
-      });
-    }
-
-    for (const id of Array.from(targetIds).sort((a, b) => {
-      const aVotes = toTotals[a] ?? 0;
-      const bVotes = toTotals[b] ?? 0;
-      return bVotes - aVotes;
-    })) {
-      const inflow = flows.filter((f) => f.target === id).reduce((s, f) => s + f.value, 0);
-      allNodes.push({
-        id: `${toCol}:${id}`,
-        label: getPartyDisplayName(id, parties),
-        color: getPartyColor(id, parties),
-        columnIndex: toCol,
-        value: inflow,
-      });
-    }
-
-    for (const f of flows) {
-      allLinks.push({
-        source: `${fromCol}:${f.source}`,
-        target: `${toCol}:${f.target}`,
-        value: f.value,
-        color: getPartyColor(f.target, parties),
-      });
-    }
+    allNodes.push(
+      ...buildColumnNodes(sourceIds, fromCol, fromTotals, flows, parties, true),
+      ...buildColumnNodes(targetIds, toCol, toTotals, flows, parties, false)
+    );
+    allLinks.push(...buildLinks(flows, fromCol, toCol, parties));
   }
 
-  const nodeMap: Record<string, DiagramNode> = {};
-  for (const node of allNodes) {
-    if (nodeMap[node.id]) {
-      nodeMap[node.id] = { ...node, value: Math.max(nodeMap[node.id].value, node.value) };
-    } else {
-      nodeMap[node.id] = node;
-    }
-  }
-
-  return { nodes: Object.values(nodeMap), links: allLinks };
+  return { nodes: mergeNodeMap(allNodes), links: allLinks };
 }
