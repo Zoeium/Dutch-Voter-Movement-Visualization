@@ -34,10 +34,6 @@ export default function App() {
       .sort((a, b) => a.display_name.localeCompare(b.display_name));
   }, []);
 
-  // Summary stats
-  const totalFlows = links.length;
-  const totalVotesMoved = links.reduce((sum, l) => sum + l.value, 0);
-
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       {/* Header */}
@@ -165,22 +161,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Stats bar */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Elections shown</p>
-            <p className="text-2xl font-bold">{electionLabels.join(' → ')}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Active flows</p>
-            <p className="text-2xl font-bold">{totalFlows}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Voters tracked</p>
-            <p className="text-2xl font-bold">{(totalVotesMoved / 1_000_000).toFixed(2)}M</p>
-          </div>
-        </div>
-
         {/* Diagram */}
         <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
           {nodes.length === 0 ? (
@@ -200,33 +180,6 @@ export default function App() {
               sortMode={sortMode}
             />
           )}
-        </div>
-
-        {/* Legend / party list */}
-        <div className="mt-8">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Parties in diagram
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {Array.from(new Set(nodes.map((n) => n.label)))
-              .sort((a, b) => a.localeCompare(b))
-              .map((label) => {
-                const node = nodes.find((n) => n.label === label);
-                if (!node) return null;
-                return (
-                  <div
-                    key={label}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/50 border border-gray-800"
-                  >
-                    <span
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: node.color }}
-                    />
-                    <span className="text-sm text-gray-300">{label}</span>
-                  </div>
-                );
-              })}
-          </div>
         </div>
 
         {/* How to read */}

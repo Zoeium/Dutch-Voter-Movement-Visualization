@@ -168,6 +168,7 @@ function buildColumnNodes(
   totals: Record<string, number>,
   flows: Flow[],
   parties: PartyInfo[],
+  selectedParty: string | null,
   isSource: boolean
 ): DiagramNode[] {
   return Array.from(ids)
@@ -177,7 +178,7 @@ function buildColumnNodes(
       return bVotes - aVotes;
     })
     .map((id) => {
-      const value = flows
+      const value = !selectedParty ? totals[id] : flows
         .filter((f) => (isSource ? f.source === id : f.target === id))
         .reduce((sum, f) => sum + f.value, 0);
 
@@ -258,8 +259,8 @@ export function buildMultiElectionFlows(
     }
 
     allNodes.push(
-      ...buildColumnNodes(sourceIds, fromCol, fromTotals, flows, parties, true),
-      ...buildColumnNodes(targetIds, toCol, toTotals, flows, parties, false)
+      ...buildColumnNodes(sourceIds, fromCol, fromTotals, flows, parties, selectedParty, true),
+      ...buildColumnNodes(targetIds, toCol, toTotals, flows, parties, selectedParty, false)
     );
     allLinks.push(...buildLinks(flows, fromCol, toCol, parties));
   }
