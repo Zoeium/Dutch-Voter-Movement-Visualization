@@ -142,32 +142,33 @@ export default function App() {
             <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
               Years: {electionYears[yearStart]}–{electionYears[yearEnd]}
             </span>
-            <div className="flex items-center gap-2">
-              <select
+            <div className="relative w-56 h-6 flex items-center">
+              <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700" />
+              <div
+                className="absolute h-1.5 rounded-full bg-emerald-500"
+                style={{
+                  left: `${(yearStart / (electionYears.length - 1)) * 100}%`,
+                  right: `${100 - (yearEnd / (electionYears.length - 1)) * 100}%`,
+                }}
+              />
+              <input
+                type="range"
+                min={0}
+                max={electionYears.length - 1}
                 value={yearStart}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setYearStart(Math.min(v, yearEnd));
-                }}
-                className="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-1.5 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              >
-                {electionYears.map((y, i) => (
-                  <option key={y} value={i}>{y}</option>
-                ))}
-              </select>
-              <span className="text-gray-500 text-sm">to</span>
-              <select
+                onChange={(e) => setYearStart(Math.min(Number(e.target.value), yearEnd))}
+                className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
+                style={{ zIndex: yearStart === yearEnd ? 4 : 3 }}
+              />
+              <input
+                type="range"
+                min={0}
+                max={electionYears.length - 1}
                 value={yearEnd}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setYearEnd(Math.max(v, yearStart));
-                }}
-                className="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-1.5 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              >
-                {electionYears.map((y, i) => (
-                  <option key={y} value={i}>{y}</option>
-                ))}
-              </select>
+                onChange={(e) => setYearEnd(Math.max(Number(e.target.value), yearStart))}
+                className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
+                style={{ zIndex: 4 }}
+              />
             </div>
           </div>
 
