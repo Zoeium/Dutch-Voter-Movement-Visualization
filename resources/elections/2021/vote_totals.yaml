@@ -1,4 +1,7 @@
 date: 2021-03-17
+source:
+  name: "overheid.nl: Verkiezingsuitslag Tweede Kamer 2021"
+  url: http://data.overheid.nl/dataset/39e9bad4-4667-453f-ba6a-4733a956f6f8
 electorate: 13293186
 not_voted: 2830509
 total_votes: 10462677

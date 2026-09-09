@@ -1,4 +1,7 @@
 date: 2023-11-22
+source:
+  name: "overheid.nl: Verkiezingsuitslag Tweede Kamer 2023"
+  url: http://data.overheid.nl/dataset/e3fe6e42-06ab-4559-a466-a32b04247f68
 electorate: 13473750
 not_voted: 2998547
 total_votes: 10475203
