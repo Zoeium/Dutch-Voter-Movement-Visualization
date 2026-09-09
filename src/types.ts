@@ -5,8 +5,14 @@ export interface PartyInfo {
   previous_names?: string[];
 }
 
+export interface DataSource {
+  name: string;
+  url: string;
+}
+
 export interface VoteTotals {
   date: string;
+  source: DataSource;
   electorate: number;
   not_voted: number;
   total_votes: number;

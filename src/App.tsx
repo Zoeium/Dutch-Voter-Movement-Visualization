@@ -4,11 +4,13 @@ import AlluvialDiagram, { type SortMode } from '@/components/AlluvialDiagram';
 import {
   loadParties,
   loadElections,
+  loadDataSources,
   buildMultiElectionFlows,
 } from '@/data/loader';
 
 const parties = loadParties();
 const elections = loadElections();
+const dataSources = loadDataSources();
 
 export default function App() {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
@@ -173,10 +175,36 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-800 mt-12 py-6">
-        <div className="max-w-[1600px] mx-auto px-6 text-center text-sm text-gray-500">
-          Voter movement data sourced from Dutch parliamentary election records. Alluvial
-          diagram built with custom SVG rendering.
+      <footer className="border-t border-gray-800 mt-12 py-8">
+        <div className="max-w-[1600px] mx-auto px-6">
+          <div className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-gray-400">
+            Sources
+          </div>
+          <ul className="space-y-3 text-sm text-gray-500">
+            {dataSources.map((source) => {
+              const label = source.kind === 'totals'
+                ? `Totals (${source.year})`
+                : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
+
+              return (
+                <li key={`${source.year}-${source.kind}-${source.name}`} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                  <span className="text-gray-300 font-medium min-w-[170px]">{label}</span>
+                  {source.url ? (
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-400 underline decoration-dotted underline-offset-4 hover:text-emerald-300"
+                    >
+                      {source.name}
+                    </a>
+                  ) : (
+                    <span>{source.name}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </footer>
     </div>

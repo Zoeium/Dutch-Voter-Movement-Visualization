@@ -1,4 +1,7 @@
 date: 2025-10-29
+source:
+  name: "overheid.nl: Verkiezingsuitslag Tweede Kamer 2025"
+  url: http://data.overheid.nl/dataset/a16f3352-c9ce-4831-a314-f989d442a258
 electorate: 13589128
 not_voted: 2948804
 total_votes: 10640324

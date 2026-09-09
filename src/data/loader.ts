@@ -7,6 +7,7 @@ import type {
   Flow,
   DiagramNode,
   DiagramLink,
+  DataSource,
 } from '@/types';
 
 // Auto-discover all party YAML files
@@ -25,6 +26,12 @@ const totalsModules = import.meta.glob('@/../resources/elections/*/vote_totals.y
 }) as Record<string, string>;
 
 const movementModules = import.meta.glob('@/../resources/elections/*/voters_movement/*.yaml', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+const movementSourceModules = import.meta.glob('@/../resources/elections/*/voters_movement/source.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
@@ -57,16 +64,112 @@ export function loadElections(): ElectionYear[] {
     const totalsPath = Object.keys(totalsModules).find((p) => extractYear(p) === year);
     const totals = totalsPath
       ? (yaml.load(totalsModules[totalsPath]) as VoteTotals)
-      : { date: '', electorate: 0, not_voted: 0, total_votes: 0, non_valid_votes: 0, blanco_votes: 0, valid_votes: 0, parties_votes: {} };
+      : {
+          date: '',
+          source: { name: '', url: '' },
+          electorate: 0,
+          not_voted: 0,
+          total_votes: 0,
+          non_valid_votes: 0,
+          blanco_votes: 0,
+          valid_votes: 0,
+          parties_votes: {},
+        };
 
     const movements: VoterMovement[] = [];
     for (const [path, raw] of Object.entries(movementModules)) {
       if (extractYear(path) !== year) continue;
+      if (path.endsWith('/voters_movement/source.yaml')) continue;
       movements.push(yaml.load(raw) as VoterMovement);
     }
 
-    return { year, voteTotals: totals, movements };
+    return { year, voteTotals: totals as VoteTotals, movements };
   });
+}
+
+function normalizeDataSource(source: unknown): DataSource | string | null {
+  if (typeof source === 'string') {
+    return source;
+  }
+
+  if (!source || typeof source !== 'object') {
+    return null;
+  }
+
+  const record = source as Record<string, unknown>;
+  const name = typeof record.name === 'string' ? record.name : null;
+  if (!name) {
+    return null;
+  }
+
+  return {
+    name,
+    url: typeof record.url === 'string' ? record.url : '',
+  };
+}
+
+export function loadDataSources(): { year: string; fromYear?: string; toYear?: string; name: string; url?: string; kind: 'totals' | 'movement' }[] {
+  const sources: { year: string; fromYear?: string; toYear?: string; name: string; url?: string; kind: 'totals' | 'movement' }[] = [];
+  const electionYears = Array.from(
+    new Set([
+      ...Object.keys(totalsModules).map(extractYear),
+      ...Object.keys(movementModules).map(extractYear),
+    ])
+  ).sort((a, b) => a.localeCompare(b));
+  const previousYearByYear = new Map<string, string | undefined>();
+
+  for (let i = 0; i < electionYears.length; i++) {
+    previousYearByYear.set(electionYears[i], i > 0 ? electionYears[i - 1] : undefined);
+  }
+
+  const addUniqueSource = (
+    year: string,
+    kind: 'totals' | 'movement',
+    source: DataSource | string,
+    fromYear?: string,
+    toYear?: string
+  ) => {
+    const normalized = typeof source === 'string' ? { name: source, url: '' } : source;
+    const exists = sources.some(
+      (item) => item.year === year && item.kind === kind && item.name === normalized.name
+    );
+    if (!exists) {
+      sources.push({
+        year,
+        fromYear,
+        toYear,
+        kind,
+        name: normalized.name,
+        url: normalized.url || undefined,
+      });
+    }
+  };
+
+  for (const [path, raw] of Object.entries(movementSourceModules)) {
+    const year = extractYear(path);
+    if (!year) continue;
+
+    const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
+    const source = normalizeDataSource(doc?.source);
+    if (source) {
+      const fromYear = doc?.from_year ?? previousYearByYear.get(year) ?? year;
+      const toYear = doc?.to_year ?? year;
+      addUniqueSource(year, 'movement', source, fromYear, toYear);
+    }
+  }
+
+  for (const [path, raw] of Object.entries(totalsModules)) {
+    const year = extractYear(path);
+    if (!year) continue;
+
+    const doc = yaml.load(raw) as { source?: unknown } | null;
+    const source = normalizeDataSource(doc?.source);
+    if (source) {
+      addUniqueSource(year, 'totals', source);
+    }
+  }
+
+  return sources.sort((a, b) => a.year.localeCompare(b.year));
 }
 
 /**
