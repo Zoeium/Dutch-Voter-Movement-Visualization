@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Users, Info, ArrowDownUp } from 'lucide-react';
+import { Users, Info, ArrowDownUp, CalendarRange } from 'lucide-react';
 import AlluvialDiagram, { type SortMode } from '@/components/AlluvialDiagram';
 import {
   loadParties,
@@ -9,19 +9,28 @@ import {
 } from '@/data/loader';
 
 const parties = loadParties();
-const elections = loadElections();
+const allElections = loadElections();
 const dataSources = loadDataSources();
+
+const electionYears = allElections.map((e) => e.year);
 
 export default function App() {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [threshold, setThreshold] = useState<number>(1);
   const [sortMode, setSortMode] = useState<SortMode>('votes');
+  const [yearStart, setYearStart] = useState<number>(0);
+  const [yearEnd, setYearEnd] = useState<number>(electionYears.length - 1);
+
+  const elections = useMemo(
+    () => allElections.filter((_, i) => i >= yearStart && i <= yearEnd),
+    [yearStart, yearEnd]
+  );
 
   const electionLabels = elections.map((e) => e.year);
 
   const { nodes, links } = useMemo(() => {
     return buildMultiElectionFlows(elections, parties, selectedParty, threshold);
-  }, [selectedParty, threshold]);
+  }, [elections, selectedParty, threshold]);
 
   // Build party list for selector (only parties that appear in movement data)
   const availableParties = useMemo(() => {
@@ -34,7 +43,7 @@ export default function App() {
     return parties
       .filter((p) => partySet.has(p.party))
       .sort((a, b) => a.display_name.localeCompare(b.display_name));
-  }, []);
+  }, [elections]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -126,6 +135,41 @@ export default function App() {
           <span className="text-xs text-gray-500">
             Hide flows below this percentage of a party's voters
           </span>
+
+          {/* Year range slider */}
+          <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
+            <CalendarRange className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
+              Years: {electionYears[yearStart]}–{electionYears[yearEnd]}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                value={yearStart}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setYearStart(Math.min(v, yearEnd));
+                }}
+                className="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-1.5 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                {electionYears.map((y, i) => (
+                  <option key={y} value={i}>{y}</option>
+                ))}
+              </select>
+              <span className="text-gray-500 text-sm">to</span>
+              <select
+                value={yearEnd}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setYearEnd(Math.max(v, yearStart));
+                }}
+                className="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-1.5 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                {electionYears.map((y, i) => (
+                  <option key={y} value={i}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <div className="flex items-center gap-2 ml-auto">
             <ArrowDownUp className="w-4 h-4 text-gray-400" />
