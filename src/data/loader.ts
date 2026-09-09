@@ -326,7 +326,7 @@ function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
 }
 
 function getTotals(electionYear: ElectionYear) {
-    const totals = electionYear.voteTotals.parties_votes;
+    const totals = { ...electionYear.voteTotals.parties_votes } as Record<string, number>;
     totals['not_voted'] = electionYear.voteTotals.not_voted;
     return totals;
 }
