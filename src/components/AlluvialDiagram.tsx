@@ -17,6 +17,7 @@ interface PositionedNode extends DiagramNode {
   y: number;
   width: number;
   nodeHeight: number;
+  requiredValue?: number;
 }
 
 interface PositionedRibbon {
@@ -126,7 +127,7 @@ function positionNodes(
     for (const node of columns[columnIndex]) {
       // support a precomputed requiredValue (raw units) so node height can account for
       // outgoing/incoming flows that exceed the node's own value
-      const requiredRaw = (node as any).requiredValue ?? node.value;
+      const requiredRaw = node.requiredValue ?? node.value;
       const nodeHeight = Math.max(MIN_NODE_HEIGHT, requiredRaw * scale);
       const positionedNode = {
         ...node,
@@ -282,7 +283,6 @@ function computeDiagramLayout(
   }
 
   for (const node of nodes) {
-    // requiredValue ensures node height can fit outgoing/incoming ribbons
     const requiredValue = Math.max(node.value, outgoingRaw[node.id] ?? 0, incomingRaw[node.id] ?? 0);
     columns[node.columnIndex].push({
       ...node,
@@ -291,14 +291,13 @@ function computeDiagramLayout(
       width: NODE_WIDTH,
       nodeHeight: 0,
       value: node.value,
-      // attach requiredValue in raw units (votes) for later height calculation
       requiredValue,
-    } as any);
+    });
   }
 
   let maxColumnTotal = 0;
   for (const column of columns) {
-    const total = column.reduce((sum, node) => sum + ((node as any).requiredValue ?? node.value), 0);
+    const total = column.reduce((sum, node) => sum + (node.requiredValue ?? node.value), 0);
     if (total > maxColumnTotal) {
       maxColumnTotal = total;
     }

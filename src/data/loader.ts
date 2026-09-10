@@ -366,7 +366,7 @@ function collectVisiblePartyIds(elections: ElectionYear[]): Set<string> {
     for (const movement of election.movements) {
       visiblePartySet.add(movement.party);
 
-      const sourceMap = (movement as any).vote_last_election_in_percentile as Record<string, number> | undefined;
+      const sourceMap = movement.vote_last_election_in_percentile;
       if (!sourceMap) {
         continue;
       }
