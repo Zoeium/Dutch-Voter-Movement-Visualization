@@ -253,7 +253,6 @@ function buildPairFlows(
   toYear: ElectionYear,
   parties: PartyInfo[],
   selectedParty: string | null,
-  threshold: number,
   toTotals: Record<string, number>
 ): Flow[] {
   const flows: Flow[] = [];
@@ -264,7 +263,6 @@ function buildPairFlows(
     if (targetVotes === 0) continue;
 
     for (const [sourceName, pct] of Object.entries(movement.vote_last_election_in_percentile)) {
-      if (pct < threshold) continue;
       if (!shouldIncludeFlow(sourceName, targetParty, selectedParty, parties)) continue;
 
       const value = Math.round((pct / 100) * targetVotes);
@@ -349,11 +347,92 @@ function getTotals(electionYear: ElectionYear) {
   return totals;
 }
 
+function collectVisiblePartyIds(elections: ElectionYear[]): Set<string> {
+  const visiblePartySet = new Set<string>();
+
+  for (const election of elections) {
+    for (const movement of election.movements) {
+      visiblePartySet.add(movement.party);
+
+      const sourceMap = (movement as any).vote_last_election_in_percentile as Record<string, number> | undefined;
+      if (!sourceMap) {
+        continue;
+      }
+
+      for (const sourceName of Object.keys(sourceMap)) {
+        visiblePartySet.add(sourceName);
+      }
+    }
+  }
+
+  return visiblePartySet;
+}
+
+function remapHiddenParties(flows: Flow[], visiblePartySet: Set<string>): Flow[] {
+  const remapAgg: Record<string, number> = {};
+
+  for (const flow of flows) {
+    const source = visiblePartySet.has(flow.source) || flow.source === 'other' ? flow.source : 'other';
+    const target = visiblePartySet.has(flow.target) || flow.target === 'other' ? flow.target : 'other';
+    const key = `${source}|${target}`;
+    remapAgg[key] = (remapAgg[key] ?? 0) + flow.value;
+  }
+
+  return Object.entries(remapAgg).map(([key, value]) => {
+    const [source, target] = key.split('|');
+    return { source, target, value } as Flow;
+  });
+}
+
+function collectFlowIds(
+  flows: Flow[],
+  selectedParty: string | null,
+  parties: PartyInfo[]
+): { sourceIds: Set<string>; targetIds: Set<string> } {
+  const sourceIds = new Set<string>();
+  const targetIds = new Set<string>();
+
+  for (const flow of flows) {
+    sourceIds.add(flow.source);
+    targetIds.add(flow.target);
+  }
+
+  if (!selectedParty && parties.some((party) => party.party === 'other')) {
+    sourceIds.add('other');
+    targetIds.add('other');
+  }
+
+  return { sourceIds, targetIds };
+}
+
+function buildStepNodesAndLinks(
+  fromYear: ElectionYear,
+  toYear: ElectionYear,
+  fromCol: number,
+  toCol: number,
+  parties: PartyInfo[],
+  selectedParty: string | null,
+  visiblePartySet: Set<string>
+): { nodes: DiagramNode[]; links: DiagramLink[] } {
+  const fromTotals = getTotals(fromYear);
+  const toTotals = getTotals(toYear);
+  const flows = buildPairFlows(toYear, parties, selectedParty, toTotals);
+  const remappedFlows = remapHiddenParties(flows, visiblePartySet);
+  const { sourceIds, targetIds } = collectFlowIds(remappedFlows, selectedParty, parties);
+
+  return {
+    nodes: [
+      ...buildColumnNodes(sourceIds, fromCol, fromTotals, remappedFlows, parties, selectedParty, true),
+      ...buildColumnNodes(targetIds, toCol, toTotals, remappedFlows, parties, selectedParty, false),
+    ],
+    links: buildLinks(remappedFlows, fromCol, toCol, parties),
+  };
+}
+
 export function buildMultiElectionFlows(
   elections: ElectionYear[],
   parties: PartyInfo[],
   selectedParty: string | null,
-  threshold: number = 1
 ): { nodes: DiagramNode[]; links: DiagramLink[] } {
   if (elections.length < 2) {
     return { nodes: [], links: [] };
@@ -361,62 +440,21 @@ export function buildMultiElectionFlows(
 
   const allNodes: DiagramNode[] = [];
   const allLinks: DiagramLink[] = [];
-
-  // Determine which party IDs are visible across the selected elections (movements present)
-  const visiblePartySet = new Set<string>();
-  for (const e of elections) {
-    for (const m of e.movements) {
-      // include the movement target
-      visiblePartySet.add(m.party);
-      // include all source party names mentioned in the movement's percentile map
-      const srcMap = (m as any).vote_last_election_in_percentile as Record<string, number> | undefined;
-      if (srcMap) {
-        for (const src of Object.keys(srcMap)) visiblePartySet.add(src);
-      }
-    }
-  }
+  const visiblePartySet = collectVisiblePartyIds(elections);
 
   for (let i = 0; i < elections.length - 1; i++) {
-    const fromYear = elections[i];
-    const toYear = elections[i + 1];
-    const fromCol = i;
-    const toCol = i + 1;
-
-    const fromTotals = getTotals(fromYear);
-    const toTotals = getTotals(toYear);
-    const flows = buildPairFlows(toYear, parties, selectedParty, threshold, toTotals);
-
-    // Remap any party IDs that are not visible into the single 'other' bucket and aggregate values
-    const remapAgg: Record<string, number> = {};
-    for (const f of flows) {
-      const src = visiblePartySet.has(f.source) || f.source === 'other' ? f.source : 'other';
-      const tgt = visiblePartySet.has(f.target) || f.target === 'other' ? f.target : 'other';
-      const key = `${src}|${tgt}`;
-      remapAgg[key] = (remapAgg[key] ?? 0) + f.value;
-    }
-
-    const remappedFlows = Object.entries(remapAgg).map(([k, v]) => {
-      const [s, t] = k.split('|');
-      return { source: s, target: t, value: v } as Flow;
-    });
-
-    const sourceIds = new Set<string>();
-    const targetIds = new Set<string>();
-    for (const flow of remappedFlows) {
-      sourceIds.add(flow.source);
-      targetIds.add(flow.target);
-    }
-
-    if (!selectedParty && parties.find((p) => p.party === 'other')) {
-      sourceIds.add('other');
-      targetIds.add('other');
-    }
-
-    allNodes.push(
-      ...buildColumnNodes(sourceIds, fromCol, fromTotals, remappedFlows, parties, selectedParty, true),
-      ...buildColumnNodes(targetIds, toCol, toTotals, remappedFlows, parties, selectedParty, false)
+    const step = buildStepNodesAndLinks(
+      elections[i],
+      elections[i + 1],
+      i,
+      i + 1,
+      parties,
+      selectedParty,
+      visiblePartySet
     );
-    allLinks.push(...buildLinks(remappedFlows, fromCol, toCol, parties));
+
+    allNodes.push(...step.nodes);
+    allLinks.push(...step.links);
   }
 
   return { nodes: mergeNodeMap(allNodes), links: allLinks };
