@@ -1,14 +1,8 @@
 party: not_voted
 vote_last_election_in_percentile:
-  not_voted: 70
-  pvv: 9
+  not_voted: 66
+  pvv: 18
+  bbb: 5
   nsc: 5
-  vvd: 3
-  glpvda: 3
-  bbb: 3
-  d66: 1
-  fvd: 1
-  cda: 1
-  sp: 1
-  pvdd: 1
-  christenunie: 1
+  cda: 3
+  d66: 3

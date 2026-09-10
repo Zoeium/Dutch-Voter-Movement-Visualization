@@ -1,13 +1,12 @@
 party: glpvda
 vote_last_election_in_percentile:
-  glpvda: 75
-  not_voted: 6
-  d66: 5
-  sp: 3
-  nsc: 2
+  glpvda: 78
+  nsc: 7
+  sp: 6
+  volt: 3
+  d66: 2
+  not_voted: 2
   pvdd: 2
-  pvv: 1
-  vvd: 1
   bbb: 1
   christenunie: 1
-
+  vvd: 1

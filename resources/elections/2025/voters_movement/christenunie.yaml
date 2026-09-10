@@ -1,12 +1,7 @@
 party: christenunie
 vote_last_election_in_percentile:
-  christenunie: 64
-  nsc: 14
-  sgp: 6
+  christenunie: 77
+  nsc: 13
   not_voted: 3
-  glpvda: 3
-  cda: 2
-  d66: 2
-  bbb: 2
-  sp: 1
-  pvv: 1
+  pvv: 3
+  sp: 3
