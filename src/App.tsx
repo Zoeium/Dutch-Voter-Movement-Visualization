@@ -16,7 +16,6 @@ const electionYears = allElections.map((e) => e.year);
 
 export default function App() {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
-  const [threshold, setThreshold] = useState<number>(1);
   const [sortMode, setSortMode] = useState<SortMode>('votes');
   const [yearStart, setYearStart] = useState<number>(0);
   const [yearEnd, setYearEnd] = useState<number>(electionYears.length - 1);
@@ -29,8 +28,8 @@ export default function App() {
   const electionLabels = elections.map((e) => e.year);
 
   const { nodes, links } = useMemo(() => {
-    return buildMultiElectionFlows(elections, parties, selectedParty, threshold);
-  }, [elections, selectedParty, threshold]);
+    return buildMultiElectionFlows(elections, parties, selectedParty);
+  }, [elections, selectedParty]);
 
   // Build party list for selector (only parties that appear in movement data).
   // If some parties are not present in movement data, collapse them into a single "other" block.
@@ -129,23 +128,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Threshold slider */}
         <div className="mb-6 flex items-center gap-4 flex-wrap">
-          <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
-            Min flow: {threshold}%
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={10}
-            value={threshold}
-            onChange={(e) => setThreshold(Number(e.target.value))}
-            className="w-48 accent-emerald-500"
-          />
-          <span className="text-xs text-gray-500">
-            Hide flows below this percentage of a party's voters
-          </span>
-
           {/* Year range slider */}
           <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
             <CalendarRange className="w-4 h-4 text-gray-400" />
@@ -205,6 +188,7 @@ export default function App() {
             >
               Alphabetical
             </button>
+
           </div>
         </div>
 
