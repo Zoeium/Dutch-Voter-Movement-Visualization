@@ -1,22 +1,37 @@
 #!/usr/bin/env python3
 """
-Fetch public DPES/NKO 2025 voter movement data from the DANS SSH Data Stations
+Fetch public DPES/NKO voter movement data from the DANS SSH Data Stations
 Dataverse repository and write YAML files matching the project's existing format.
 
-Dataset: https://ssh.datastations.nl/dataset.xhtml?persistentId=doi:10.17026/SS/ZBNO8O
+Datasets:
+  2025: https://ssh.datastations.nl/dataset.xhtml?persistentId=doi:10.17026/SS/ZBNO8O
+  2023: https://ssh.datastations.nl/dataset.xhtml?persistentId=doi:10.17026/SS/D62YTH
+  2021: https://ssh.datastations.nl/dataset.xhtml?persistentId=doi:10.17026/DANS-XCY-AC9Q
+  2017: https://ssh.datastations.nl/dataset.xhtml?persistentId=doi:10.17026/DANS-XBY-5DHS
 
-Downloads the VEDPES Stata file (publicly accessible), extracts the
-2023→2025 voter transition matrix including "not_voted" and "other"
-categories, and writes per-party YAML files.
+Each dataset contains a survey with variables:
+  V070  — Voted in previous election (1=Yes, 2=No, 3=Not eligible)
+  V071  — Party voted for in previous election
+  V160  — Voted in current election (1=Yes, 2=No)
+  V163  — Party voted for in current election
+
+The party codes differ per year (see CODE_MAPS below).
+
+NOTE: The 2025 VEDPES file is publicly accessible. The 2023, 2021, and 2017
+data files are restricted and require an API token obtained by registering
+on the Dataverse instance and requesting access. Pass the token via
+--api-token or the DATAVERSE_API_TOKEN environment variable.
 
 Usage:
-    python3 scripts/fetch_voter_movements.py [--year 2025] [--output-dir resources/elections]
+    python3 scripts/fetch_voter_movements.py                    # fetch 2025 (public)
+    python3 scripts/fetch_voter_movements.py --year 2023 --api-token TOKEN
+    python3 scripts/fetch_voter_movements.py --year all --api-token TOKEN
+    npm run fetch-data                                           # runs the 2025 default
 
-Requires: pandas, pyreadstat, pyyaml, requests
+Requires: pandas, pyreadstat, pyyaml
 """
 
 import argparse
-import io
 import os
 import sys
 from pathlib import Path
@@ -29,17 +44,40 @@ import yaml
 # ── Dataverse configuration ──────────────────────────────────────────────
 
 DATAVERSE_URL = "https://ssh.datastations.nl"
-DATASET_PID = "doi:10.17026/SS/ZBNO8O"
 
-# File IDs in the Dataverse dataset (discovered via the API)
-# The main dataset (621942) is restricted; VEDPES (621941) is public.
-VEDPES_FILE_ID = 621941
+DATASETS = {
+    "2025": {
+        "pid": "doi:10.17026/SS/ZBNO8O",
+        "file_id": 621941,  # VEDPES (public)
+        "source_name": "Dutch Parliamentary Election Study 2025 (DPES/NKO 2025)",
+    },
+    "2023": {
+        "pid": "doi:10.17026/SS/D62YTH",
+        "file_id": 614679,  # NKO2023 Representative (restricted)
+        "source_name": "Dutch Parliamentary Election Study 2023 (DPES/NKO 2023)",
+    },
+    "2021": {
+        "pid": "doi:10.17026/DANS-XCY-AC9Q",
+        "file_id": 25759,  # DPES2021 v2.0.sav (restricted)
+        "source_name": "Dutch Parliamentary Election Study 2021 (DPES/NKO 2021)",
+    },
+    "2017": {
+        "pid": "doi:10.17026/DANS-XBY-5DHS",
+        "file_id": 4302,  # DPES 2017 v1.5.sav (restricted)
+        "source_name": "Dutch Parliamentary Election Study 2017 (DPES/NKO 2017)",
+    },
+}
 
 
-# ── Party code mapping ────────────────────────────────────────────────────
-# Maps numeric codes in the Stata file to the party IDs used in this project.
+# ── Party code mappings per year ─────────────────────────────────────────
+# Maps numeric codes in the Stata/SPSS file to the party IDs used in this project.
+# The "previous election" and "current election" use the SAME code map within
+# a given year, but the maps differ BETWEEN years.
+#
+# Codes not listed here (blank, invalid, DK, won't say, INAP) are excluded.
+# "Other" is the catch-all for small parties not in the main list.
 
-PARTY_MAP = {
+CODE_MAP_2025 = {
     1: "pvv",
     2: "glpvda",
     3: "vvd",
@@ -56,83 +94,249 @@ PARTY_MAP = {
     14: "volt",
     15: "ja21",
     16: "50plus",
+    19: "other",
 }
 
-# Special codes
-CODE_NOT_VOTED_2023 = None  # V070 != 1 means didn't vote in 2023
-CODE_OTHER = 19
-CODE_BLANK = 30
-CODE_INVALID = 31
-CODE_DK = 994
-CODE_WONT_SAY = 995
+CODE_MAP_2023 = {
+    # V071 (previous = 2021) and V163 (current = 2023) share the same codes
+    # V071 codes (vote in 2021):
+    1: "vvd",
+    2: "d66",
+    3: "pvv",
+    4: "cda",
+    5: "sp",
+    6: "pvda",        # PvdA (pre-merger)
+    7: "groenlinks",  # GroenLinks (pre-merger)
+    8: "fvd",
+    9: "pvdd",
+    10: "christenunie",
+    11: "volt",
+    12: "ja21",
+    13: "sgp",
+    14: "denk",
+    15: "50plus",
+    16: "bbb",
+    17: "bij1",
+    18: "other",
+    # V163 codes (vote in 2023) — same parties but different ordering:
+    # 1=VVD, 2=D66, 3=PvdA/Groenlinks, 4=PVV, 5=CDA, 6=SP, 7=FvD, 8=PvdD,
+    # 9=ChristenUnie, 10=Volt, 11=JA21, 12=SGP, 13=DENK, 14=50Plus, 15=BBB,
+    # 16=Bij1, 17=NSC, 18=BVNL, ...
+    # We handle this via separate maps for V071 vs V163 below.
+}
 
-# Parties that get YAML files written
-ALL_PARTIES = list(PARTY_MAP.values()) + ["not_voted", "other"]
+# 2023: V071 (vote in 2021) party codes
+CODE_MAP_2023_PREV = {
+    1: "vvd",
+    2: "d66",
+    3: "pvv",
+    4: "cda",
+    5: "sp",
+    6: "pvda",
+    7: "groenlinks",
+    8: "fvd",
+    9: "pvdd",
+    10: "christenunie",
+    11: "volt",
+    12: "ja21",
+    13: "sgp",
+    14: "denk",
+    15: "50plus",
+    16: "bbb",
+    17: "bij1",
+    18: "other",
+}
+
+# 2023: V163 (vote in 2023) party codes
+CODE_MAP_2023_CURR = {
+    1: "vvd",
+    2: "d66",
+    3: "glpvda",  # PvdA/GroenLinks merged
+    4: "pvv",
+    5: "cda",
+    6: "sp",
+    7: "fvd",
+    8: "pvdd",
+    9: "christenunie",
+    10: "volt",
+    11: "ja21",
+    12: "sgp",
+    13: "denk",
+    14: "50plus",
+    15: "bbb",
+    16: "bij1",
+    17: "nsc",
+    18: "other",  # BVNL and other small parties
+}
+
+# 2021: V071 (vote in 2017) party codes
+CODE_MAP_2021_PREV = {
+    1: "vvd",
+    2: "pvv",
+    3: "cda",
+    4: "d66",
+    5: "groenlinks",
+    6: "sp",
+    7: "pvda",
+    8: "christenunie",
+    9: "pvdd",
+    10: "50plus",
+    11: "sgp",
+    12: "denk",
+    13: "fvd",
+    14: "other",
+}
+
+# 2021: V163 (vote in 2021) party codes
+CODE_MAP_2021_CURR = {
+    1: "vvd",
+    2: "pvv",
+    3: "cda",
+    4: "d66",
+    5: "groenlinks",
+    6: "sp",
+    7: "pvda",
+    8: "christenunie",
+    9: "pvdd",
+    10: "50plus",
+    11: "sgp",
+    12: "denk",
+    13: "fvd",
+    14: "ja21",
+    15: "volt",
+    16: "bbb",
+    17: "bij1",
+    18: "other",  # Code Oranje, LP, etc.
+}
+
+# 2017: V071 (vote in 2012) party codes
+CODE_MAP_2017_PREV = {
+    1: "cda",
+    2: "pvda",
+    3: "vvd",
+    4: "groenlinks",
+    5: "sp",
+    6: "d66",
+    7: "christenunie",
+    8: "sgp",
+    9: "pvv",
+    10: "pvdd",
+    11: "50plus",
+    12: "other",
+}
+
+# 2017: V163 (vote in 2017) party codes
+CODE_MAP_2017_CURR = {
+    1: "cda",
+    2: "pvda",
+    3: "vvd",
+    4: "groenlinks",
+    5: "sp",
+    6: "d66",
+    7: "christenunie",
+    8: "sgp",
+    9: "pvv",
+    10: "pvdd",
+    11: "50plus",
+    12: "denk",
+    13: "fvd",  # VNL (code 13) and FvD (code 14) — map both
+    14: "fvd",
+    15: "other",  # GeenPeil
+    16: "other",  # Artikel 1
+    17: "other",  # Nieuwe Wegen
+    18: "other",  # Ondernemerspartij
+    19: "other",  # Vrijzinnige Partij
+    20: "other",  # Piratenpartij
+    21: "other",
+}
+
+YEAR_CONFIG = {
+    "2025": {
+        "prev_map": CODE_MAP_2025,
+        "curr_map": CODE_MAP_2025,
+    },
+    "2023": {
+        "prev_map": CODE_MAP_2023_PREV,
+        "curr_map": CODE_MAP_2023_CURR,
+    },
+    "2021": {
+        "prev_map": CODE_MAP_2021_PREV,
+        "curr_map": CODE_MAP_2021_CURR,
+    },
+    "2017": {
+        "prev_map": CODE_MAP_2017_PREV,
+        "curr_map": CODE_MAP_2017_CURR,
+    },
+}
 
 
 # ── Download ──────────────────────────────────────────────────────────────
 
-def download_vedpes(output_path: str) -> str:
-    """Download the VEDPES Stata file from Dataverse."""
+def download_file(file_id: int, output_path: str, api_token: str | None = None) -> str:
+    """Download a data file from Dataverse."""
     import urllib.request
 
-    url = f"{DATAVERSE_URL}/api/access/datafile/{VEDPES_FILE_ID}?format=original"
-    print(f"Downloading VEDPES dataset from {url} ...")
-    urllib.request.urlretrieve(url, output_path)
+    url = f"{DATAVERSE_URL}/api/access/datafile/{file_id}?format=original"
+    if api_token:
+        url += f"&key={api_token}"
+
+    print(f"  Downloading from {url} ...")
+    try:
+        urllib.request.urlretrieve(url, output_path)
+    except urllib.error.HTTPError as e:
+        if e.code == 403:
+            print(f"  ERROR 403: This file is restricted. You need to register on")
+            print(f"  {DATAVERSE_URL} and request access to the dataset, then pass")
+            print(f"  the API token via --api-token or DATAVERSE_API_TOKEN env var.")
+            sys.exit(1)
+        raise
     print(f"  Saved to {output_path} ({os.path.getsize(output_path):,} bytes)")
     return output_path
 
 
 # ── Extract transitions ──────────────────────────────────────────────────
 
-def resolve_source_party(row) -> str | None:
-    """Determine the source party (2023 vote) for a respondent."""
-    voted_2023 = row["V070"]
-    party_2023 = row["V071"]
+def resolve_source_party(row, prev_map: dict) -> str | None:
+    """Determine the source party (previous election vote)."""
+    voted_prev = row["V070"]
+    party_prev = row["V071"]
 
-    if voted_2023 == 2 or voted_2023 == 3:
+    if voted_prev == 2 or voted_prev == 3:
         return "not_voted"
-    if voted_2023 != 1:
-        return None  # DK / won't say
+    if voted_prev != 1:
+        return None  # DK / won't say / INAP
 
-    if party_2023 in PARTY_MAP:
-        return PARTY_MAP[party_2023]
-    if party_2023 == CODE_OTHER:
-        return "other"
-    # blank, invalid, DK, won't say → skip
-    return None
+    if party_prev in prev_map:
+        return prev_map[party_prev]
+    return None  # blank, invalid, DK, won't say
 
 
-def resolve_target_party(row) -> str | None:
-    """Determine the target party (2025 vote) for a respondent."""
-    voted_2025 = row["V160"]
-    party_2025 = row["V163"]
+def resolve_target_party(row, curr_map: dict) -> str | None:
+    """Determine the target party (current election vote)."""
+    voted_curr = row["V160"]
+    party_curr = row["V163"]
 
-    if voted_2025 == 2:
+    if voted_curr == 2:
         return "not_voted"
-    if voted_2025 != 1:
-        return None  # DK / won't say
+    if voted_curr != 1:
+        return None  # DK / won't say / INAP
 
-    if party_2025 in PARTY_MAP:
-        return PARTY_MAP[party_2025]
-    if party_2025 == CODE_OTHER:
-        return "other"
-    # blank, invalid, DK, won't say → skip
-    return None
+    if party_curr in curr_map:
+        return curr_map[party_curr]
+    return None  # blank, invalid, DK, won't say
 
 
-def compute_transitions(df: pd.DataFrame) -> dict[str, dict[str, int]]:
+def compute_transitions(df: pd.DataFrame, prev_map: dict, curr_map: dict) -> dict[str, dict[str, int]]:
     """
     Compute the unweighted voter transition matrix.
 
-    Returns a dict: { target_party: { source_party: percentage, ... }, ... }
-    Percentages are rounded to whole numbers and only entries >= 1% are kept.
+    Returns: { target_party: { source_party: percentage, ... }, ... }
+    Only entries >= 1% are kept. Percentages are rounded to whole numbers.
     """
     df = df.copy()
-    df["source"] = df.apply(resolve_source_party, axis=1)
-    df["target"] = df.apply(resolve_target_party, axis=1)
+    df["source"] = df.apply(lambda r: resolve_source_party(r, prev_map), axis=1)
+    df["target"] = df.apply(lambda r: resolve_target_party(r, curr_map), axis=1)
 
-    # Drop rows where either source or target is unknown
     df = df.dropna(subset=["source", "target"])
 
     transitions: dict[str, dict[str, int]] = {}
@@ -163,13 +367,14 @@ def write_yaml_files(
     transitions: dict[str, dict[str, int]],
     output_dir: str,
     year: str,
+    source_name: str,
+    source_url: str,
 ) -> None:
     """Write per-party YAML files in the project's existing format."""
     movement_dir = Path(output_dir) / str(year) / "voters_movement"
     movement_dir.mkdir(parents=True, exist_ok=True)
 
     for party, from_parties in sorted(transitions.items()):
-        # Sort by percentage descending for readability
         sorted_from = dict(
             sorted(from_parties.items(), key=lambda x: x[1], reverse=True)
         )
@@ -182,11 +387,10 @@ def write_yaml_files(
             yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
         print(f"  Wrote {filepath}")
 
-    # Write source.yaml
     source_data = {
         "source": {
-            "name": "Dutch Parliamentary Election Study 2025 (DPES/NKO 2025)",
-            "url": "https://ssh.datastations.nl/dataset.xhtml?persistentId=doi:10.17026/SS/ZBNO8O",
+            "name": source_name,
+            "url": source_url,
         }
     }
     source_path = movement_dir / "source.yaml"
@@ -197,13 +401,53 @@ def write_yaml_files(
 
 # ── Main ───────────────────────────────────────────────────────────────────
 
+def process_year(year: str, output_dir: str, cache_dir: str, api_token: str | None) -> None:
+    """Process a single election year."""
+    config = DATASETS[year]
+    year_config = YEAR_CONFIG[year]
+
+    print(f"\n{'='*60}")
+    print(f"  Processing {year}")
+    print(f"{'='*60}")
+
+    # Download (or use cache)
+    ext = ".dta" if year == "2025" else ".sav"
+    cache_path = Path(cache_dir) / f"dpes{year}_data{ext}"
+    if not cache_path.exists():
+        download_file(config["file_id"], str(cache_path), api_token)
+    else:
+        print(f"  Using cached file: {cache_path}")
+
+    # Read data file
+    print("  Reading data file ...")
+    if year == "2025":
+        df, _ = pyreadstat.read_dta(str(cache_path), apply_value_formats=False)
+    else:
+        df, _ = pyreadstat.read_sav(str(cache_path), apply_value_formats=False)
+    print(f"  {len(df)} respondents, {len(df.columns)} variables")
+
+    # Compute transitions
+    print("  Computing voter transitions ...")
+    transitions = compute_transitions(df, year_config["prev_map"], year_config["curr_map"])
+
+    print("\n  Transition matrix:")
+    for target, sources in sorted(transitions.items()):
+        print(f"    {target}: {sources}")
+
+    # Write YAML files
+    source_url = f"{DATAVERSE_URL}/dataset.xhtml?persistentId={config['pid']}"
+    print(f"\n  Writing YAML files to {output_dir}/{year}/voters_movement/ ...")
+    write_yaml_files(transitions, output_dir, year, config["source_name"], source_url)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Fetch DPES 2025 voter movements from DANS SSH Data Stations"
+        description="Fetch DPES voter movements from DANS SSH Data Stations"
     )
     parser.add_argument(
         "--year", type=str, default="2025",
-        help="Election year directory (default: 2025)",
+        choices=["2025", "2023", "2021", "2017", "all"],
+        help="Election year to process (default: 2025, or 'all' for every year)",
     )
     parser.add_argument(
         "--output-dir", type=str, default="resources/elections",
@@ -211,37 +455,23 @@ def main():
     )
     parser.add_argument(
         "--cache-dir", type=str, default="/tmp",
-        help="Directory to cache the downloaded Stata file (default: /tmp)",
+        help="Directory to cache downloaded data files (default: /tmp)",
+    )
+    parser.add_argument(
+        "--api-token", type=str, default=None,
+        help="Dataverse API token for restricted files (or set DATAVERSE_API_TOKEN env var)",
     )
     args = parser.parse_args()
 
-    # Determine project root (parent of scripts/)
+    api_token = args.api_token or os.environ.get("DATAVERSE_API_TOKEN", None)
+
     project_root = Path(__file__).resolve().parent.parent
     output_dir = project_root / args.output_dir
 
-    # Download (or use cache)
-    cache_path = Path(args.cache_dir) / "dpes2025_vedpes.dta"
-    if not cache_path.exists():
-        download_vedpes(str(cache_path))
-    else:
-        print(f"Using cached file: {cache_path}")
+    years = ["2025", "2023", "2021", "2017"] if args.year == "all" else [args.year]
 
-    # Read Stata file
-    print("Reading Stata file ...")
-    df, _ = pyreadstat.read_dta(str(cache_path), apply_value_formats=False)
-    print(f"  {len(df)} respondents, {len(df.columns)} variables")
-
-    # Compute transitions
-    print("Computing voter transitions ...")
-    transitions = compute_transitions(df)
-
-    print("\nTransition matrix (2023 → 2025):")
-    for target, sources in sorted(transitions.items()):
-        print(f"  {target}: {sources}")
-
-    # Write YAML files
-    print(f"\nWriting YAML files to {output_dir}/{args.year}/voters_movement/ ...")
-    write_yaml_files(transitions, str(output_dir), args.year)
+    for year in years:
+        process_year(year, str(output_dir), args.cache_dir, api_token)
 
     print("\nDone!")
 
