@@ -190,9 +190,25 @@ export function resolvePartyName(
  * Get color for a party name. Resolves through previous_names for color matching.
  */
 export function getPartyColor(name: string, parties: PartyInfo[]): string {
+  // Prefer exact match (party had same id in this election)
+  const exact = parties.find((p) => p.party === name);
+  if (exact) return exact.color;
+
+  // If this name appears as a previous name for some canonical party, try to use
+  // the historical party's own color file (if present). Fall back to the canonical party color.
+  for (const p of parties) {
+    if (p.previous_names?.includes(name)) {
+      const hist = parties.find((h) => h.party === name);
+      if (hist) return hist.color;
+      return p.color;
+    }
+  }
+
+  // Last resort: resolve to canonical and return that color if available
   const resolved = resolvePartyName(name, parties);
   const party = parties.find((p) => p.party === resolved);
   if (party) return party.color;
+
   return '#6b7280';
 }
 
