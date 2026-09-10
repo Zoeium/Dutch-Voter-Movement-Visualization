@@ -65,6 +65,8 @@ function sortNodesInColumn(
     }
     if (aBase === 'not_voted') return 1;
     if (bBase === 'not_voted') return -1;
+    if (aBase === 'other') return 1;
+    if (bBase === 'other') return -1;
     if (sortMode === 'alphabetical') {
       return a.label.localeCompare(b.label);
     }

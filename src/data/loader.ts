@@ -328,7 +328,9 @@ function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
 function getTotals(electionYear: ElectionYear) {
     const totals = { ...electionYear.voteTotals.parties_votes } as Record<string, number>;
     totals['not_voted'] = electionYear.voteTotals.not_voted;
-    return totals;
+  // Ensure 'other' key exists so synthetic 'other' nodes can be rendered even when no explicit totals exist
+  if (!Object.prototype.hasOwnProperty.call(totals, 'other')) totals['other'] = 0;
+  return totals;
 }
 
 export function buildMultiElectionFlows(
@@ -344,6 +346,20 @@ export function buildMultiElectionFlows(
   const allNodes: DiagramNode[] = [];
   const allLinks: DiagramLink[] = [];
 
+  // Determine which party IDs are visible across the selected elections (movements present)
+  const visiblePartySet = new Set<string>();
+  for (const e of elections) {
+    for (const m of e.movements) {
+      // include the movement target
+      visiblePartySet.add(m.party);
+      // include all source party names mentioned in the movement's percentile map
+      const srcMap = (m as any).vote_last_election_in_percentile as Record<string, number> | undefined;
+      if (srcMap) {
+        for (const src of Object.keys(srcMap)) visiblePartySet.add(src);
+      }
+    }
+  }
+
   for (let i = 0; i < elections.length - 1; i++) {
     const fromYear = elections[i];
     const toYear = elections[i + 1];
@@ -354,18 +370,37 @@ export function buildMultiElectionFlows(
     const toTotals = getTotals(toYear);
     const flows = buildPairFlows(toYear, parties, selectedParty, threshold, toTotals);
 
+    // Remap any party IDs that are not visible into the single 'other' bucket and aggregate values
+    const remapAgg: Record<string, number> = {};
+    for (const f of flows) {
+      const src = visiblePartySet.has(f.source) || f.source === 'other' ? f.source : 'other';
+      const tgt = visiblePartySet.has(f.target) || f.target === 'other' ? f.target : 'other';
+      const key = `${src}|${tgt}`;
+      remapAgg[key] = (remapAgg[key] ?? 0) + f.value;
+    }
+
+    const remappedFlows = Object.entries(remapAgg).map(([k, v]) => {
+      const [s, t] = k.split('|');
+      return { source: s, target: t, value: v } as Flow;
+    });
+
     const sourceIds = new Set<string>();
     const targetIds = new Set<string>();
-    for (const flow of flows) {
+    for (const flow of remappedFlows) {
       sourceIds.add(flow.source);
       targetIds.add(flow.target);
     }
 
+    if (!selectedParty && parties.find((p) => p.party === 'other')) {
+      sourceIds.add('other');
+      targetIds.add('other');
+    }
+
     allNodes.push(
-      ...buildColumnNodes(sourceIds, fromCol, fromTotals, flows, parties, selectedParty, true),
-      ...buildColumnNodes(targetIds, toCol, toTotals, flows, parties, selectedParty, false)
+      ...buildColumnNodes(sourceIds, fromCol, fromTotals, remappedFlows, parties, selectedParty, true),
+      ...buildColumnNodes(targetIds, toCol, toTotals, remappedFlows, parties, selectedParty, false)
     );
-    allLinks.push(...buildLinks(flows, fromCol, toCol, parties));
+    allLinks.push(...buildLinks(remappedFlows, fromCol, toCol, parties));
   }
 
   return { nodes: mergeNodeMap(allNodes), links: allLinks };
