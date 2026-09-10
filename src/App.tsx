@@ -32,7 +32,8 @@ export default function App() {
     return buildMultiElectionFlows(elections, parties, selectedParty, threshold);
   }, [elections, selectedParty, threshold]);
 
-  // Build party list for selector (only parties that appear in movement data)
+  // Build party list for selector (only parties that appear in movement data).
+  // If some parties are not present in movement data, collapse them into a single "other" block.
   const availableParties = useMemo(() => {
     const partySet = new Set<string>();
     for (const election of elections) {
@@ -40,9 +41,18 @@ export default function App() {
         partySet.add(movement.party);
       }
     }
-    return parties
+
+    const shown = parties
       .filter((p) => partySet.has(p.party))
       .sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+    // Always include a single 'other' entry (if defined) so users can select it.
+    const otherParty = parties.find((p) => p.party === 'other');
+    if (otherParty && !shown.some((p) => p.party === 'other')) {
+      return [...shown, otherParty];
+    }
+
+    return shown;
   }, [elections]);
 
   return (
