@@ -39,8 +39,33 @@ const movementSourceModules = import.meta.glob('@/../resources/elections/*/voter
 
 // Extract year from a path like "resources/elections/2021/vote_totals.yaml"
 function extractYear(path: string): string {
-  const match = new RegExp(/\/elections\/(\d{4})\//).exec(path);
+  const match = /\/elections\/(\d{4})\//.exec(path);
   return match ? match[1] : '';
+}
+
+function getSortedElectionYears(...moduleGroups: Record<string, string>[]): string[] {
+  return Array.from(
+    new Set(
+      moduleGroups
+        .flatMap((moduleGroup) => Object.keys(moduleGroup))
+        .map((path) => extractYear(path))
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+}
+
+function getDefaultTotals(): VoteTotals {
+  return {
+    date: '',
+    source: {name: '', url: ''},
+    electorate: 0,
+    not_voted: 0,
+    total_votes: 0,
+    non_valid_votes: 0,
+    blanco_votes: 0,
+    valid_votes: 0,
+    parties_votes: {},
+  };
 }
 
 export function loadParties(): PartyInfo[] {
@@ -48,42 +73,17 @@ export function loadParties(): PartyInfo[] {
 }
 
 export function loadElections(): ElectionYear[] {
-  // Build a map of year -> { totals, movements }
-  const years = new Set<string>();
+  const years = getSortedElectionYears(totalsModules, movementModules);
 
-  for (const path of Object.keys(totalsModules)) {
-    years.add(extractYear(path));
-  }
-  for (const path of Object.keys(movementModules)) {
-    years.add(extractYear(path));
-  }
+  return years.map((year) => {
+    const totalsPath = Object.keys(totalsModules).find((path) => extractYear(path) === year);
+    const totals = totalsPath ? (yaml.load(totalsModules[totalsPath]) as VoteTotals) : getDefaultTotals();
 
-  const sortedYears = Array.from(years).sort((a, b) => a.localeCompare(b));
+    const movements = Object.entries(movementModules)
+      .filter(([path]) => extractYear(path) === year && !path.endsWith('/voters_movement/source.yaml'))
+      .map(([, raw]) => yaml.load(raw) as VoterMovement);
 
-  return sortedYears.map((year) => {
-    const totalsPath = Object.keys(totalsModules).find((p) => extractYear(p) === year);
-    const totals = totalsPath
-      ? (yaml.load(totalsModules[totalsPath]) as VoteTotals)
-      : {
-        date: '',
-        source: {name: '', url: ''},
-        electorate: 0,
-        not_voted: 0,
-        total_votes: 0,
-        non_valid_votes: 0,
-        blanco_votes: 0,
-        valid_votes: 0,
-        parties_votes: {},
-      };
-
-    const movements: VoterMovement[] = [];
-    for (const [path, raw] of Object.entries(movementModules)) {
-      if (extractYear(path) !== year) continue;
-      if (path.endsWith('/voters_movement/source.yaml')) continue;
-      movements.push(yaml.load(raw) as VoterMovement);
-    }
-
-    return {year, voteTotals: totals as VoteTotals, movements};
+    return {year, voteTotals: totals, movements};
   });
 }
 
@@ -108,55 +108,48 @@ function normalizeDataSource(source: unknown): DataSource | string | null {
   };
 }
 
-export function loadDataSources(): {
+type DataSourceEntry = {
   year: string;
   fromYear?: string;
   toYear?: string;
   name: string;
   url?: string;
-  kind: 'totals' | 'movement'
-}[] {
-  const sources: {
-    year: string;
-    fromYear?: string;
-    toYear?: string;
-    name: string;
-    url?: string;
-    kind: 'totals' | 'movement'
-  }[] = [];
-  const electionYears = Array.from(
-    new Set([
-      ...Object.keys(totalsModules).map(extractYear),
-      ...Object.keys(movementModules).map(extractYear),
-    ])
-  ).sort((a, b) => a.localeCompare(b));
+  kind: 'totals' | 'movement';
+};
+
+export function loadDataSources(): DataSourceEntry[] {
+  const sources: DataSourceEntry[] = [];
+  const electionYears = getSortedElectionYears(totalsModules, movementModules);
   const previousYearByYear = new Map<string, string | undefined>();
 
-  for (let i = 0; i < electionYears.length; i++) {
-    previousYearByYear.set(electionYears[i], i > 0 ? electionYears[i - 1] : undefined);
-  }
+  electionYears.forEach((year, index) => {
+    previousYearByYear.set(year, index > 0 ? electionYears[index - 1] : undefined);
+  });
 
   const addUniqueSource = (
     year: string,
-    kind: 'totals' | 'movement',
+    kind: DataSourceEntry['kind'],
     source: DataSource | string,
     fromYear?: string,
     toYear?: string
   ) => {
     const normalized = typeof source === 'string' ? {name: source, url: ''} : source;
-    const exists = sources.some(
+    const alreadyExists = sources.some(
       (item) => item.year === year && item.kind === kind && item.name === normalized.name
     );
-    if (!exists) {
-      sources.push({
-        year,
-        fromYear,
-        toYear,
-        kind,
-        name: normalized.name,
-        url: normalized.url || undefined,
-      });
+
+    if (alreadyExists) {
+      return;
     }
+
+    sources.push({
+      year,
+      fromYear,
+      toYear,
+      kind,
+      name: normalized.name,
+      url: normalized.url || undefined,
+    });
   };
 
   for (const [path, raw] of Object.entries(movementSourceModules)) {
@@ -165,11 +158,11 @@ export function loadDataSources(): {
 
     const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
     const source = normalizeDataSource(doc?.source);
-    if (source) {
-      const fromYear = doc?.from_year ?? previousYearByYear.get(year) ?? year;
-      const toYear = doc?.to_year ?? year;
-      addUniqueSource(year, 'movement', source, fromYear, toYear);
-    }
+    if (!source) continue;
+
+    const fromYear = doc?.from_year ?? previousYearByYear.get(year) ?? year;
+    const toYear = doc?.to_year ?? year;
+    addUniqueSource(year, 'movement', source, fromYear, toYear);
   }
 
   for (const [path, raw] of Object.entries(totalsModules)) {
