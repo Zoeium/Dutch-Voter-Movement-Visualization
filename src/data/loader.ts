@@ -1,13 +1,13 @@
 import * as yaml from 'js-yaml';
 import type {
-  PartyInfo,
-  VoteTotals,
-  VoterMovement,
+  DataSource,
+  DiagramLink,
+  DiagramNode,
   ElectionYear,
   Flow,
-  DiagramNode,
-  DiagramLink,
-  DataSource,
+  PartyInfo,
+  VoterMovement,
+  VoteTotals,
 } from '@/types';
 
 // Auto-discover all party YAML files
@@ -65,16 +65,16 @@ export function loadElections(): ElectionYear[] {
     const totals = totalsPath
       ? (yaml.load(totalsModules[totalsPath]) as VoteTotals)
       : {
-          date: '',
-          source: { name: '', url: '' },
-          electorate: 0,
-          not_voted: 0,
-          total_votes: 0,
-          non_valid_votes: 0,
-          blanco_votes: 0,
-          valid_votes: 0,
-          parties_votes: {},
-        };
+        date: '',
+        source: {name: '', url: ''},
+        electorate: 0,
+        not_voted: 0,
+        total_votes: 0,
+        non_valid_votes: 0,
+        blanco_votes: 0,
+        valid_votes: 0,
+        parties_votes: {},
+      };
 
     const movements: VoterMovement[] = [];
     for (const [path, raw] of Object.entries(movementModules)) {
@@ -83,7 +83,7 @@ export function loadElections(): ElectionYear[] {
       movements.push(yaml.load(raw) as VoterMovement);
     }
 
-    return { year, voteTotals: totals as VoteTotals, movements };
+    return {year, voteTotals: totals as VoteTotals, movements};
   });
 }
 
@@ -108,8 +108,22 @@ function normalizeDataSource(source: unknown): DataSource | string | null {
   };
 }
 
-export function loadDataSources(): { year: string; fromYear?: string; toYear?: string; name: string; url?: string; kind: 'totals' | 'movement' }[] {
-  const sources: { year: string; fromYear?: string; toYear?: string; name: string; url?: string; kind: 'totals' | 'movement' }[] = [];
+export function loadDataSources(): {
+  year: string;
+  fromYear?: string;
+  toYear?: string;
+  name: string;
+  url?: string;
+  kind: 'totals' | 'movement'
+}[] {
+  const sources: {
+    year: string;
+    fromYear?: string;
+    toYear?: string;
+    name: string;
+    url?: string;
+    kind: 'totals' | 'movement'
+  }[] = [];
   const electionYears = Array.from(
     new Set([
       ...Object.keys(totalsModules).map(extractYear),
@@ -129,7 +143,7 @@ export function loadDataSources(): { year: string; fromYear?: string; toYear?: s
     fromYear?: string,
     toYear?: string
   ) => {
-    const normalized = typeof source === 'string' ? { name: source, url: '' } : source;
+    const normalized = typeof source === 'string' ? {name: source, url: ''} : source;
     const exists = sources.some(
       (item) => item.year === year && item.kind === kind && item.name === normalized.name
     );
@@ -267,7 +281,7 @@ function buildPairFlows(
 
       const value = Math.round((pct / 100) * targetVotes);
       if (value > 0) {
-        flows.push({ source: sourceName, target: targetParty, value });
+        flows.push({source: sourceName, target: targetParty, value});
       }
     }
   }
@@ -329,7 +343,7 @@ function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
   for (const node of nodes) {
     const existingNode = nodeMap[node.id];
     if (existingNode) {
-      nodeMap[node.id] = { ...node, value: Math.max(existingNode.value, node.value) };
+      nodeMap[node.id] = {...node, value: Math.max(existingNode.value, node.value)};
       continue;
     }
 
@@ -339,11 +353,16 @@ function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
   return Object.values(nodeMap);
 }
 
-function getTotals(electionYear: ElectionYear) {
-    const totals = { ...electionYear.voteTotals.parties_votes } as Record<string, number>;
-    totals['not_voted'] = electionYear.voteTotals.not_voted;
-  // Ensure 'other' key exists so synthetic 'other' nodes can be rendered even when no explicit totals exist
-  if (!Object.prototype.hasOwnProperty.call(totals, 'other')) totals['other'] = 0;
+function getTotals(electionYear: ElectionYear, parties: PartyInfo[]) {
+  const totals = {...electionYear.voteTotals.parties_votes} as Record<string, number>;
+  totals['not_voted'] = electionYear.voteTotals.not_voted;
+
+  const partyIds = new Set(parties.map((party) => party.party));
+  totals['other'] = Object.entries(electionYear.voteTotals.parties_votes).reduce((sum, [party, votes]) => {
+    if (party === 'other') return sum + votes;
+    if (partyIds.has(party)) return sum;
+    return sum + votes;
+  }, 0);
   return totals;
 }
 
@@ -380,7 +399,7 @@ function remapHiddenParties(flows: Flow[], visiblePartySet: Set<string>): Flow[]
 
   return Object.entries(remapAgg).map(([key, value]) => {
     const [source, target] = key.split('|');
-    return { source, target, value } as Flow;
+    return {source, target, value} as Flow;
   });
 }
 
@@ -402,7 +421,7 @@ function collectFlowIds(
     targetIds.add('other');
   }
 
-  return { sourceIds, targetIds };
+  return {sourceIds, targetIds};
 }
 
 function buildStepNodesAndLinks(
@@ -414,11 +433,11 @@ function buildStepNodesAndLinks(
   selectedParty: string | null,
   visiblePartySet: Set<string>
 ): { nodes: DiagramNode[]; links: DiagramLink[] } {
-  const fromTotals = getTotals(fromYear);
-  const toTotals = getTotals(toYear);
+  const fromTotals = getTotals(fromYear, parties);
+  const toTotals = getTotals(toYear, parties);
   const flows = buildPairFlows(toYear, parties, selectedParty, toTotals);
   const remappedFlows = remapHiddenParties(flows, visiblePartySet);
-  const { sourceIds, targetIds } = collectFlowIds(remappedFlows, selectedParty, parties);
+  const {sourceIds, targetIds} = collectFlowIds(remappedFlows, selectedParty, parties);
 
   return {
     nodes: [
@@ -435,7 +454,7 @@ export function buildMultiElectionFlows(
   selectedParty: string | null,
 ): { nodes: DiagramNode[]; links: DiagramLink[] } {
   if (elections.length < 2) {
-    return { nodes: [], links: [] };
+    return {nodes: [], links: []};
   }
 
   const allNodes: DiagramNode[] = [];
@@ -457,5 +476,5 @@ export function buildMultiElectionFlows(
     allLinks.push(...step.links);
   }
 
-  return { nodes: mergeNodeMap(allNodes), links: allLinks };
+  return {nodes: mergeNodeMap(allNodes), links: allLinks};
 }
