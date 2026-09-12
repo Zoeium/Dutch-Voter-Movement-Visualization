@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Users, Info, ArrowDownUp, CalendarRange } from 'lucide-react';
-import AlluvialDiagram, { type SortMode } from '@/components/AlluvialDiagram';
+import {useMemo, useState} from 'react';
+import {Users, Info, ArrowDownUp, CalendarRange} from 'lucide-react';
+import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import {
   loadParties,
   loadElections,
@@ -13,6 +13,19 @@ const allElections = loadElections();
 const dataSources = loadDataSources();
 
 const electionYears = allElections.map((e) => e.year);
+
+const toggleButtonClass = (active: boolean): string =>
+  active
+    ? 'bg-emerald-500 text-white'
+    : 'bg-gray-800 text-gray-300 hover:bg-gray-700';
+
+const partyButtonClass = (selected: boolean): string =>
+  `${selected ? 'ring-2 ring-offset-2 ring-offset-gray-950' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
+
+const getSourceLabel = (source: { kind: 'totals' | 'movement'; year: string; fromYear?: string; toYear?: string }) =>
+  source.kind === 'totals'
+    ? `Totals (${source.year})`
+    : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
 
 export default function App() {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
@@ -27,7 +40,7 @@ export default function App() {
 
   const electionLabels = elections.map((e) => e.year);
 
-  const { nodes, links } = useMemo(() => {
+  const {nodes, links} = useMemo(() => {
     return buildMultiElectionFlows(elections, parties, selectedParty);
   }, [elections, selectedParty]);
 
@@ -60,8 +73,9 @@ export default function App() {
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
+            <div
+              className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <Users className="w-5 h-5 text-white"/>
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight">Voter Flow</h1>
@@ -87,56 +101,49 @@ export default function App() {
           {/* Party filter */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Party filter:</span>
-            <button type={"button"}
+            <button
+              type="button"
               onClick={() => setSelectedParty(null)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedParty === null
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(selectedParty === null)}`}
             >
               All parties
             </button>
-            {availableParties.map((p) => (
-              <button type={"button"}
-                key={p.party}
-                onClick={() =>
-                  setSelectedParty(selectedParty === p.party ? null : p.party)
-                }
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  selectedParty === p.party
-                    ? 'ring-2 ring-offset-2 ring-offset-gray-950'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-                style={
-                  selectedParty === p.party
-                    ? {
+            {availableParties.map((p) => {
+              const isSelected = selectedParty === p.party;
+
+              return (
+                <button
+                  type="button"
+                  key={p.party}
+                  onClick={() => setSelectedParty(isSelected ? null : p.party)}
+                  className={partyButtonClass(isSelected)}
+                  style={
+                    isSelected
+                      ? {
                         backgroundColor: p.color,
                         color: '#fff',
                         boxShadow: `0 0 0 2px ${p.color}`,
                       }
-                    : undefined
-                }
-              >
-                <span
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: p.color }}
-                />
-                {p.display_name}
-              </button>
-            ))}
+                      : undefined
+                  }
+                >
+                  <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
+                  {p.display_name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div className="mb-6 flex items-center gap-4 flex-wrap">
           {/* Year range slider */}
           <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
-            <CalendarRange className="w-4 h-4 text-gray-400" />
+            <CalendarRange className="w-4 h-4 text-gray-400"/>
             <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
               Years: {electionYears[yearStart]}–{electionYears[yearEnd]}
             </span>
             <div className="relative w-56 h-6 flex items-center">
-              <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700" />
+              <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
               <div
                 className="absolute h-1.5 rounded-full bg-emerald-500"
                 style={{
@@ -151,7 +158,7 @@ export default function App() {
                 value={yearStart}
                 onChange={(e) => setYearStart(Math.min(Number(e.target.value), yearEnd))}
                 className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                style={{ zIndex: yearStart === yearEnd ? 4 : 3 }}
+                style={{zIndex: yearStart === yearEnd ? 4 : 3}}
               />
               <input
                 type="range"
@@ -160,31 +167,25 @@ export default function App() {
                 value={yearEnd}
                 onChange={(e) => setYearEnd(Math.max(Number(e.target.value), yearStart))}
                 className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                style={{ zIndex: 4 }}
+                style={{zIndex: 4}}
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            <ArrowDownUp className="w-4 h-4 text-gray-400" />
+            <ArrowDownUp className="w-4 h-4 text-gray-400"/>
             <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Sort:</span>
-            <button type={"button"}
+            <button
+              type="button"
               onClick={() => setSortMode('votes')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                sortMode === 'votes'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'votes')}`}
             >
               By votes
             </button>
-            <button type={"button"}
+            <button
+              type="button"
               onClick={() => setSortMode('alphabetical')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                sortMode === 'alphabetical'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'alphabetical')}`}
             >
               Alphabetical
             </button>
@@ -197,7 +198,7 @@ export default function App() {
           {nodes.length === 0 ? (
             <div className="flex items-center justify-center h-96 text-gray-500">
               <div className="text-center">
-                <Info className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
                 <p>No flow data available for the selected filters.</p>
               </div>
             </div>
@@ -220,29 +221,24 @@ export default function App() {
             Sources
           </div>
           <ul className="space-y-3 text-sm text-gray-500">
-            {dataSources.map((source) => {
-              const label = source.kind === 'totals'
-                ? `Totals (${source.year})`
-                : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
-
-              return (
-                <li key={`${source.year}-${source.kind}-${source.name}`} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                  <span className="text-gray-300 font-medium min-w-[170px]">{label}</span>
-                  {source.url ? (
-                    <a
-                      href={source.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-emerald-400 underline decoration-dotted underline-offset-4 hover:text-emerald-300"
-                    >
-                      {source.name}
-                    </a>
-                  ) : (
-                    <span>{source.name}</span>
-                  )}
-                </li>
-              );
-            })}
+            {dataSources.map((source) => (
+              <li key={`${source.year}-${source.kind}-${source.name}`}
+                  className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <span className="text-gray-300 font-medium min-w-[170px]">{getSourceLabel(source)}</span>
+                {source.url ? (
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emerald-400 underline decoration-dotted underline-offset-4 hover:text-emerald-300"
+                  >
+                    {source.name}
+                  </a>
+                ) : (
+                  <span>{source.name}</span>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
       </footer>
