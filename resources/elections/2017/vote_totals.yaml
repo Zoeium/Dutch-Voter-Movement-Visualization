@@ -1,7 +1,7 @@
 date: 2017-03-15
 source:
-  name: "overheid.nl: Verkiezingsuitslag Tweede Kamer 2017"
-  url: http://data.overheid.nl/dataset/5f636036-1634-4c7b-8ac9-8c0b4995ff4d
+  name: 'overheid.nl: Verkiezingsuitslag Tweede Kamer 2017'
+  url: https://data.overheid.nl/dataset/5f636036-1634-4c7b-8ac9-8c0b4995ff4d
 electorate: 12950685
 not_voted: 2387229
 total_votes: 10563456
@@ -18,7 +18,7 @@ parties_votes:
   pvda: 599699
   christenunie: 356271
   pvdd: 335214
-  "50plus": 327131
+  50plus: 327131
   sgp: 218950
   denk: 216147
   fvd: 187162

@@ -54,6 +54,28 @@ function getSortedElectionYears(...moduleGroups: Record<string, string>[]): stri
   ).sort((a, b) => a.localeCompare(b));
 }
 
+function hasMovementDataForYear(year: string): boolean {
+  return Object.entries(movementModules).some(
+    ([path, raw]) =>
+      extractYear(path) === year &&
+      !path.endsWith('/voters_movement/source.yaml') &&
+      Boolean(raw)
+  );
+}
+
+function getVisibleElectionYears(): string[] {
+  const years = getSortedElectionYears(totalsModules, movementModules);
+
+  return years.filter((year, index) => {
+    if (hasMovementDataForYear(year)) {
+      return true;
+    }
+
+    const nextYear = years[index + 1];
+    return !nextYear || hasMovementDataForYear(nextYear);
+  });
+}
+
 function getDefaultTotals(): VoteTotals {
   return {
     date: '',
@@ -72,8 +94,20 @@ export function loadParties(): PartyInfo[] {
   return Object.values(partyModules).map((raw) => yaml.load(raw) as PartyInfo);
 }
 
+function hasIncomingMovementData(election: ElectionYear): boolean {
+  return election.movements.length > 0;
+}
+
+function hasMovementData(election: ElectionYear, nextElection: ElectionYear | undefined): boolean {
+  if (hasIncomingMovementData(election)) {
+    return true;
+  }
+
+  return !nextElection || hasIncomingMovementData(nextElection);
+}
+
 export function loadElections(): ElectionYear[] {
-  const years = getSortedElectionYears(totalsModules, movementModules);
+  const years = getVisibleElectionYears();
 
   return years.map((year) => {
     const totalsPath = Object.keys(totalsModules).find((path) => extractYear(path) === year);
@@ -119,7 +153,8 @@ type DataSourceEntry = {
 
 export function loadDataSources(): DataSourceEntry[] {
   const sources: DataSourceEntry[] = [];
-  const electionYears = getSortedElectionYears(totalsModules, movementModules);
+  const electionYears = getVisibleElectionYears();
+  const visibleYearSet = new Set(electionYears);
   const previousYearByYear = new Map<string, string | undefined>();
 
   electionYears.forEach((year, index) => {
@@ -133,6 +168,10 @@ export function loadDataSources(): DataSourceEntry[] {
     fromYear?: string,
     toYear?: string
   ) => {
+    if (!visibleYearSet.has(year)) {
+      return;
+    }
+
     const normalized = typeof source === 'string' ? {name: source, url: ''} : source;
     const alreadyExists = sources.some(
       (item) => item.year === year && item.kind === kind && item.name === normalized.name
@@ -154,7 +193,7 @@ export function loadDataSources(): DataSourceEntry[] {
 
   for (const [path, raw] of Object.entries(movementSourceModules)) {
     const year = extractYear(path);
-    if (!year) continue;
+    if (!year || !visibleYearSet.has(year)) continue;
 
     const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
     const source = normalizeDataSource(doc?.source);
@@ -167,7 +206,7 @@ export function loadDataSources(): DataSourceEntry[] {
 
   for (const [path, raw] of Object.entries(totalsModules)) {
     const year = extractYear(path);
-    if (!year) continue;
+    if (!year || !visibleYearSet.has(year)) continue;
 
     const doc = yaml.load(raw) as { source?: unknown } | null;
     const source = normalizeDataSource(doc?.source);
@@ -446,18 +485,22 @@ export function buildMultiElectionFlows(
   parties: PartyInfo[],
   selectedParty: string | null,
 ): { nodes: DiagramNode[]; links: DiagramLink[] } {
-  if (elections.length < 2) {
+  const visibleElections = elections.filter((election, index) => {
+    return hasMovementData(election, elections[index + 1]);
+  });
+
+  if (visibleElections.length < 2) {
     return {nodes: [], links: []};
   }
 
   const allNodes: DiagramNode[] = [];
   const allLinks: DiagramLink[] = [];
-  const visiblePartySet = collectVisiblePartyIds(elections);
+  const visiblePartySet = collectVisiblePartyIds(visibleElections);
 
-  for (let i = 0; i < elections.length - 1; i++) {
+  for (let i = 0; i < visibleElections.length - 1; i++) {
     const step = buildStepNodesAndLinks(
-      elections[i],
-      elections[i + 1],
+      visibleElections[i],
+      visibleElections[i + 1],
       i,
       i + 1,
       parties,

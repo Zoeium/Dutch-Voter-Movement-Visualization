@@ -1,6 +1,6 @@
 date: 2025-10-29
 source:
-  name: "overheid.nl: Verkiezingsuitslag Tweede Kamer 2025"
+  name: 'overheid.nl: Verkiezingsuitslag Tweede Kamer 2025'
   url: http://data.overheid.nl/dataset/a16f3352-c9ce-4831-a314-f989d442a258
 electorate: 13589128
 not_voted: 2948804
@@ -22,7 +22,7 @@ parties_votes:
   pvdd: 219371
   christenunie: 201361
   sp: 199585
-  "50plus": 151053
+  50plus: 151053
   volt: 116468
   bij1: 40360
   nsc: 39408
@@ -36,4 +36,3 @@ parties_votes:
   vrij_verbond: 1048
   ellect: 205
   partij_voor_de_rechtsstaat: 151
-

@@ -13,6 +13,7 @@ const allElections = loadElections();
 const dataSources = loadDataSources();
 
 const electionYears = allElections.map((e) => e.year);
+const defaultYearEnd = Math.max(0, electionYears.length - 1);
 
 const toggleButtonClass = (active: boolean): string =>
   active
@@ -31,7 +32,7 @@ export default function App() {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('votes');
   const [yearStart, setYearStart] = useState<number>(0);
-  const [yearEnd, setYearEnd] = useState<number>(electionYears.length - 1);
+  const [yearEnd, setYearEnd] = useState<number>(defaultYearEnd);
 
   const elections = useMemo(
     () => allElections.filter((_, i) => i >= yearStart && i <= yearEnd),
@@ -39,6 +40,7 @@ export default function App() {
   );
 
   const electionLabels = elections.map((e) => e.year);
+  const hasSelectableYears = electionYears.length > 0;
 
   const {nodes, links} = useMemo(() => {
     return buildMultiElectionFlows(elections, parties, selectedParty);
@@ -140,36 +142,40 @@ export default function App() {
           <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
             <CalendarRange className="w-4 h-4 text-gray-400"/>
             <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
-              Years: {electionYears[yearStart]}–{electionYears[yearEnd]}
+              {hasSelectableYears
+                ? `Years: ${electionYears[yearStart]}–${electionYears[yearEnd]}`
+                : 'Years: none available'}
             </span>
-            <div className="relative w-56 h-6 flex items-center">
-              <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
-              <div
-                className="absolute h-1.5 rounded-full bg-emerald-500"
-                style={{
-                  left: `${(yearStart / (electionYears.length - 1)) * 100}%`,
-                  right: `${100 - (yearEnd / (electionYears.length - 1)) * 100}%`,
-                }}
-              />
-              <input
-                type="range"
-                min={0}
-                max={electionYears.length - 1}
-                value={yearStart}
-                onChange={(e) => setYearStart(Math.min(Number(e.target.value), yearEnd))}
-                className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                style={{zIndex: yearStart === yearEnd ? 4 : 3}}
-              />
-              <input
-                type="range"
-                min={0}
-                max={electionYears.length - 1}
-                value={yearEnd}
-                onChange={(e) => setYearEnd(Math.max(Number(e.target.value), yearStart))}
-                className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                style={{zIndex: 4}}
-              />
-            </div>
+            {hasSelectableYears && (
+              <div className="relative w-56 h-6 flex items-center">
+                <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
+                <div
+                  className="absolute h-1.5 rounded-full bg-emerald-500"
+                  style={{
+                    left: `${(yearStart / Math.max(1, electionYears.length - 1)) * 100}%`,
+                    right: `${100 - (yearEnd / Math.max(1, electionYears.length - 1)) * 100}%`,
+                  }}
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={electionYears.length - 1}
+                  value={yearStart}
+                  onChange={(e) => setYearStart(Math.min(Number(e.target.value), yearEnd))}
+                  className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
+                  style={{zIndex: yearStart === yearEnd ? 4 : 3}}
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={electionYears.length - 1}
+                  value={yearEnd}
+                  onChange={(e) => setYearEnd(Math.max(Number(e.target.value), yearStart))}
+                  className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
+                  style={{zIndex: 4}}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 ml-auto">

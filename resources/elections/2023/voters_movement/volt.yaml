@@ -6,6 +6,6 @@ vote_last_election_in_percentile:
   pvda: 4
   cda: 3
   not_voted: 3
-  "50plus": 2
+  50plus: 2
   sp: 1
   pvdd: 1

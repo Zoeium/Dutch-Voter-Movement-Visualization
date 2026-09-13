@@ -12,7 +12,7 @@ vote_last_election_in_percentile:
   pvdd: 2
   ja21: 2
   volt: 2
-  "50plus": 2
+  50plus: 2
   fvd: 1
   bbb: 1
 
