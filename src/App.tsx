@@ -5,12 +5,14 @@ import TurnoutDiagram from '@/components/TurnoutDiagram';
 import {
   loadParties,
   loadElections,
+  loadAllElections,
   loadDataSources,
   buildMultiElectionFlows,
 } from '@/data/loader';
 
 const parties = loadParties();
 const allElections = loadElections();
+const allElectionsForTurnout = loadAllElections();
 const dataSources = loadDataSources();
 
 const electionYears = allElections.map((e) => e.year);
@@ -30,10 +32,17 @@ const getSourceLabel = (source: { kind: 'totals' | 'movement'; year: string; fro
     : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<'alluvial' | 'turnout'>('alluvial');
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('votes');
   const [yearStart, setYearStart] = useState<number>(0);
   const [yearEnd, setYearEnd] = useState<number>(defaultYearEnd);
+
+  // Separate year range for turnout diagram
+  const turnoutYears = allElectionsForTurnout.map((e) => e.year);
+  const defaultTurnoutYearEnd = Math.max(0, turnoutYears.length - 1);
+  const [turnoutYearStart, setTurnoutYearStart] = useState<number>(0);
+  const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(defaultTurnoutYearEnd);
 
   const elections = useMemo(
     () => allElections.filter((_, i) => i >= yearStart && i <= yearEnd),
@@ -46,6 +55,12 @@ export default function App() {
   const {nodes, links} = useMemo(() => {
     return buildMultiElectionFlows(elections, parties, selectedParty);
   }, [elections, selectedParty]);
+
+  // For turnout, filter by turnout year range
+  const turnoutElections = useMemo(
+    () => allElectionsForTurnout.filter((_, i) => i >= turnoutYearStart && i <= turnoutYearEnd),
+    [turnoutYearStart, turnoutYearEnd]
+  );
 
   // Build party list for selector (only parties that appear in movement data).
   // If some parties are not present in movement data, collapse them into a single "other" block.
@@ -70,6 +85,19 @@ export default function App() {
     return shown;
   }, [elections]);
 
+  // Filter data sources based on active tab
+  const filteredDataSources = useMemo(() => {
+    if (activeTab === 'alluvial') {
+      // For alluvial: show sources for years in the selected range (both totals and movements)
+      const yearSet = new Set(elections.map(e => e.year));
+      return dataSources.filter(source => yearSet.has(source.year));
+    } else {
+      // For turnout: show totals for all years in the turnout range, exclude movements
+      const yearSet = new Set(turnoutElections.map(e => e.year));
+      return dataSources.filter(source => source.kind === 'totals' && yearSet.has(source.year));
+    }
+  }, [activeTab, elections, turnoutElections]);
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       {/* Header */}
@@ -89,17 +117,38 @@ export default function App() {
       </header>
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
-        {/* Intro */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">How voters moved between parties</h2>
-          <p className="text-gray-400 max-w-2xl">
-            This alluvial diagram visualizes voter migration across Dutch parliamentary
-            elections. Each flow shows where a party's voters came from — or where they went.
-            Hover over a party block to highlight its flows, or filter to a single party.
-          </p>
+        {/* Tabs */}
+        <div className="mb-8 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('alluvial')}
+            className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'alluvial')}`}
+          >
+            Alluvial Diagram
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('turnout')}
+            className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'turnout')}`}
+          >
+            Turnout Overview
+          </button>
         </div>
 
-        {/* Controls */}
+        {/* Alluvial Tab */}
+        {activeTab === 'alluvial' && (
+          <>
+            {/* Intro */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-2">How voters moved between parties</h2>
+              <p className="text-gray-400 max-w-2xl">
+                This alluvial diagram visualizes voter migration across Dutch parliamentary
+                elections. Each flow shows where a party's voters came from — or where they went.
+                Hover over a party block to highlight its flows, or filter to a single party.
+              </p>
+            </div>
+
+            {/* Controls */}
         <div className="mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center">
           {/* Party filter */}
           <div className="flex items-center gap-3 flex-wrap">
@@ -200,36 +249,87 @@ export default function App() {
           </div>
         </div>
 
-        {/* Turnout overview */}
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl mb-6">
-          <h3 className="text-lg font-bold mb-1">Turnout & vote breakdown</h3>
-          <p className="text-sm text-gray-400 mb-4">
-            Total electorate split into valid votes, blanco, invalid, and those who did not vote.
-            Hover a bar for details.
-          </p>
-          <TurnoutDiagram elections={elections}/>
-        </div>
-
-        {/* Diagram */}
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
-          {nodes.length === 0 ? (
-            <div className="flex items-center justify-center h-96 text-gray-500">
-              <div className="text-center">
-                <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
-                <p>No flow data available for the selected filters.</p>
-              </div>
+            {/* Diagram */}
+            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
+              {nodes.length === 0 ? (
+                <div className="flex items-center justify-center h-96 text-gray-500">
+                  <div className="text-center">
+                    <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
+                    <p>No flow data available for the selected filters.</p>
+                  </div>
+                </div>
+              ) : (
+                <AlluvialDiagram
+                  nodes={nodes}
+                  links={links}
+                  numColumns={elections.length}
+                  electionLabels={electionLabels}
+                  selectedParty={selectedParty}
+                  sortMode={sortMode}
+                />
+              )}
             </div>
-          ) : (
-            <AlluvialDiagram
-              nodes={nodes}
-              links={links}
-              numColumns={elections.length}
-              electionLabels={electionLabels}
-              selectedParty={selectedParty}
-              sortMode={sortMode}
-            />
-          )}
-        </div>
+          </>
+        )}
+
+        {/* Turnout Tab */}
+        {activeTab === 'turnout' && (
+          <>
+            {/* Intro */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-2">Turnout & vote breakdown</h2>
+              <p className="text-gray-400 max-w-2xl">
+                Total electorate split into valid votes, blanco, invalid, and those who did not vote.
+                Hover a bar for details.
+              </p>
+            </div>
+
+            {/* Year range selector for turnout */}
+            <div className="mb-6 flex items-center gap-3 flex-wrap">
+              <CalendarRange className="w-4 h-4 text-gray-400"/>
+              <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
+                {turnoutYears.length > 0
+                  ? `Years: ${turnoutYears[turnoutYearStart]}–${turnoutYears[turnoutYearEnd]}`
+                  : 'Years: none available'}
+              </span>
+              {turnoutYears.length > 0 && (
+                <div className="relative w-56 h-6 flex items-center">
+                  <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
+                  <div
+                    className="absolute h-1.5 rounded-full bg-emerald-500"
+                    style={{
+                      left: `${(turnoutYearStart / Math.max(1, turnoutYears.length - 1)) * 100}%`,
+                      right: `${100 - (turnoutYearEnd / Math.max(1, turnoutYears.length - 1)) * 100}%`,
+                    }}
+                  />
+                  <input
+                    type="range"
+                    min={0}
+                    max={turnoutYears.length - 1}
+                    value={turnoutYearStart}
+                    onChange={(e) => setTurnoutYearStart(Math.min(Number(e.target.value), turnoutYearEnd))}
+                    className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
+                    style={{zIndex: turnoutYearStart === turnoutYearEnd ? 4 : 3}}
+                  />
+                  <input
+                    type="range"
+                    min={0}
+                    max={turnoutYears.length - 1}
+                    value={turnoutYearEnd}
+                    onChange={(e) => setTurnoutYearEnd(Math.max(Number(e.target.value), turnoutYearStart))}
+                    className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
+                    style={{zIndex: 4}}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Turnout Diagram */}
+            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
+              <TurnoutDiagram elections={turnoutElections}/>
+            </div>
+          </>
+        )}
       </main>
 
       <footer className="border-t border-gray-800 mt-12 py-8">
@@ -238,7 +338,7 @@ export default function App() {
             Sources
           </div>
           <ul className="space-y-3 text-sm text-gray-500">
-            {dataSources.map((source) => (
+            {filteredDataSources.map((source) => (
               <li key={`${source.year}-${source.kind}-${source.name}`}
                   className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <span className="text-gray-300 font-medium min-w-[170px]">{getSourceLabel(source)}</span>
