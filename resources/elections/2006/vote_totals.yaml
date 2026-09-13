@@ -1,0 +1,34 @@
+date: 2006-11-22
+source:
+  name: 'overheid.nl: Verkiezingen; 2006 uitslag en zetelverdeling Tweede Kamer'
+  url: https://data.overheid.nl/dataset/3565-verkiezingen--2006-uitslag-en-zetelverdeling-tweede-kamer
+electorate: 12264503
+not_voted: 2409505
+total_votes: 9854998
+non_valid_voteS_and_blanco_votes: 16.315
+valid_votes: 9838683
+parties_votes:
+  cda: 2608573
+  pvda: 2085077
+  sp: 1630803
+  vvd: 1443312
+  pvv: 579490
+  groenlinks: 453054
+  christenunie: 390969
+  d66: 193232
+  pvdd: 179988
+  sgp: 153266
+  eennl: 62829
+  fortuyn: 20956
+  verenigde_senioren_partij: 12522
+  ad_bos_collectief: 5149
+  pvn: 5010
+  lijst_potmis: 4339
+  nederland_transparant: 2318
+  groen_vrij_internet_partij: 2297
+  liberaal_democratische_partij: 2276
+  lijst_poortman: 2181
+  continue_directe_democratie_partij_cddp: 559
+  lrvp_het_zeteltje: 185
+  smp: 184
+  tamaras_open_partij: 114

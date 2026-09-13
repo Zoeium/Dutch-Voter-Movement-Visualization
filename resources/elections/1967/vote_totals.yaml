@@ -1,0 +1,33 @@
+date: 1967-02-15
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1967'
+  url: https://data.overheid.nl/dataset/3585-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1967
+electorate: 7452776
+not_voted: 376448
+total_votes: 7076328
+non_valid_votes_and_blanco_votes: 198298
+valid_votes: 6878030
+parties_votes:
+  katholieke_volkspartij: 1822904
+  pvda: 1620112
+  vvd: 738202
+  anti_revolutionaire_partij: 681060
+  christelijk_historische_unie: 560033
+  boeren_partij: 327953
+  d66: 307810
+  cpn: 248318
+  psp: 197206
+  sgp: 138069
+  gpv: 59156
+  de_noodraad: 45421
+  christen_democraten_unie: 45335
+  partij_voor_ongehuwden: 43361
+  landsbelangen: 17594
+  liberale_volkspartij: 11279
+  lijst_voogd: 4808
+  lijst_v_breukelen_grein: 3560
+  lijst_machiela: 1669
+  lijst_germeaux: 1218
+  partij_van_het_recht: 1070
+  cnvp: 976
+  lijst_rodermond: 916

@@ -1,0 +1,32 @@
+date: 1998-05-06
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1998'
+  url: https://data.overheid.nl/dataset/3567-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1998
+electorate: 11755132
+not_voted: 3132910
+total_votes: 8622222
+non_valid_votes_and_blanco_votes: 14435
+valid_votes: 8607787
+parties_votes:
+  pvda: 2494555
+  vvd: 2124971
+  cda: 1581053
+  d66: 773497
+  groenlinks: 625968
+  sp: 303703
+  rpf: 174593
+  sgp: 153583
+  gpv: 108724
+  cd: 52226
+  aov_u: 45994
+  nm: 45219
+  s2000: 36157
+  nmp: 23512
+  dg: 16585
+  nwp: 15746
+  kpp: 8233
+  vip: 7225
+  nsov: 6455
+  ncpn: 5620
+  id_j: 2500
+  hkc: 1668

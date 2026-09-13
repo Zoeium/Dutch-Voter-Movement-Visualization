@@ -1,0 +1,30 @@
+date: 1972-11-29
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1972'
+  url: https://data.overheid.nl/dataset/3583-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1972
+electorate: 8916947
+not_voted: 1471660
+total_votes: 7445287
+non_valid_votes_and_blanco_votes: 51242
+valid_votes: 7394045
+parties_votes:
+  pvda: 2021454
+  katholieke_volkspartij: 1305401
+  vvd: 1068375
+  anti_revolutionaire_partij: 653609
+  ppr: 354829
+  christelijk_historische_unie: 354463
+  cpn: 330398
+  d66: 307048
+  ds70: 304714
+  sgp: 163114
+  bp: 143239
+  gpv: 131236
+  psp: 111262
+  rkpn: 67658
+  dmp: 41262
+  nmp: 32970
+  lijst_stam: 1547
+  pvhr: 656
+  awa: 574
+  nrp: 236
