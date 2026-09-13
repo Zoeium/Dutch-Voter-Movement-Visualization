@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import {Users, Info, ArrowDownUp, CalendarRange} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
+import TurnoutDiagram from '@/components/TurnoutDiagram';
 import {
   loadParties,
   loadElections,
@@ -197,6 +198,16 @@ export default function App() {
             </button>
 
           </div>
+        </div>
+
+        {/* Turnout overview */}
+        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl mb-6">
+          <h3 className="text-lg font-bold mb-1">Turnout & vote breakdown</h3>
+          <p className="text-sm text-gray-400 mb-4">
+            Total electorate split into valid votes, blanco, invalid, and those who did not vote.
+            Hover a bar for details.
+          </p>
+          <TurnoutDiagram elections={elections}/>
         </div>
 
         {/* Diagram */}
