@@ -5,7 +5,7 @@ source:
 electorate: 12264503
 not_voted: 2409505
 total_votes: 9854998
-non_valid_voteS_and_blanco_votes: 16.315
+non_valid_votes_and_blanco_votes: 16315
 valid_votes: 9838683
 parties_votes:
   cda: 2608573

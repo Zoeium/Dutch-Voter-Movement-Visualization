@@ -18,6 +18,7 @@ export interface VoteTotals {
   total_votes: number;
   non_valid_votes: number;
   blanco_votes: number;
+  non_valid_votes_and_blanco_votes?: number;
   valid_votes: number;
   parties_votes: Record<string, number>;
 }

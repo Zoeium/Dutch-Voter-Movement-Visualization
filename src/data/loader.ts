@@ -121,6 +121,21 @@ export function loadElections(): ElectionYear[] {
   });
 }
 
+export function loadAllElections(): ElectionYear[] {
+  const years = getSortedElectionYears(totalsModules);
+
+  return years.map((year) => {
+    const totalsPath = Object.keys(totalsModules).find((path) => extractYear(path) === year);
+    const totals = totalsPath ? (yaml.load(totalsModules[totalsPath]) as VoteTotals) : getDefaultTotals();
+
+    const movements = Object.entries(movementModules)
+      .filter(([path]) => extractYear(path) === year && !path.endsWith('/voters_movement/source.yaml'))
+      .map(([, raw]) => yaml.load(raw) as VoterMovement);
+
+    return {year, voteTotals: totals, movements};
+  });
+}
+
 function normalizeDataSource(source: unknown): DataSource | string | null {
   if (typeof source === 'string') {
     return source;
@@ -168,10 +183,6 @@ export function loadDataSources(): DataSourceEntry[] {
     fromYear?: string,
     toYear?: string
   ) => {
-    if (!visibleYearSet.has(year)) {
-      return;
-    }
-
     const normalized = typeof source === 'string' ? {name: source, url: ''} : source;
     const alreadyExists = sources.some(
       (item) => item.year === year && item.kind === kind && item.name === normalized.name
@@ -204,9 +215,10 @@ export function loadDataSources(): DataSourceEntry[] {
     addUniqueSource(year, 'movement', source, fromYear, toYear);
   }
 
+  // Load totals for all years (not just visible years)
   for (const [path, raw] of Object.entries(totalsModules)) {
     const year = extractYear(path);
-    if (!year || !visibleYearSet.has(year)) continue;
+    if (!year) continue;
 
     const doc = yaml.load(raw) as { source?: unknown } | null;
     const source = normalizeDataSource(doc?.source);
