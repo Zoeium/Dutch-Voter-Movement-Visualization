@@ -8,7 +8,7 @@ vote_last_election_in_percentile:
   sp: 3
   pvda: 1
   pvdd: 1
-  "50plus": 2
+  50plus: 2
   fvd: 11
   not_voted: 8
 

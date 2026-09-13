@@ -9,7 +9,7 @@ vote_last_election_in_percentile:
   pvda: 6
   christenunie: 1
   pvdd: 1
-  "50plus": 1
+  50plus: 1
   fvd: 1
   not_voted: 12
 

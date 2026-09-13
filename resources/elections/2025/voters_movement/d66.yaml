@@ -1,13 +1,12 @@
 party: d66
 vote_last_election_in_percentile:
-  d66: 30
-  glpvda: 21
-  vvd: 14
+  d66: 24
+  glpvda: 20
   nsc: 13
-  not_voted: 7
-  pvv: 4
-  cda: 3
-  volt: 3
-  pvdd: 2
+  vvd: 11
+  not_voted: 9
+  pvv: 7
+  bbb: 3
   sp: 2
-  ja21: 1
+  cda: 1
+  pvdd: 1

@@ -6,6 +6,6 @@ vote_last_election_in_percentile:
   groenlinks: 9
   sp: 5
   pvdd: 6
-  "50plus": 11
+  50plus: 11
   not_voted: 8
 
