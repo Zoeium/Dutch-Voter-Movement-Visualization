@@ -124,7 +124,7 @@ export default function App() {
             onClick={() => setActiveTab('alluvial')}
             className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'alluvial')}`}
           >
-            Alluvial Diagram
+            Voter Movements
           </button>
           <button
             type="button"
@@ -140,11 +140,11 @@ export default function App() {
           <>
             {/* Intro */}
             <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">How voters moved between parties</h2>
+              <h2 className="text-3xl font-bold mb-2">Voter movements between parties</h2>
               <p className="text-gray-400 max-w-2xl">
-                This alluvial diagram visualizes voter migration across Dutch parliamentary
-                elections. Each flow shows where a party's voters came from — or where they went.
-                Hover over a party block to highlight its flows, or filter to a single party.
+                Visualizes voter migration across Dutch parliamentary elections. Each flow shows
+                where a party's voters came from — or where they went. Hover over a party block
+                to highlight its flows, or filter to a single party.
               </p>
             </div>
 
