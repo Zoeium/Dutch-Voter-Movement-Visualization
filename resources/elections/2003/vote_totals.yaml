@@ -1,0 +1,29 @@
+date: 2003-01-22
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 2003'
+  url: https://data.overheid.nl/dataset/3566-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--2003
+electorate: 12076711
+not_voted: 2410109
+total_votes: 9666602
+non_valid_votes_and_blanco_votes: 12127
+valid_votes: 9654475
+parties_votes:
+  cda: 2763480
+  pvda: 2631363
+  vvd: 1728707
+  sp: 609723
+  lpf: 549975
+  groenlinks: 495802
+  d66: 393333
+  christenunie: 204694
+  sgp: 150305
+  pvdd: 47754
+  leefbaar_nederland: 38894
+  partij_van_de_toekomst: 13845
+  ratelband: 9045
+  duurzaam_nederland: 7271
+  ncpn: 4854
+  de_conservatieven_nl: 2521
+  vooruitstrevende_integratie_partij: 1623
+  alliantie_vernieuwing_en_democratie: 990
+  lijst_veldhoen: 296

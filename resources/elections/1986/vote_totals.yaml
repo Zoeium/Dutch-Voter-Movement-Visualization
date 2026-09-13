@@ -1,0 +1,37 @@
+date: 1986-05-21
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1986'
+  url: https://data.overheid.nl/dataset/3570-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1986
+electorate: 10727701
+not_voted: 1528080
+total_votes: 9199621
+non_valid_votes_and_blanco_votes: 27462
+valid_votes: 9172159
+parties_votes:
+  cda: 3172918
+  pvda: 3051678
+  vvd: 1596991
+  d66: 562466
+  sgp: 159740
+  ppr: 115203
+  psp: 110182
+  gpv: 88381
+  rpf: 83582
+  cpn: 57847
+  cp: 36741
+  sp: 32144
+  evp: 21998
+  fg: 18641
+  pvdm: 15297
+  loesje: 12882
+  cd: 12277
+  vcn: 4618
+  pat: 4500
+  ar85: 3664
+  sap: 3634
+  gmo: 2375
+  pab: 2128
+  pgi: 1184
+  wis: 560
+  hp: 463
+  brum: 65

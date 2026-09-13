@@ -1,0 +1,32 @@
+date: 2012-09-12
+source:
+  name: 'overheid.nl: Verkiezingsuitslag Tweede Kamer 2012'
+  url: https://data.overheid.nl/dataset/verkiezingsuitslag-tweede-kamer-2012
+electorate: 12689810
+not_voted: 3227587
+total_votes: 9462223
+non_valid_votes: 20984
+blanco_votes: 17004
+valid_votes: 9421602
+parties_votes:
+  vvd: 2504468
+  pvda: 2340118
+  pvv: 950188
+  sp: 909655
+  cda: 801192
+  d66: 756650
+  christenunie: 294469
+  groenlinks: 219828
+  sgp: 196769
+  pvdd: 182098
+  50plus: 177578
+  piratenpartij: 30600
+  partij_voor_mens_en_spirit: 18310
+  sopn: 12982
+  partij_van_de_toekomst: 8194
+  democratisch_politiek_keerpunt_dpk: 7358
+  lp: 4156
+  nederland_lokaal: 2829
+  liberaal_democratische_partij: 2126
+  anti_europa_partij: 1972
+  politieke_partij_nxd: 62
