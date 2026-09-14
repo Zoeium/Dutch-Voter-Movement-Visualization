@@ -1,6 +1,6 @@
 party: 50plus
 vote_last_election_in_percentile:
-  "50plus": 31
+  50plus: 31
   cda: 6
   not_voted: 9
   pvv: 11

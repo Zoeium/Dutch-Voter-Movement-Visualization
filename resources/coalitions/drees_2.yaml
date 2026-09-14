@@ -1,0 +1,18 @@
+# Drees II (1951-1952)
+# KVP-PvdA-CHU-VVD coalition (re-formed Drees I, no new election)
+name: Drees II
+inauguration: 1951-03-15
+coalition:
+  - kvp
+  - pvda
+  - chu
+  - vvd
+seats:
+  kvp: 32
+  pvda: 27
+  arp: 13
+  chu: 9
+  vvd: 8
+  cpn: 8
+  sgp: 2
+  knp: 1

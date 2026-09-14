@@ -1,0 +1,21 @@
+# De Jong (1967-1971)
+# KVP-VVD-ARP-CHU coalition
+name: De Jong
+inauguration: 1967-04-05
+coalition:
+  - kvp
+  - vvd
+  - arp
+  - chu
+seats:
+  kvp: 42
+  pvda: 37
+  vvd: 17
+  arp: 15
+  chu: 12
+  boerenpartij: 7
+  d66: 7
+  cpn: 5
+  psp: 4
+  sgp: 3
+  gpv: 1

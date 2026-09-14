@@ -1,5 +1,5 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
-import type { DiagramNode, DiagramLink } from '@/types';
+import {useMemo, useState, useRef, useEffect} from 'react';
+import type {DiagramNode, DiagramLink} from '@/types';
 
 export type SortMode = 'votes' | 'alphabetical';
 
@@ -17,6 +17,7 @@ interface PositionedNode extends DiagramNode {
   y: number;
   width: number;
   nodeHeight: number;
+  requiredValue?: number;
 }
 
 interface PositionedRibbon {
@@ -65,6 +66,8 @@ function sortNodesInColumn(
     }
     if (aBase === 'not_voted') return 1;
     if (bBase === 'not_voted') return -1;
+    if (aBase === 'other') return 1;
+    if (bBase === 'other') return -1;
     if (sortMode === 'alphabetical') {
       return a.label.localeCompare(b.label);
     }
@@ -122,8 +125,17 @@ function positionNodes(
   for (let columnIndex = 0; columnIndex < numColumns; columnIndex += 1) {
     let yOffset = CHART_PADDING_TOP;
     for (const node of columns[columnIndex]) {
-      const nodeHeight = Math.max(MIN_NODE_HEIGHT, node.value * scale);
-      const positionedNode = { ...node, y: yOffset, x: LABEL_SPACE + columnIndex * getColumnSpacing(numColumns, svgWidth), width: NODE_WIDTH, nodeHeight };
+      // support a precomputed requiredValue (raw units) so node height can account for
+      // outgoing/incoming flows that exceed the node's own value
+      const requiredRaw = node.requiredValue ?? node.value;
+      const nodeHeight = Math.max(MIN_NODE_HEIGHT, requiredRaw * scale);
+      const positionedNode = {
+        ...node,
+        y: yOffset,
+        x: LABEL_SPACE + columnIndex * getColumnSpacing(numColumns, svgWidth),
+        width: NODE_WIDTH,
+        nodeHeight
+      };
       allNodesFlat.push(positionedNode);
       yOffset += nodeHeight + NODE_GAP;
     }
@@ -157,7 +169,7 @@ function applyIncomingOffsets(
     const targetYTop = targetOffsets[link.target];
     const targetYBot = targetYTop + ribbonHeight;
     targetOffsets[link.target] = targetYBot;
-    linkTargetOffsets[`${link.source}->${link.target}`] = { top: targetYTop, bot: targetYBot };
+    linkTargetOffsets[`${link.source}->${link.target}`] = {top: targetYTop, bot: targetYBot};
   }
 }
 
@@ -253,11 +265,25 @@ function computeDiagramLayout(
   selectedParty: string | null,
   sortMode: SortMode,
   containerWidth: number
-): { positionedNodes: PositionedNode[]; positionedRibbons: PositionedRibbon[]; svgWidth: number; contentHeight: number } {
+): {
+  positionedNodes: PositionedNode[];
+  positionedRibbons: PositionedRibbon[];
+  svgWidth: number;
+  contentHeight: number
+} {
   const availableWidth = Math.max(containerWidth, 600);
-  const columns: PositionedNode[][] = Array.from({ length: numColumns }, () => []);
+  const columns: PositionedNode[][] = Array.from({length: numColumns}, () => []);
+
+  // compute raw incoming/outgoing sums per node id from links (links use node ids like 'col:party')
+  const outgoingRaw: Record<string, number> = {};
+  const incomingRaw: Record<string, number> = {};
+  for (const link of links) {
+    outgoingRaw[link.source] = (outgoingRaw[link.source] ?? 0) + link.value;
+    incomingRaw[link.target] = (incomingRaw[link.target] ?? 0) + link.value;
+  }
 
   for (const node of nodes) {
+    const requiredValue = Math.max(node.value, outgoingRaw[node.id] ?? 0, incomingRaw[node.id] ?? 0);
     columns[node.columnIndex].push({
       ...node,
       x: 0,
@@ -265,12 +291,13 @@ function computeDiagramLayout(
       width: NODE_WIDTH,
       nodeHeight: 0,
       value: node.value,
+      requiredValue,
     });
   }
 
   let maxColumnTotal = 0;
   for (const column of columns) {
-    const total = column.reduce((sum, node) => sum + node.value, 0);
+    const total = column.reduce((sum, node) => sum + (node.requiredValue ?? node.value), 0);
     if (total > maxColumnTotal) {
       maxColumnTotal = total;
     }
@@ -319,7 +346,7 @@ interface DiagramLabelProps {
   x: number;
 }
 
-function DiagramLabel({ label, x }: Readonly<DiagramLabelProps>) {
+function DiagramLabel({label, x}: Readonly<DiagramLabelProps>) {
   return (
     <text
       x={x}
@@ -332,30 +359,68 @@ function DiagramLabel({ label, x }: Readonly<DiagramLabelProps>) {
   );
 }
 
+function buildGradientId(sourceId: string, targetId: string, value: number): string {
+  return `grad-${sourceId}-${targetId}-${value}`.replace(/[^a-zA-Z0-9_-]/g, '-');
+}
+
 interface DiagramRibbonProps {
   ribbon: PositionedRibbon;
   active: boolean;
   isHovered: boolean;
+  gradientId?: string;
   onHover: (ribbon: PositionedRibbon) => void;
   onLeave: () => void;
 }
 
-function DiagramRibbon({ ribbon, active, isHovered, onHover, onLeave }: Readonly<DiagramRibbonProps>) {
+function DiagramRibbon({ribbon, active, isHovered, gradientId, onHover, onLeave}: Readonly<DiagramRibbonProps>) {
   let fillOpacity = 0.06;
   if (active) {
     fillOpacity = isHovered ? 0.7 : 0.35;
   }
 
+  const fill = gradientId ? `url(#${gradientId})` : ribbon.color;
+
   return (
     <path
       d={ribbon.path}
-      fill={ribbon.color}
+      fill={fill}
       fillOpacity={fillOpacity}
       stroke="none"
-      style={{ transition: 'fill-opacity 0.2s ease', cursor: 'pointer' }}
+      style={{transition: 'fill-opacity 0.2s ease', cursor: 'pointer'}}
       onMouseEnter={() => onHover(ribbon)}
       onMouseLeave={onLeave}
     />
+  );
+}
+
+interface DiagramTooltipProps {
+  centerX: number;
+  y: number;
+  width: number;
+  text: string;
+}
+
+function DiagramTooltip({centerX, y, width, text}: Readonly<DiagramTooltipProps>) {
+  return (
+    <g style={{pointerEvents: 'none'}}>
+      <rect
+        x={centerX - width / 2}
+        y={y}
+        width={width}
+        height={30}
+        rx={6}
+        fill="#1f2937"
+        fillOpacity={0.95}
+      />
+      <text
+        x={centerX}
+        y={y + 18}
+        textAnchor="middle"
+        className="fill-gray-100 text-xs font-medium"
+      >
+        {text}
+      </text>
+    </g>
   );
 }
 
@@ -367,10 +432,10 @@ interface DiagramNodeGlyphProps {
   onLeave: () => void;
 }
 
-function DiagramNodeGlyph({ node, isActive, isLastColumn, onHover, onLeave }: Readonly<DiagramNodeGlyphProps>) {
+function DiagramNodeGlyph({node, isActive, isLastColumn, onHover, onLeave}: Readonly<DiagramNodeGlyphProps>) {
   const textProps = isLastColumn
-    ? { x: node.x + node.width + 6, textAnchor: 'start' as const }
-    : { x: node.x - 6, textAnchor: 'end' as const };
+    ? {x: node.x + node.width + 6, textAnchor: 'start' as const}
+    : {x: node.x - 6, textAnchor: 'end' as const};
 
   return (
     <g>
@@ -382,7 +447,7 @@ function DiagramNodeGlyph({ node, isActive, isLastColumn, onHover, onLeave }: Re
         rx={2}
         fill={node.color}
         fillOpacity={isActive ? 1 : 0.3}
-        style={{ transition: 'fill-opacity 0.2s ease', cursor: 'pointer' }}
+        style={{transition: 'fill-opacity 0.2s ease', cursor: 'pointer'}}
         onMouseEnter={() => onHover(node.id)}
         onMouseLeave={onLeave}
       />
@@ -392,7 +457,7 @@ function DiagramNodeGlyph({ node, isActive, isLastColumn, onHover, onLeave }: Re
         dy="0.35em"
         textAnchor={textProps.textAnchor}
         className="fill-gray-200 text-xs font-medium"
-        style={{ pointerEvents: 'none' }}
+        style={{pointerEvents: 'none'}}
       >
         {node.label}
       </text>
@@ -401,13 +466,13 @@ function DiagramNodeGlyph({ node, isActive, isLastColumn, onHover, onLeave }: Re
 }
 
 export default function AlluvialDiagram({
-  nodes,
-  links,
-  numColumns,
-  electionLabels,
-  selectedParty,
-  sortMode = 'votes',
-}: Readonly<AlluvialDiagramProps>) {
+                                          nodes,
+                                          links,
+                                          numColumns,
+                                          electionLabels,
+                                          selectedParty,
+                                          sortMode = 'votes',
+                                        }: Readonly<AlluvialDiagramProps>) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredRibbon, setHoveredRibbon] = useState<PositionedRibbon | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -426,7 +491,7 @@ export default function AlluvialDiagram({
     return () => observer.disconnect();
   }, []);
 
-  const { positionedNodes, positionedRibbons, svgWidth, contentHeight } = useMemo(
+  const {positionedNodes, positionedRibbons, svgWidth, contentHeight} = useMemo(
     () => computeDiagramLayout(nodes, links, numColumns, selectedParty, sortMode, containerWidth),
     [nodes, links, numColumns, selectedParty, sortMode, containerWidth]
   );
@@ -438,25 +503,52 @@ export default function AlluvialDiagram({
 
   return (
     <div ref={containerRef} className="w-full">
-      <svg width={svgWidth} height={contentHeight} className="block" style={{ width: '100%' }}>
-        {electionLabels.map((label) => {
-          const x = LABEL_SPACE + electionLabels.indexOf(label) * getColumnSpacing(numColumns, svgWidth) + NODE_WIDTH / 2;
-          return <DiagramLabel key={label} label={label} x={x} />;
+      <svg width={svgWidth} height={contentHeight} className="block" style={{width: '100%'}}>
+        {electionLabels.map((label, index) => {
+          const x = LABEL_SPACE + index * getColumnSpacing(numColumns, svgWidth) + NODE_WIDTH / 2;
+          return <DiagramLabel key={label} label={label} x={x}/>;
         })}
 
-        {positionedRibbons.map((ribbon) => (
-          <DiagramRibbon
-            key={`${ribbon.source.id}-${ribbon.target.id}-${ribbon.value}`}
-            ribbon={ribbon}
-            active={isRibbonActive(ribbon)}
-            isHovered={hoveredRibbon === ribbon}
-            onHover={(nextRibbon) => {
-              setHoveredRibbon(nextRibbon);
-              setHoveredNode(null);
-            }}
-            onLeave={() => setHoveredRibbon(null)}
-          />
-        ))}
+        <defs>
+          {positionedRibbons.map((ribbon) => {
+            const gradId = buildGradientId(ribbon.source.id, ribbon.target.id, ribbon.value);
+            const x1 = ribbon.source.x + (ribbon.source.width ?? 0);
+            const x2 = ribbon.target.x ?? 0;
+
+            return (
+              <linearGradient
+                id={gradId}
+                key={gradId}
+                gradientUnits="userSpaceOnUse"
+                x1={x1}
+                y1={0}
+                x2={x2}
+                y2={0}
+              >
+                <stop offset="0%" stopColor={ribbon.source.color} stopOpacity={1}/>
+                <stop offset="100%" stopColor={ribbon.target.color} stopOpacity={0.95}/>
+              </linearGradient>
+            );
+          })}
+        </defs>
+
+        {positionedRibbons.map((ribbon) => {
+          const gradId = buildGradientId(ribbon.source.id, ribbon.target.id, ribbon.value);
+          return (
+            <DiagramRibbon
+              key={`${ribbon.source.id}-${ribbon.target.id}-${ribbon.value}`}
+              ribbon={ribbon}
+              gradientId={gradId}
+              active={isRibbonActive(ribbon)}
+              isHovered={hoveredRibbon === ribbon}
+              onHover={(nextRibbon) => {
+                setHoveredRibbon(nextRibbon);
+                setHoveredNode(null);
+              }}
+              onLeave={() => setHoveredRibbon(null)}
+            />
+          );
+        })}
 
         {positionedNodes.map((node) => (
           <DiagramNodeGlyph
@@ -470,26 +562,27 @@ export default function AlluvialDiagram({
         ))}
 
         {hoveredRibbon && (
-          <g style={{ pointerEvents: 'none' }}>
-            <rect
-              x={svgWidth / 2 - 140}
-              y={contentHeight - 44}
-              width={280}
-              height={30}
-              rx={6}
-              fill="#1f2937"
-              fillOpacity={0.95}
-            />
-            <text
-              x={svgWidth / 2}
-              y={contentHeight - 25}
-              textAnchor="middle"
-              className="fill-gray-100 text-xs font-medium"
-            >
-              {hoveredRibbon.source.label} → {hoveredRibbon.target.label}: {hoveredRibbon.value.toLocaleString()} votes
-            </text>
-          </g>
+          <DiagramTooltip
+            centerX={svgWidth / 2}
+            y={contentHeight - 44}
+            width={280}
+            text={`${hoveredRibbon.source.label} → ${hoveredRibbon.target.label}: ${hoveredRibbon.value.toLocaleString()} votes`}
+          />
         )}
+
+        {hoveredNode && (() => {
+          const node = positionedNodes.find((n) => n.id === hoveredNode);
+          if (!node) return null;
+
+          return (
+            <DiagramTooltip
+              centerX={svgWidth / 2}
+              y={contentHeight - 80}
+              width={280}
+              text={`${node.label}: ${node.value.toLocaleString()} votes`}
+            />
+          );
+        })()}
       </svg>
     </div>
   );

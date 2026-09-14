@@ -1,0 +1,20 @@
+date: 1956-06-13
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1956'
+  url: https://data.overheid.nl/dataset/3588-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1956
+electorate: 6125210
+not_voted: 275558
+total_votes: 5849652
+non_valid_votes_and_blanco_votes: 121910
+valid_votes: 5727742
+parties_votes:
+  pvda: 1872209
+  katholieke_volkspartij: 1815310
+  anti_revolutionaire_partij: 567535
+  vvd: 502530
+  christelijk_historische_unie: 482918
+  cpn: 272054
+  sgp: 129517
+  gpv: 37206
+  nationale_unie_algemeen_christelijk: 28960
+  nationale_oppositie_unie: 19503

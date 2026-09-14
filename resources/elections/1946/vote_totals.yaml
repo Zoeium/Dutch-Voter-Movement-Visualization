@@ -1,0 +1,20 @@
+date: 1946-04-17
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1946'
+  url: https://data.overheid.nl/dataset/3591-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1946
+electorate: 5275888
+not_voted: 363873
+total_votes: 4912015
+non_valid_votes_and_blanco_votes: 151304
+valid_votes: 4760711
+parties_votes:
+  katholieke_volkspartij: 1466582
+  pvda: 1347940
+  anti_revolutionaire_partij: 614201
+  cpn: 502963
+  christelijk_historische_unie: 373217
+  partij_van_de_vrijheid: 305287
+  sgp: 101759
+  protestantse_unie: 32020
+  nederlandse_bellamy_partij: 11205
+  groep_lopes: 5537

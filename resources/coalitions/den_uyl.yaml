@@ -1,0 +1,25 @@
+# Den Uyl (1973-1977)
+# PvdA-KVP-ARP-D'66-PPR coalition
+name: Den Uyl
+inauguration: 1973-05-11
+coalition:
+  - pvda
+  - kvp
+  - arp
+  - d66
+  - ppr
+seats:
+  pvda: 43
+  kvp: 27
+  vvd: 22
+  arp: 14
+  ppr: 7
+  chu: 7
+  cpn: 7
+  d66: 6
+  ds70: 6
+  sgp: 3
+  boerenpartij: 3
+  gpv: 2
+  psp: 2
+  rkpn: 1
