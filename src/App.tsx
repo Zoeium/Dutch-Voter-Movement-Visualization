@@ -2,11 +2,13 @@ import {useMemo, useState} from 'react';
 import {Users, Info, ArrowDownUp, CalendarRange} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
+import ParliamentDiagram from '@/components/ParliamentDiagram';
 import {
   loadParties,
   loadElections,
   loadAllElections,
   loadDataSources,
+  loadCoalitions,
   buildMultiElectionFlows,
 } from '@/data/loader';
 
@@ -14,6 +16,7 @@ const parties = loadParties();
 const allElections = loadElections();
 const allElectionsForTurnout = loadAllElections();
 const dataSources = loadDataSources();
+const coalitions = loadCoalitions();
 
 const electionYears = allElections.map((e) => e.year);
 const defaultYearEnd = Math.max(0, electionYears.length - 1);
@@ -32,7 +35,7 @@ const getSourceLabel = (source: { kind: 'totals' | 'movement'; year: string; fro
     : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'alluvial' | 'turnout'>('alluvial');
+  const [activeTab, setActiveTab] = useState<'alluvial' | 'turnout' | 'parliament'>('alluvial');
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('votes');
   const [yearStart, setYearStart] = useState<number>(0);
@@ -132,6 +135,13 @@ export default function App() {
             className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'turnout')}`}
           >
             Turnout Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('parliament')}
+            className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'parliament')}`}
+          >
+            Parliament Composition
           </button>
         </div>
 
@@ -327,6 +337,26 @@ export default function App() {
             {/* Turnout Diagram */}
             <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
               <TurnoutDiagram elections={turnoutElections}/>
+            </div>
+          </>
+        )}
+
+        {/* Parliament Tab */}
+        {activeTab === 'parliament' && (
+          <>
+            {/* Intro */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-2">Parliament composition</h2>
+              <p className="text-gray-400 max-w-2xl">
+                Coalition and opposition parties across elections. Parties are sorted by number of seats,
+                with coalition parties shown above the dashed line and opposition parties below.
+                Lines connect the same party (or successor parties) across elections.
+              </p>
+            </div>
+
+            {/* Parliament Diagram */}
+            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
+              <ParliamentDiagram coalitions={coalitions} parties={parties}/>
             </div>
           </>
         )}

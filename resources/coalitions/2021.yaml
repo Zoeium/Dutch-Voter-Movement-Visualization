@@ -1,0 +1,26 @@
+# Rutte IV (2022-2024)
+# VVD-D66-CDA-ChristenUnie coalition
+name: Rutte IV
+coalition:
+  - vvd
+  - d66
+  - cda
+  - christenunie
+seats:
+  vvd: 34
+  d66: 24
+  pvv: 17
+  cda: 15
+  sp: 9
+  pvda: 9
+  groenlinks: 8
+  fvd: 8
+  pvdd: 6
+  christenunie: 5
+  volt: 3
+  ja21: 3
+  sgp: 3
+  denk: 3
+  50plus: 1
+  bij1: 1
+  bbb: 1

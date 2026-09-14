@@ -8,6 +8,7 @@ import type {
   PartyInfo,
   VoterMovement,
   VoteTotals,
+  CoalitionData,
 } from '@/types';
 
 // Auto-discover all party YAML files
@@ -20,6 +21,13 @@ const partyModules = import.meta.glob('@/../resources/parties/*.yaml', {
 // Auto-discover all election directories
 // Each election has: vote_totals.yaml + voters_movement/*.yaml
 const totalsModules = import.meta.glob('@/../resources/elections/*/vote_totals.yaml', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+// Auto-discover coalition data
+const coalitionModules = import.meta.glob('@/../resources/coalitions/*.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
@@ -525,4 +533,16 @@ export function buildMultiElectionFlows(
   }
 
   return {nodes: mergeNodeMap(allNodes), links: allLinks};
+}
+
+export function loadCoalitions(): CoalitionData[] {
+  return Object.entries(coalitionModules).map(([path, raw]) => {
+    const year = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
+    const data = yaml.load(raw) as { coalition: string[]; seats: Record<string, number> };
+    return {
+      year,
+      coalition: data.coalition || [],
+      seats: data.seats || {},
+    };
+  }).sort((a, b) => a.year.localeCompare(b.year));
 }

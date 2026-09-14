@@ -54,3 +54,9 @@ export interface DiagramLink {
   value: number;
   color: string;
 }
+
+export interface CoalitionData {
+  year: string;
+  coalition: string[];
+  seats: Record<string, number>;
+}

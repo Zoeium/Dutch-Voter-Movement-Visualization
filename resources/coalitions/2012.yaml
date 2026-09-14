@@ -1,0 +1,18 @@
+# Rutte II (2012-2017)
+# VVD-PvdA coalition
+name: Rutte II
+coalition:
+  - vvd
+  - pvda
+seats:
+  vvd: 41
+  pvda: 38
+  pvv: 15
+  sp: 15
+  cda: 13
+  d66: 12
+  christenunie: 5
+  groenlinks: 4
+  sgp: 3
+  pvdd: 2
+  50plus: 2

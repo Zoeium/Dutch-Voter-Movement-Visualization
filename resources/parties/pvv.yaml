@@ -1,3 +1,5 @@
 party: pvv
 display_name: PVV
 color: '#bbbbbb'
+split_off:
+  - pvda
