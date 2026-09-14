@@ -537,9 +537,16 @@ export function buildMultiElectionFlows(
 
 export function loadCoalitions(): CoalitionData[] {
   return Object.entries(coalitionModules).map(([path, raw]) => {
-    const year = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
-    const data = yaml.load(raw) as { coalition: string[]; seats: Record<string, number> };
+    const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
+    const data = yaml.load(raw) as { inauguration?: unknown; name?: unknown; coalition: string[]; seats: Record<string, number> };
+    // Each coalition file carries an `inauguration` date (YYYY-MM-DD), which is
+    // used to derive the year for sorting and column labels. Fall back to the
+    // four-digit year encoded in the filename for files without the field.
+    const inauguration = typeof data.inauguration === 'string' ? data.inauguration : '';
+    const inaugurationMatch = /^(\d{4})/.exec(inauguration);
+    const year = inaugurationMatch ? inaugurationMatch[1] : filenameYear;
     return {
+      name: typeof data.name === 'string' ? data.name : '',
       year,
       coalition: data.coalition || [],
       seats: data.seats || {},

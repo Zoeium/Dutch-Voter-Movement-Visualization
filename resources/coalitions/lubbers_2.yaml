@@ -1,0 +1,17 @@
+# Lubbers II (1986-1989)
+# CDA-VVD coalition
+name: Lubbers II
+inauguration: 1986-07-14
+coalition:
+  - cda
+  - vvd
+seats:
+  cda: 54
+  pvda: 52
+  vvd: 27
+  d66: 9
+  sgp: 3
+  ppr: 2
+  psp: 1
+  gpv: 1
+  rpf: 1

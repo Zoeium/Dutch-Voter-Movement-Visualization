@@ -94,6 +94,10 @@ export default function App() {
       // For alluvial: show sources for years in the selected range (both totals and movements)
       const yearSet = new Set(elections.map(e => e.year));
       return dataSources.filter(source => yearSet.has(source.year));
+    } else if (activeTab === 'parliament') {
+      // For parliament: coalition sources are not tracked yet, so show none.
+      // Keep turnout totals/sources out of the shared footer on this tab.
+      return [];
     } else {
       // For turnout: show totals for all years in the turnout range, exclude movements
       const yearSet = new Set(turnoutElections.map(e => e.year));

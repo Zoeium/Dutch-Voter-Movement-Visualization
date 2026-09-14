@@ -1,9 +1,10 @@
 # Balkenende I (2002-2003)
 # CDA-LPF-VVD coalition
 name: Balkenende I
+inauguration: 2002-07-22
 coalition:
   - cda
-  - fortuyn
+  - lpf
   - vvd
 seats:
   cda: 43

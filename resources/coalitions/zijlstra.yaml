@@ -1,0 +1,18 @@
+# Zijlstra (1966-1967)
+# KVP-ARP coalition (interim/caretaker)
+name: Zijlstra
+inauguration: 1966-11-22
+coalition:
+  - kvp
+  - arp
+seats:
+  kvp: 50
+  pvda: 43
+  vvd: 16
+  arp: 13
+  chu: 13
+  psp: 4
+  cpn: 4
+  sgp: 3
+  boerenpartij: 3
+  gpv: 1
