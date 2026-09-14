@@ -1,0 +1,25 @@
+# Biesheuvel I (1971-1972)
+# KVP-VVD-ARP-CHU-DS'70 coalition
+name: Biesheuvel I
+inauguration: 1971-07-06
+coalition:
+  - kvp
+  - vvd
+  - arp
+  - chu
+  - ds70
+seats:
+  pvda: 39
+  kvp: 35
+  vvd: 16
+  arp: 13
+  d66: 11
+  chu: 10
+  ds70: 8
+  cpn: 6
+  sgp: 3
+  ppr: 2
+  gpv: 2
+  nmp: 2
+  psp: 2
+  boerenpartij: 1

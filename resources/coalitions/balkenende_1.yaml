@@ -1,0 +1,19 @@
+# Balkenende I (2002-2003)
+# CDA-LPF-VVD coalition
+name: Balkenende I
+inauguration: 2002-07-22
+coalition:
+  - cda
+  - lpf
+  - vvd
+seats:
+  cda: 43
+  lpf: 26
+  vvd: 24
+  pvda: 23
+  groenlinks: 10
+  sp: 9
+  d66: 7
+  christenunie: 4
+  sgp: 2
+  leefbaar_nederland: 2

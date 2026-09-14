@@ -1,3 +1,5 @@
 party: nsc
 display_name: NSC
 color: '#0F2442'
+split_off:
+  - cda

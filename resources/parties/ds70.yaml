@@ -1,0 +1,5 @@
+party: ds70
+display_name: DS'70
+color: '#C0392B'
+split_off:
+  - pvda

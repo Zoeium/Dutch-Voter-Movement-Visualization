@@ -1,0 +1,18 @@
+# Van Agt III (1982)
+# CDA-D'66 caretaker coalition
+name: Van Agt III
+inauguration: 1982-05-29
+coalition:
+  - cda
+  - d66
+seats:
+  cda: 48
+  pvda: 44
+  vvd: 26
+  d66: 17
+  psp: 3
+  cpn: 3
+  sgp: 3
+  ppr: 3
+  rpf: 2
+  gpv: 1

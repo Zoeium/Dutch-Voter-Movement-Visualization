@@ -1,0 +1,17 @@
+# Lubbers III (1989-1994)
+# CDA-PvdA coalition
+name: Lubbers III
+inauguration: 1989-11-07
+coalition:
+  - cda
+  - pvda
+seats:
+  cda: 54
+  pvda: 49
+  vvd: 22
+  d66: 12
+  groenlinks: 6
+  sgp: 3
+  gpv: 2
+  rpf: 1
+  cd: 1

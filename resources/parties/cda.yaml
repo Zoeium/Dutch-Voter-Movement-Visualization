@@ -1,3 +1,7 @@
 party: cda
 display_name: CDA
 color: '#007C5E'
+previous_names:
+  - kvp
+  - arp
+  - chu

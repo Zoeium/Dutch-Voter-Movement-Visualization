@@ -1,0 +1,19 @@
+# Balkenende IV (2007-2010)
+# CDA-PvdA-ChristenUnie coalition
+name: Balkenende IV
+inauguration: 2007-02-22
+coalition:
+  - cda
+  - pvda
+  - christenunie
+seats:
+  cda: 41
+  pvda: 33
+  sp: 25
+  vvd: 22
+  pvv: 9
+  groenlinks: 7
+  christenunie: 6
+  d66: 3
+  pvdd: 2
+  sgp: 2

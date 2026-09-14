@@ -1,0 +1,19 @@
+# Cals (1965-1966)
+# KVP-PvdA-ARP coalition
+name: Cals
+inauguration: 1965-04-14
+coalition:
+  - kvp
+  - pvda
+  - arp
+seats:
+  kvp: 50
+  pvda: 43
+  vvd: 16
+  arp: 13
+  chu: 13
+  psp: 4
+  cpn: 4
+  sgp: 3
+  boerenpartij: 3
+  gpv: 1

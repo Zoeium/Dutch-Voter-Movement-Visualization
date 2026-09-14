@@ -1,0 +1,18 @@
+# Rutte I (2010-2012)
+# VVD-CDA minority coalition with PVV support
+name: Rutte I
+inauguration: 2010-10-14
+coalition:
+  - vvd
+  - cda
+seats:
+  vvd: 31
+  pvda: 30
+  pvv: 24
+  cda: 21
+  sp: 15
+  d66: 10
+  groenlinks: 10
+  christenunie: 5
+  sgp: 2
+  pvdd: 2

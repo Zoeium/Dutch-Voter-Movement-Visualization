@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import type {ElectionYear} from '@/types';
 
 interface TurnoutDiagramProps {
@@ -50,6 +50,8 @@ function Tooltip({x, y, visible, children}: Readonly<{
 }
 
 export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps>) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
   const [scaleMode, setScaleMode] = useState<ScaleMode>('absolute');
@@ -124,10 +126,12 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
   const svgWidth = chartWidth + labelSpace * 2;
   const svgHeight = barHeight + 120;
 
-  const scale = barHeight / maxValue;
+  // Guard against a zero maxValue (all displayed categories are 0) so the
+  // scale stays finite and the SVG heights remain numeric.
+  const scale = maxValue > 0 ? barHeight / maxValue : 0;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       {/* Scale mode toggle */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-sm font-medium text-gray-400">Scale:</span>
@@ -205,7 +209,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
       </div>
 
       <div className="w-full">
-        <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="block" preserveAspectRatio="xMidYMid meet">
+        <svg ref={svgRef} width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="block" preserveAspectRatio="xMidYMid meet">
           {/* Y-axis label */}
           <text
             x={10}
@@ -422,8 +426,25 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
         const bar = bars.find((b) => b.year === hovered);
         if (!bar) return null;
         const i = bars.indexOf(bar);
-        const x = labelSpace + gap + i * (barWidth + gap) + barWidth / 2;
-        const y = 40;
+        // Compute the tooltip anchor in viewBox coordinates, then convert to
+        // rendered CSS coordinates using the SVG's bounding rectangle and the
+        // viewBox-to-client scale so it stays under the pointer across
+        // responsive container sizes (important for bars near the right edge).
+        const vx = labelSpace + gap + i * (barWidth + gap) + barWidth / 2;
+        const vy = 40;
+
+        let x = vx;
+        let y = vy;
+        const svgEl = svgRef.current;
+        const containerEl = containerRef.current;
+        if (svgEl && containerEl) {
+          const svgRect = svgEl.getBoundingClientRect();
+          const containerRect = containerEl.getBoundingClientRect();
+          const scaleX = svgWidth > 0 ? svgRect.width / svgWidth : 1;
+          const scaleY = svgHeight > 0 ? svgRect.height / svgHeight : 1;
+          x = svgRect.left - containerRect.left + vx * scaleX;
+          y = svgRect.top - containerRect.top + vy * scaleY;
+        }
 
         let segmentDetail: React.ReactNode = null;
         if (hoveredSegment) {

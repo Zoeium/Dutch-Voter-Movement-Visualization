@@ -3,6 +3,7 @@ export interface PartyInfo {
   display_name: string;
   color: string;
   previous_names?: string[];
+  split_off?: string[];
 }
 
 export interface DataSource {
@@ -53,4 +54,11 @@ export interface DiagramLink {
   target: string;
   value: number;
   color: string;
+}
+
+export interface CoalitionData {
+  name: string;
+  year: string;
+  coalition: string[];
+  seats: Record<string, number>;
 }

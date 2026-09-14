@@ -8,6 +8,7 @@ import type {
   PartyInfo,
   VoterMovement,
   VoteTotals,
+  CoalitionData,
 } from '@/types';
 
 // Auto-discover all party YAML files
@@ -20,6 +21,13 @@ const partyModules = import.meta.glob('@/../resources/parties/*.yaml', {
 // Auto-discover all election directories
 // Each election has: vote_totals.yaml + voters_movement/*.yaml
 const totalsModules = import.meta.glob('@/../resources/elections/*/vote_totals.yaml', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+// Auto-discover coalition data
+const coalitionModules = import.meta.glob('@/../resources/coalitions/*.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
@@ -525,4 +533,23 @@ export function buildMultiElectionFlows(
   }
 
   return {nodes: mergeNodeMap(allNodes), links: allLinks};
+}
+
+export function loadCoalitions(): CoalitionData[] {
+  return Object.entries(coalitionModules).map(([path, raw]) => {
+    const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
+    const data = yaml.load(raw) as { inauguration?: unknown; name?: unknown; coalition: string[]; seats: Record<string, number> };
+    // Each coalition file carries an `inauguration` date (YYYY-MM-DD), which is
+    // used to derive the year for sorting and column labels. Fall back to the
+    // four-digit year encoded in the filename for files without the field.
+    const inauguration = typeof data.inauguration === 'string' ? data.inauguration : '';
+    const inaugurationMatch = /^(\d{4})/.exec(inauguration);
+    const year = inaugurationMatch ? inaugurationMatch[1] : filenameYear;
+    return {
+      name: typeof data.name === 'string' ? data.name : '',
+      year,
+      coalition: data.coalition || [],
+      seats: data.seats || {},
+    };
+  }).sort((a, b) => a.year.localeCompare(b.year));
 }

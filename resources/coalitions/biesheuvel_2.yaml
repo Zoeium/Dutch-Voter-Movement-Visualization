@@ -1,0 +1,24 @@
+# Biesheuvel II (1972-1973)
+# KVP-VVD-ARP-CHU caretaker coalition
+name: Biesheuvel II
+inauguration: 1972-08-09
+coalition:
+  - kvp
+  - vvd
+  - arp
+  - chu
+seats:
+  pvda: 39
+  kvp: 35
+  vvd: 16
+  arp: 13
+  d66: 11
+  chu: 10
+  ds70: 8
+  cpn: 6
+  sgp: 3
+  ppr: 2
+  gpv: 2
+  nmp: 2
+  psp: 2
+  boerenpartij: 1
