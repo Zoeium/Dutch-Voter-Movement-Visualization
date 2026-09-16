@@ -96,7 +96,11 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
   }, [elections]);
 
   if (bars.length === 0) {
-    return null;
+    return (
+      <div className="text-gray-400 text-center py-8">
+        No turnout data available for the selected years.
+      </div>
+    );
   }
 
   // Calculate max value based on enabled categories
