@@ -1,8 +1,9 @@
-import {useMemo, useState} from 'react';
+import {useDeferredValue, useMemo, useState} from 'react';
 import {Users, Info, ArrowDownUp, CalendarRange} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
 import ParliamentDiagram from '@/components/ParliamentDiagram';
+import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {
   loadParties,
   loadElections,
@@ -10,31 +11,61 @@ import {
   loadDataSources,
   loadCoalitions,
   buildMultiElectionFlows,
+  type DataSourceEntry,
 } from '@/data/loader';
+import {DualRangeSlider} from '@/components/shared';
+import {sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
 
-const parties = loadParties();
-const allElections = loadElections();
-const allElectionsForTurnout = loadAllElections();
-const dataSources = loadDataSources();
-const coalitions = loadCoalitions();
+interface AppData {
+  parties: PartyInfo[];
+  allElections: ElectionYear[];
+  allElectionsForTurnout: ElectionYear[];
+  dataSources: DataSourceEntry[];
+  coalitions: CoalitionData[];
+}
 
-const electionYears = allElections.map((e) => e.year);
-const defaultYearEnd = Math.max(0, electionYears.length - 1);
+let cachedAppData: AppData | null = null;
 
-const toggleButtonClass = (active: boolean): string =>
-  active
-    ? 'bg-emerald-500 text-white'
-    : 'bg-gray-800 text-gray-300 hover:bg-gray-700';
+/**
+ * Loading runs lazily (and once) so a malformed resource throws a descriptive
+ * error during render - where the ErrorBoundary can surface it - instead of
+ * aborting the module import and leaving a blank page.
+ */
+function loadAppData(): AppData {
+  if (cachedAppData) {
+    return cachedAppData;
+  }
+
+  try {
+    cachedAppData = {
+      parties: loadParties(),
+      allElections: loadElections(),
+      allElectionsForTurnout: loadAllElections(),
+      dataSources: loadDataSources(),
+      coalitions: loadCoalitions(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load election data: ${message}`);
+  }
+
+  return cachedAppData;
+}
 
 const partyButtonClass = (selected: boolean): string =>
   `${selected ? 'ring-2 ring-offset-2 ring-offset-gray-950' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 
-const getSourceLabel = (source: { kind: 'totals' | 'movement'; year: string; fromYear?: string; toYear?: string }) =>
+const getSourceLabel = (source: DataSourceEntry) =>
   source.kind === 'totals'
     ? `Totals (${source.year})`
     : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
 
 export default function App() {
+  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = loadAppData();
+
+  const electionYears = useMemo(() => allElections.map((e) => e.year), [allElections]);
+  const defaultYearEnd = Math.max(0, electionYears.length - 1);
+
   const [activeTab, setActiveTab] = useState<'alluvial' | 'turnout' | 'parliament'>('alluvial');
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('votes');
@@ -42,14 +73,19 @@ export default function App() {
   const [yearEnd, setYearEnd] = useState<number>(defaultYearEnd);
 
   // Separate year range for turnout diagram
-  const turnoutYears = allElectionsForTurnout.map((e) => e.year);
+  const turnoutYears = useMemo(() => allElectionsForTurnout.map((e) => e.year), [allElectionsForTurnout]);
   const defaultTurnoutYearEnd = Math.max(0, turnoutYears.length - 1);
   const [turnoutYearStart, setTurnoutYearStart] = useState<number>(0);
   const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(defaultTurnoutYearEnd);
 
+  // Dragging the range slider fires onChange continuously; defer the expensive
+  // dataset rebuild so pointer movement stays responsive.
+  const deferredYearStart = useDeferredValue(yearStart);
+  const deferredYearEnd = useDeferredValue(yearEnd);
+
   const elections = useMemo(
-    () => allElections.filter((_, i) => i >= yearStart && i <= yearEnd),
-    [yearStart, yearEnd]
+    () => sliceByIndexRange(allElections, deferredYearStart, deferredYearEnd),
+    [allElections, deferredYearStart, deferredYearEnd]
   );
 
   const electionLabels = elections.map((e) => e.year);
@@ -57,12 +93,15 @@ export default function App() {
 
   const {nodes, links} = useMemo(() => {
     return buildMultiElectionFlows(elections, parties, selectedParty);
-  }, [elections, selectedParty]);
+  }, [elections, parties, selectedParty]);
 
   // For turnout, filter by turnout year range
+  const deferredTurnoutYearStart = useDeferredValue(turnoutYearStart);
+  const deferredTurnoutYearEnd = useDeferredValue(turnoutYearEnd);
+
   const turnoutElections = useMemo(
-    () => allElectionsForTurnout.filter((_, i) => i >= turnoutYearStart && i <= turnoutYearEnd),
-    [turnoutYearStart, turnoutYearEnd]
+    () => sliceByIndexRange(allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd),
+    [allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd]
   );
 
   // Build party list for selector (only parties that appear in movement data).
@@ -75,18 +114,11 @@ export default function App() {
       }
     }
 
-    const shown = parties
+    return parties
       .filter((p) => partySet.has(p.party))
       .sort((a, b) => a.display_name.localeCompare(b.display_name));
 
-    // Always include a single 'other' entry (if defined) so users can select it.
-    const otherParty = parties.find((p) => p.party === 'other');
-    if (otherParty && !shown.some((p) => p.party === 'other')) {
-      return [...shown, otherParty];
-    }
-
-    return shown;
-  }, [elections]);
+  }, [elections, parties]);
 
   // Filter data sources based on active tab
   const filteredDataSources = useMemo(() => {
@@ -103,7 +135,7 @@ export default function App() {
       const yearSet = new Set(turnoutElections.map(e => e.year));
       return dataSources.filter(source => source.kind === 'totals' && yearSet.has(source.year));
     }
-  }, [activeTab, elections, turnoutElections]);
+  }, [activeTab, elections, turnoutElections, dataSources]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -211,34 +243,16 @@ export default function App() {
                 : 'Years: none available'}
             </span>
             {hasSelectableYears && (
-              <div className="relative w-56 h-6 flex items-center">
-                <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
-                <div
-                  className="absolute h-1.5 rounded-full bg-emerald-500"
-                  style={{
-                    left: `${(yearStart / Math.max(1, electionYears.length - 1)) * 100}%`,
-                    right: `${100 - (yearEnd / Math.max(1, electionYears.length - 1)) * 100}%`,
-                  }}
-                />
-                <input
-                  type="range"
-                  min={0}
-                  max={electionYears.length - 1}
-                  value={yearStart}
-                  onChange={(e) => setYearStart(Math.min(Number(e.target.value), yearEnd))}
-                  className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                  style={{zIndex: yearStart === yearEnd ? 4 : 3}}
-                />
-                <input
-                  type="range"
-                  min={0}
-                  max={electionYears.length - 1}
-                  value={yearEnd}
-                  onChange={(e) => setYearEnd(Math.max(Number(e.target.value), yearStart))}
-                  className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                  style={{zIndex: 4}}
-                />
-              </div>
+              <DualRangeSlider
+                min={0}
+                max={electionYears.length - 1}
+                start={yearStart}
+                end={yearEnd}
+                onStartChange={setYearStart}
+                onEndChange={setYearEnd}
+                startAriaLabel="Range start"
+                endAriaLabel="Range end"
+              />
             )}
           </div>
 
@@ -307,34 +321,16 @@ export default function App() {
                   : 'Years: none available'}
               </span>
               {turnoutYears.length > 0 && (
-                <div className="relative w-56 h-6 flex items-center">
-                  <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
-                  <div
-                    className="absolute h-1.5 rounded-full bg-emerald-500"
-                    style={{
-                      left: `${(turnoutYearStart / Math.max(1, turnoutYears.length - 1)) * 100}%`,
-                      right: `${100 - (turnoutYearEnd / Math.max(1, turnoutYears.length - 1)) * 100}%`,
-                    }}
-                  />
-                  <input
-                    type="range"
-                    min={0}
-                    max={turnoutYears.length - 1}
-                    value={turnoutYearStart}
-                    onChange={(e) => setTurnoutYearStart(Math.min(Number(e.target.value), turnoutYearEnd))}
-                    className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                    style={{zIndex: turnoutYearStart === turnoutYearEnd ? 4 : 3}}
-                  />
-                  <input
-                    type="range"
-                    min={0}
-                    max={turnoutYears.length - 1}
-                    value={turnoutYearEnd}
-                    onChange={(e) => setTurnoutYearEnd(Math.max(Number(e.target.value), turnoutYearStart))}
-                    className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-                    style={{zIndex: 4}}
-                  />
-                </div>
+                <DualRangeSlider
+                  min={0}
+                  max={turnoutYears.length - 1}
+                  start={turnoutYearStart}
+                  end={turnoutYearEnd}
+                  onStartChange={setTurnoutYearStart}
+                  onEndChange={setTurnoutYearEnd}
+                  startAriaLabel="Turnout range start"
+                  endAriaLabel="Turnout range end"
+                />
               )}
             </div>
 
