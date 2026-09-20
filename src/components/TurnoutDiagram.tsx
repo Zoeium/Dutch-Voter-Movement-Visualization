@@ -1,11 +1,19 @@
-import {useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Info} from 'lucide-react';
 import type {ElectionYear} from '@/types';
+import {buildStripeId, toggleButtonClass} from '@/components/diagramUtils';
 
 interface TurnoutDiagramProps {
   elections: ElectionYear[];
 }
 
 type ScaleMode = 'absolute' | 'percentage';
+type SegmentKind = 'valid' | 'blanco' | 'invalid' | 'notVoted';
+
+interface HoveredSegment {
+  year: string;
+  segment: SegmentKind;
+}
 
 interface TurnoutBar {
   year: string;
@@ -19,6 +27,13 @@ interface TurnoutBar {
   isCombined: boolean; // true if blanco and invalid are combined
 }
 
+interface SegmentValues {
+  valid: number;
+  blanco: number;
+  nonValid: number;
+  notVoted: number;
+}
+
 const EMBER = '#f59e0b';
 const RED = '#ef4444';
 const SLATE = '#475569';
@@ -30,6 +45,26 @@ function formatNumber(n: number): string {
 
 function formatPct(n: number): string {
   return `${n.toFixed(1)}%`;
+}
+
+/** Normalise a bar once into the four category values for the active scale mode. */
+function getSegmentValues(bar: TurnoutBar, scaleMode: ScaleMode): SegmentValues {
+  if (scaleMode === 'percentage') {
+    const pct = (value: number) => (bar.electorate > 0 ? (value / bar.electorate) * 100 : 0);
+    return {
+      valid: pct(bar.validVotes),
+      blanco: pct(bar.blancoVotes),
+      nonValid: pct(bar.nonValidVotes),
+      notVoted: pct(bar.notVoted),
+    };
+  }
+
+  return {
+    valid: bar.validVotes,
+    blanco: bar.blancoVotes,
+    nonValid: bar.nonValidVotes,
+    notVoted: bar.notVoted,
+  };
 }
 
 function Tooltip({x, y, visible, children}: Readonly<{
@@ -49,11 +84,58 @@ function Tooltip({x, y, visible, children}: Readonly<{
   );
 }
 
+interface BarSegmentProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  restOpacity: number;
+  rounded?: boolean;
+  hovered: boolean;
+  onHover: () => void;
+}
+
+/** One stacked bar segment: the hover convention (opacity + pointer) is defined once. */
+function BarSegment({
+  x,
+  y,
+  width,
+  height,
+  color,
+  restOpacity,
+  rounded = false,
+  hovered,
+  onHover,
+}: Readonly<BarSegmentProps>) {
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={rounded ? 2 : undefined}
+      fill={color}
+      fillOpacity={hovered ? 1 : restOpacity}
+      onMouseEnter={onHover}
+      style={{cursor: 'pointer', transition: 'fill-opacity 0.15s ease'}}
+    />
+  );
+}
+
 export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps>) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const rectsRef = useRef<{
+    svgWidth: number;
+    svgHeight: number;
+    svgLeft: number;
+    svgTop: number;
+    containerLeft: number;
+    containerTop: number;
+  } | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
+  const [hoveredSegment, setHoveredSegment] = useState<HoveredSegment | null>(null);
   const [scaleMode, setScaleMode] = useState<ScaleMode>('absolute');
   const [showValid, setShowValid] = useState(true);
   const [showBlanco, setShowBlanco] = useState(true);
@@ -95,32 +177,59 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
       });
   }, [elections]);
 
+  const modeValues = useMemo(
+    () => bars.map((bar) => getSegmentValues(bar, scaleMode)),
+    [bars, scaleMode]
+  );
+
+  // Cache the SVG/container rects after layout instead of calling
+  // getBoundingClientRect during render (which forces a synchronous reflow).
+  useLayoutEffect(() => {
+    const measure = () => {
+      const svgEl = svgRef.current;
+      const containerEl = containerRef.current;
+      if (!svgEl || !containerEl) return;
+
+      const svgRect = svgEl.getBoundingClientRect();
+      const containerRect = containerEl.getBoundingClientRect();
+      rectsRef.current = {
+        svgWidth: svgRect.width,
+        svgHeight: svgRect.height,
+        svgLeft: svgRect.left,
+        svgTop: svgRect.top,
+        containerLeft: containerRect.left,
+        containerTop: containerRect.top,
+      };
+    };
+
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [bars]);
+
   if (bars.length === 0) {
     return (
-      <div className="text-gray-400 text-center py-8">
-        No turnout data available for the selected years.
+      <div className="flex items-center justify-center h-96 text-gray-500">
+        <div className="text-center">
+          <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
+          <p>No turnout data available for the selected years.</p>
+        </div>
       </div>
     );
   }
 
   // Calculate max value based on enabled categories
-  const maxValue = scaleMode === 'percentage'
-    ? Math.max(...bars.map((b) => {
-        let totalPct = 0;
-        if (showValid) totalPct += b.electorate > 0 ? (b.validVotes / b.electorate) * 100 : 0;
-        if (showBlanco) totalPct += b.electorate > 0 ? (b.blancoVotes / b.electorate) * 100 : 0;
-        if (showInvalid) totalPct += b.electorate > 0 ? (b.nonValidVotes / b.electorate) * 100 : 0;
-        if (showNotVoted) totalPct += b.electorate > 0 ? (b.notVoted / b.electorate) * 100 : 0;
-        return totalPct;
-      }))
-    : Math.max(...bars.map((b) => {
-        let total = 0;
-        if (showValid) total += b.validVotes;
-        if (showBlanco) total += b.blancoVotes;
-        if (showInvalid) total += b.nonValidVotes;
-        if (showNotVoted) total += b.notVoted;
-        return total;
-      }));
+  const maxValue = Math.max(
+    0,
+    ...modeValues.map((values) => {
+      let total = 0;
+      if (showValid) total += values.valid;
+      if (showBlanco) total += values.blanco;
+      if (showInvalid) total += values.nonValid;
+      if (showNotVoted) total += values.notVoted;
+      return total;
+    })
+  );
 
   const barHeight = 220;
   const barWidth = Math.max(40, Math.min(64, 1200 / bars.length));
@@ -134,6 +243,16 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
   // scale stays finite and the SVG heights remain numeric.
   const scale = maxValue > 0 ? barHeight / maxValue : 0;
 
+  const isSegmentHovered = (year: string, segment: SegmentKind) =>
+    hoveredSegment?.year === year && hoveredSegment.segment === segment;
+
+  const legendItems: { key: SegmentKind; label: string; color: string; active: boolean; setActive: (value: boolean) => void }[] = [
+    {key: 'valid', label: 'Valid votes', color: EMERALD, active: showValid, setActive: setShowValid},
+    {key: 'blanco', label: 'Blanco', color: EMBER, active: showBlanco, setActive: setShowBlanco},
+    {key: 'invalid', label: 'Invalid', color: RED, active: showInvalid, setActive: setShowInvalid},
+    {key: 'notVoted', label: 'Did not vote', color: SLATE, active: showNotVoted, setActive: setShowNotVoted},
+  ];
+
   return (
     <div className="relative" ref={containerRef}>
       {/* Scale mode toggle */}
@@ -142,22 +261,14 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
         <button
           type="button"
           onClick={() => setScaleMode('absolute')}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            scaleMode === 'absolute'
-              ? 'bg-emerald-500 text-white'
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(scaleMode === 'absolute')}`}
         >
           Absolute
         </button>
         <button
           type="button"
           onClick={() => setScaleMode('percentage')}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            scaleMode === 'percentage'
-              ? 'bg-emerald-500 text-white'
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(scaleMode === 'percentage')}`}
         >
           Percentage
         </button>
@@ -166,46 +277,19 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
       {/* Legend with toggles */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-4 text-xs">
-          <button
-            type="button"
-            onClick={() => setShowValid(!showValid)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
-              showValid ? 'opacity-100' : 'opacity-40'
-            } hover:bg-gray-800`}
-          >
-            <span className="w-3 h-3 rounded-sm" style={{backgroundColor: EMERALD}}/>
-            <span className={showValid ? 'text-gray-300' : 'text-gray-500 line-through'}>Valid votes</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowBlanco(!showBlanco)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
-              showBlanco ? 'opacity-100' : 'opacity-40'
-            } hover:bg-gray-800`}
-          >
-            <span className="w-3 h-3 rounded-sm" style={{backgroundColor: EMBER}}/>
-            <span className={showBlanco ? 'text-gray-300' : 'text-gray-500 line-through'}>Blanco</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowInvalid(!showInvalid)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
-              showInvalid ? 'opacity-100' : 'opacity-40'
-            } hover:bg-gray-800`}
-          >
-            <span className="w-3 h-3 rounded-sm" style={{backgroundColor: RED}}/>
-            <span className={showInvalid ? 'text-gray-300' : 'text-gray-500 line-through'}>Invalid</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowNotVoted(!showNotVoted)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
-              showNotVoted ? 'opacity-100' : 'opacity-40'
-            } hover:bg-gray-800`}
-          >
-            <span className="w-3 h-3 rounded-sm" style={{backgroundColor: SLATE}}/>
-            <span className={showNotVoted ? 'text-gray-300' : 'text-gray-500 line-through'}>Did not vote</span>
-          </button>
+          {legendItems.map((item) => (
+            <button
+              type="button"
+              key={item.key}
+              onClick={() => item.setActive(!item.active)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
+                item.active ? 'opacity-100' : 'opacity-40'
+              } hover:bg-gray-800`}
+            >
+              <span className="w-3 h-3 rounded-sm" style={{backgroundColor: item.color}}/>
+              <span className={item.active ? 'text-gray-300' : 'text-gray-500 line-through'}>{item.label}</span>
+            </button>
+          ))}
         </div>
         <p className="text-xs text-gray-500 italic">
           * Before 2010, blanco and invalid votes were reported as a combined total
@@ -262,163 +346,151 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
           {bars.map((bar, i) => {
             const x = labelSpace + gap + i * (barWidth + gap);
             const yBase = 40 + barHeight;
+            const values = modeValues[i];
+            const stripeId = buildStripeId(bar.year);
 
-            let validH, blancoH, nonValidH, notVotedH;
+            const validH = showValid ? values.valid * scale : 0;
+            const blancoH = showBlanco ? values.blanco * scale : 0;
+            const nonValidH = showInvalid ? values.nonValid * scale : 0;
+            const notVotedH = showNotVoted ? values.notVoted * scale : 0;
 
-            if (scaleMode === 'percentage') {
-              const validPct = bar.electorate > 0 ? (bar.validVotes / bar.electorate) * 100 : 0;
-              const blancoPct = bar.electorate > 0 ? (bar.blancoVotes / bar.electorate) * 100 : 0;
-              const nonValidPct = bar.electorate > 0 ? (bar.nonValidVotes / bar.electorate) * 100 : 0;
-              const notVotedPct = bar.electorate > 0 ? (bar.notVoted / bar.electorate) * 100 : 0;
+            const validY = yBase - validH;
+            const blancoY = validY - blancoH;
+            const nonValidY = blancoY - nonValidH;
+            const notVotedY = nonValidY - notVotedH;
 
-              validH = showValid ? validPct * scale : 0;
-              blancoH = showBlanco ? blancoPct * scale : 0;
-              nonValidH = showInvalid ? nonValidPct * scale : 0;
-              notVotedH = showNotVoted ? notVotedPct * scale : 0;
-            } else {
-              validH = showValid ? bar.validVotes * scale : 0;
-              blancoH = showBlanco ? bar.blancoVotes * scale : 0;
-              nonValidH = showInvalid ? bar.nonValidVotes * scale : 0;
-              notVotedH = showNotVoted ? bar.notVoted * scale : 0;
-            }
+            // Calculate total height for turnout percentage display
+            const totalH = validH + blancoH + nonValidH + notVotedH;
 
-          const validY = yBase - validH;
-          const blancoY = validY - blancoH;
-          const nonValidY = blancoY - nonValidH;
-          const notVotedY = nonValidY - notVotedH;
+            const isHovered = hovered === bar.year;
+            const opacity = hovered && !isHovered ? 0.4 : 1;
 
-          // Calculate total height for turnout percentage display
-          const totalH = validH + blancoH + nonValidH + notVotedH;
-
-          const isHovered = hovered === bar.year;
-          const opacity = hovered && !isHovered ? 0.4 : 1;
-
-          return (
-            <g
-              key={bar.year}
-              onMouseEnter={() => setHovered(bar.year)}
-              onMouseLeave={() => {
-                setHovered(null);
-                setHoveredSegment(null);
-              }}
-              style={{transition: 'opacity 0.2s ease', opacity}}
-            >
-              {/* Not voted */}
-              {showNotVoted && notVotedH > 0 && (
-                <rect
-                  x={x}
-                  y={notVotedY}
-                  width={barWidth}
-                  height={notVotedH}
-                  rx={2}
-                  fill={SLATE}
-                  fillOpacity={hoveredSegment === `${bar.year}-notVoted` ? 1 : 0.7}
-                  onMouseEnter={() => setHoveredSegment(`${bar.year}-notVoted`)}
-                  style={{cursor: 'pointer', transition: 'fill-opacity 0.15s ease'}}
-                />
-              )}
-              {/* Non-valid */}
-              {showInvalid && nonValidH > 0 && (
-                <rect
-                  x={x}
-                  y={nonValidY}
-                  width={barWidth}
-                  height={nonValidH}
-                  fill={RED}
-                  fillOpacity={hoveredSegment === `${bar.year}-invalid` ? 1 : 0.8}
-                  onMouseEnter={() => setHoveredSegment(`${bar.year}-invalid`)}
-                  style={{cursor: 'pointer', transition: 'fill-opacity 0.15s ease'}}
-                />
-              )}
-              {/* Blanco */}
-              {showBlanco && blancoH > 0 && (
-                <>
-                  <rect
+            return (
+              <g
+                key={bar.year}
+                onMouseEnter={() => setHovered(bar.year)}
+                onMouseLeave={() => {
+                  setHovered(null);
+                  setHoveredSegment(null);
+                }}
+                style={{transition: 'opacity 0.2s ease', opacity}}
+              >
+                {/* Not voted */}
+                {showNotVoted && notVotedH > 0 && (
+                  <BarSegment
                     x={x}
-                    y={blancoY}
+                    y={notVotedY}
                     width={barWidth}
-                    height={blancoH}
-                    fill={EMBER}
-                    fillOpacity={hoveredSegment === `${bar.year}-blanco` ? 1 : 0.8}
-                    onMouseEnter={() => setHoveredSegment(`${bar.year}-blanco`)}
-                    style={{cursor: 'pointer', transition: 'fill-opacity 0.15s ease'}}
+                    height={notVotedH}
+                    color={SLATE}
+                    restOpacity={0.7}
+                    rounded
+                    hovered={isSegmentHovered(bar.year, 'notVoted')}
+                    onHover={() => setHoveredSegment({year: bar.year, segment: 'notVoted'})}
                   />
-                  {/* Pattern overlay for combined data */}
-                  {bar.isCombined && (
-                    <>
-                      <defs>
-                        <pattern id={`stripes-${bar.year}`} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
-                          <line x1="0" y1="0" x2="0" y2="4" stroke="#374151" strokeWidth="1" opacity="0.3"/>
-                        </pattern>
-                      </defs>
-                      <rect
-                        x={x}
-                        y={blancoY}
-                        width={barWidth}
-                        height={blancoH}
-                        fill={`url(#stripes-${bar.year})`}
-                        pointerEvents="none"
-                      />
-                    </>
-                  )}
-                </>
-              )}
-              {/* Valid votes */}
-              {showValid && validH > 0 && (
-                <rect
-                  x={x}
-                  y={validY}
-                  width={barWidth}
-                  height={validH}
-                  rx={2}
-                  fill={EMERALD}
-                  fillOpacity={hoveredSegment === `${bar.year}-valid` ? 1 : 0.8}
-                  onMouseEnter={() => setHoveredSegment(`${bar.year}-valid`)}
-                  style={{cursor: 'pointer', transition: 'fill-opacity 0.15s ease'}}
-                />
-              )}
+                )}
+                {/* Non-valid */}
+                {showInvalid && nonValidH > 0 && (
+                  <BarSegment
+                    x={x}
+                    y={nonValidY}
+                    width={barWidth}
+                    height={nonValidH}
+                    color={RED}
+                    restOpacity={0.8}
+                    hovered={isSegmentHovered(bar.year, 'invalid')}
+                    onHover={() => setHoveredSegment({year: bar.year, segment: 'invalid'})}
+                  />
+                )}
+                {/* Blanco */}
+                {showBlanco && blancoH > 0 && (
+                  <>
+                    <BarSegment
+                      x={x}
+                      y={blancoY}
+                      width={barWidth}
+                      height={blancoH}
+                      color={EMBER}
+                      restOpacity={0.8}
+                      hovered={isSegmentHovered(bar.year, 'blanco')}
+                      onHover={() => setHoveredSegment({year: bar.year, segment: 'blanco'})}
+                    />
+                    {/* Pattern overlay for combined data */}
+                    {bar.isCombined && (
+                      <>
+                        <defs>
+                          <pattern id={stripeId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+                            <line x1="0" y1="0" x2="0" y2="4" stroke="#374151" strokeWidth="1" opacity="0.3"/>
+                          </pattern>
+                        </defs>
+                        <rect
+                          x={x}
+                          y={blancoY}
+                          width={barWidth}
+                          height={blancoH}
+                          fill={`url(#${stripeId})`}
+                          pointerEvents="none"
+                        />
+                      </>
+                    )}
+                  </>
+                )}
+                {/* Valid votes */}
+                {showValid && validH > 0 && (
+                  <BarSegment
+                    x={x}
+                    y={validY}
+                    width={barWidth}
+                    height={validH}
+                    color={EMERALD}
+                    restOpacity={0.8}
+                    rounded
+                    hovered={isSegmentHovered(bar.year, 'valid')}
+                    onHover={() => setHoveredSegment({year: bar.year, segment: 'valid'})}
+                  />
+                )}
 
-              {/* Turnout percentage above bar */}
-              {totalH > 0 && (
-                <>
-                  <text
-                    x={x + barWidth / 2}
-                    y={yBase - totalH - 8}
-                    textAnchor="middle"
-                    className="fill-gray-200 text-xs font-bold"
-                  >
-                    {formatPct(bar.turnoutPct)}
-                  </text>
-                  <text
-                    x={x + barWidth / 2}
-                    y={yBase - totalH - 22}
-                    textAnchor="middle"
-                    className="fill-gray-500 text-[10px]"
-                  >
-                    turnout
-                  </text>
-                </>
-              )}
+                {/* Turnout percentage above bar */}
+                {totalH > 0 && (
+                  <>
+                    <text
+                      x={x + barWidth / 2}
+                      y={yBase - totalH - 8}
+                      textAnchor="middle"
+                      className="fill-gray-200 text-xs font-bold"
+                    >
+                      {formatPct(bar.turnoutPct)}
+                    </text>
+                    <text
+                      x={x + barWidth / 2}
+                      y={yBase - totalH - 22}
+                      textAnchor="middle"
+                      className="fill-gray-500 text-[10px]"
+                    >
+                      turnout
+                    </text>
+                  </>
+                )}
 
-              {/* Year label below bar */}
-              <text
-                x={x + barWidth / 2}
-                y={yBase + 20}
-                textAnchor="middle"
-                className="fill-gray-300 text-sm font-semibold"
-              >
-                {bar.year}
-              </text>
+                {/* Year label below bar */}
+                <text
+                  x={x + barWidth / 2}
+                  y={yBase + 20}
+                  textAnchor="middle"
+                  className="fill-gray-300 text-sm font-semibold"
+                >
+                  {bar.year}
+                </text>
 
-              {/* Electorate count */}
-              <text
-                x={x + barWidth / 2}
-                y={yBase + 36}
-                textAnchor="middle"
-                className="fill-gray-500 text-[10px]"
-              >
-                {formatNumber(bar.electorate)}
-              </text>
+                {/* Electorate count */}
+                <text
+                  x={x + barWidth / 2}
+                  y={yBase + 36}
+                  textAnchor="middle"
+                  className="fill-gray-500 text-[10px]"
+                >
+                  {formatNumber(bar.electorate)}
+                </text>
               </g>
             );
           })}
@@ -431,7 +503,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
         if (!bar) return null;
         const i = bars.indexOf(bar);
         // Compute the tooltip anchor in viewBox coordinates, then convert to
-        // rendered CSS coordinates using the SVG's bounding rectangle and the
+        // rendered CSS coordinates using the cached SVG rect and the
         // viewBox-to-client scale so it stays under the pointer across
         // responsive container sizes (important for bars near the right edge).
         const vx = labelSpace + gap + i * (barWidth + gap) + barWidth / 2;
@@ -439,20 +511,21 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
 
         let x = vx;
         let y = vy;
-        const svgEl = svgRef.current;
-        const containerEl = containerRef.current;
-        if (svgEl && containerEl) {
-          const svgRect = svgEl.getBoundingClientRect();
-          const containerRect = containerEl.getBoundingClientRect();
-          const scaleX = svgWidth > 0 ? svgRect.width / svgWidth : 1;
-          const scaleY = svgHeight > 0 ? svgRect.height / svgHeight : 1;
-          x = svgRect.left - containerRect.left + vx * scaleX;
-          y = svgRect.top - containerRect.top + vy * scaleY;
+        const rects = rectsRef.current;
+        if (rects) {
+          const scaleX = svgWidth > 0 ? rects.svgWidth / svgWidth : 1;
+          const scaleY = svgHeight > 0 ? rects.svgHeight / svgHeight : 1;
+          x = rects.svgLeft - rects.containerLeft + vx * scaleX;
+          y = rects.svgTop - rects.containerTop + vy * scaleY;
         }
+
+        const notVotedPct = bar.electorate > 0
+          ? Math.min(100, Math.max(0, (bar.notVoted / bar.electorate) * 100))
+          : 0;
 
         let segmentDetail: React.ReactNode = null;
         if (hoveredSegment) {
-          const seg = hoveredSegment.split('-').slice(1).join('-');
+          const seg = hoveredSegment.segment;
           if (seg === 'valid') {
             segmentDetail = (
               <div className="mt-1 pt-1 border-t border-gray-700 text-emerald-400">
@@ -474,7 +547,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
           } else if (seg === 'notVoted') {
             segmentDetail = (
               <div className="mt-1 pt-1 border-t border-gray-700 text-gray-400">
-                Did not vote: {formatNumber(bar.notVoted)} ({formatPct(100 - bar.turnoutPct)})
+                Did not vote: {formatNumber(bar.notVoted)} ({formatPct(notVotedPct)})
               </div>
             );
           }

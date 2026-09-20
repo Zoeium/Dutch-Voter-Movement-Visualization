@@ -1,5 +1,7 @@
-import {useMemo, useState, useRef, useEffect} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {DiagramNode, DiagramLink} from '@/types';
+import {RibbonGradient} from './shared';
+import {buildGradientId, buildRibbonPath} from './diagramUtils';
 
 export type SortMode = 'votes' | 'alphabetical';
 
@@ -38,10 +40,15 @@ const CHART_PADDING_TOP = 36;
 const CHART_PADDING_BOTTOM = 20;
 const LABEL_SPACE = 130;
 const DIAGRAM_HEIGHT = 620;
+const DEFAULT_CONTAINER_WIDTH = 1200;
 
 function getBaseId(id: string): string {
   const idx = id.indexOf(':');
   return idx >= 0 ? id.slice(idx + 1) : id;
+}
+
+function getRibbonKey(ribbon: PositionedRibbon): string {
+  return `${ribbon.source.id}-${ribbon.target.id}-${ribbon.value}`;
 }
 
 function getColumnSpacing(numColumns: number, svgWidth: number): number {
@@ -144,14 +151,18 @@ function positionNodes(
   return allNodesFlat;
 }
 
-function initializeTargetOffsets(allNodesFlat: PositionedNode[]): Record<string, number> {
-  const targetOffsets: Record<string, number> = {};
+/**
+ * Seed the per-node `id -> y` offset map. Used as the starting cursor for both the
+ * incoming (target) and outgoing (source) accumulators so the two cannot drift.
+ */
+function buildNodeOffsets(allNodesFlat: PositionedNode[]): Record<string, number> {
+  const offsets: Record<string, number> = {};
 
   for (const node of allNodesFlat) {
-    targetOffsets[node.id] = node.y;
+    offsets[node.id] = node.y;
   }
 
-  return targetOffsets;
+  return offsets;
 }
 
 function applyIncomingOffsets(
@@ -178,7 +189,7 @@ function buildTargetOffsets(
   incomingByTarget: Record<string, DiagramLink[]>,
   scale: number
 ): Record<string, { top: number; bot: number }> {
-  const targetOffsets = initializeTargetOffsets(allNodesFlat);
+  const targetOffsets = buildNodeOffsets(allNodesFlat);
   const linkTargetOffsets: Record<string, { top: number; bot: number }> = {};
 
   for (const node of allNodesFlat) {
@@ -188,27 +199,6 @@ function buildTargetOffsets(
   return linkTargetOffsets;
 }
 
-function getRibbonPath(
-  source: PositionedNode,
-  target: PositionedNode,
-  sourceYTop: number,
-  sourceYBot: number,
-  targetYTop: number,
-  targetYBot: number
-): string {
-  const sourceX = source.x + source.width;
-  const targetX = target.x;
-  const midX = (sourceX + targetX) / 2;
-
-  return (
-    `M ${sourceX} ${sourceYTop}` +
-    ` C ${midX} ${sourceYTop}, ${midX} ${targetYTop}, ${targetX} ${targetYTop}` +
-    ` L ${targetX} ${targetYBot}` +
-    ` C ${midX} ${targetYBot}, ${midX} ${sourceYBot}, ${sourceX} ${sourceYBot}` +
-    ` Z`
-  );
-}
-
 function buildRibbons(
   nodeMap: Record<string, PositionedNode>,
   outgoingBySource: Record<string, DiagramLink[]>,
@@ -216,11 +206,7 @@ function buildRibbons(
   scale: number,
   allNodesFlat: PositionedNode[]
 ): PositionedRibbon[] {
-  const sourceOffsets: Record<string, number> = {};
-
-  for (const node of allNodesFlat) {
-    sourceOffsets[node.id] = node.y;
-  }
+  const sourceOffsets = buildNodeOffsets(allNodesFlat);
 
   const linkTargetOffsets = buildTargetOffsets(allNodesFlat, incomingByTarget, scale);
   const ribbons: PositionedRibbon[] = [];
@@ -250,7 +236,7 @@ function buildRibbons(
         targetYBot: targetInfo.bot,
         value: link.value,
         color: link.color,
-        path: getRibbonPath(source, target, sourceYTop, sourceYBot, targetInfo.top, targetInfo.bot),
+        path: buildRibbonPath(source.x + source.width, sourceYTop, sourceYBot, target.x, targetInfo.top, targetInfo.bot),
       });
     }
   }
@@ -359,10 +345,6 @@ function DiagramLabel({label, x}: Readonly<DiagramLabelProps>) {
   );
 }
 
-function buildGradientId(sourceId: string, targetId: string, value: number): string {
-  return `grad-${sourceId}-${targetId}-${value}`.replace(/[^a-zA-Z0-9_-]/g, '-');
-}
-
 interface DiagramRibbonProps {
   ribbon: PositionedRibbon;
   active: boolean;
@@ -372,7 +354,14 @@ interface DiagramRibbonProps {
   onLeave: () => void;
 }
 
-function DiagramRibbon({ribbon, active, isHovered, gradientId, onHover, onLeave}: Readonly<DiagramRibbonProps>) {
+const DiagramRibbon = memo(function DiagramRibbon({
+  ribbon,
+  active,
+  isHovered,
+  gradientId,
+  onHover,
+  onLeave,
+}: Readonly<DiagramRibbonProps>) {
   let fillOpacity = 0.06;
   if (active) {
     fillOpacity = isHovered ? 0.7 : 0.35;
@@ -391,7 +380,7 @@ function DiagramRibbon({ribbon, active, isHovered, gradientId, onHover, onLeave}
       onMouseLeave={onLeave}
     />
   );
-}
+});
 
 interface DiagramTooltipProps {
   centerX: number;
@@ -432,7 +421,13 @@ interface DiagramNodeGlyphProps {
   onLeave: () => void;
 }
 
-function DiagramNodeGlyph({node, isActive, isLastColumn, onHover, onLeave}: Readonly<DiagramNodeGlyphProps>) {
+const DiagramNodeGlyph = memo(function DiagramNodeGlyph({
+  node,
+  isActive,
+  isLastColumn,
+  onHover,
+  onLeave,
+}: Readonly<DiagramNodeGlyphProps>) {
   const textProps = isLastColumn
     ? {x: node.x + node.width + 6, textAnchor: 'start' as const}
     : {x: node.x - 6, textAnchor: 'end' as const};
@@ -463,7 +458,7 @@ function DiagramNodeGlyph({node, isActive, isLastColumn, onHover, onLeave}: Read
       </text>
     </g>
   );
-}
+});
 
 export default function AlluvialDiagram({
                                           nodes,
@@ -474,21 +469,33 @@ export default function AlluvialDiagram({
                                           sortMode = 'votes',
                                         }: Readonly<AlluvialDiagramProps>) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [hoveredRibbon, setHoveredRibbon] = useState<PositionedRibbon | null>(null);
+  const [hoveredRibbonKey, setHoveredRibbonKey] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState<number>(1200);
+  const [containerWidth, setContainerWidth] = useState<number>(DEFAULT_CONTAINER_WIDTH);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const element = containerRef.current;
+    if (!element) return;
 
+    let frame = 0;
     const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
+      // Throttle to one update per animation frame: a resize drag would otherwise
+      // recompute the O(nodes + links) layout on every tick.
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        for (const entry of entries) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      });
     });
 
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    observer.observe(element);
+    setContainerWidth(element.getBoundingClientRect().width || DEFAULT_CONTAINER_WIDTH);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, []);
 
   const {positionedNodes, positionedRibbons, svgWidth, contentHeight} = useMemo(
@@ -501,9 +508,30 @@ export default function AlluvialDiagram({
     return ribbon.source.id === hoveredNode || ribbon.target.id === hoveredNode;
   };
 
+  const handleRibbonHover = useCallback((ribbon: PositionedRibbon) => {
+    setHoveredRibbonKey(getRibbonKey(ribbon));
+    setHoveredNode(null);
+  }, []);
+
+  const handleRibbonLeave = useCallback(() => setHoveredRibbonKey(null), []);
+  const handleNodeLeave = useCallback(() => setHoveredNode(null), []);
+
+  // Resolve the (stable) hovered key back to a live ribbon: storing the object
+  // itself would go stale as soon as the layout memo re-runs (e.g. on resize).
+  const hoveredRibbon = useMemo(
+    () => positionedRibbons.find((ribbon) => getRibbonKey(ribbon) === hoveredRibbonKey) ?? null,
+    [positionedRibbons, hoveredRibbonKey]
+  );
+
   return (
     <div ref={containerRef} className="w-full">
-      <svg width={svgWidth} height={contentHeight} className="block" style={{width: '100%'}}>
+      <svg
+        width="100%"
+        height={contentHeight}
+        viewBox={`0 0 ${svgWidth} ${contentHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="block"
+      >
         {electionLabels.map((label, index) => {
           const x = LABEL_SPACE + index * getColumnSpacing(numColumns, svgWidth) + NODE_WIDTH / 2;
           return <DiagramLabel key={label} label={label} x={x}/>;
@@ -512,40 +540,31 @@ export default function AlluvialDiagram({
         <defs>
           {positionedRibbons.map((ribbon) => {
             const gradId = buildGradientId(ribbon.source.id, ribbon.target.id, ribbon.value);
-            const x1 = ribbon.source.x + (ribbon.source.width ?? 0);
-            const x2 = ribbon.target.x ?? 0;
-
             return (
-              <linearGradient
-                id={gradId}
+              <RibbonGradient
                 key={gradId}
-                gradientUnits="userSpaceOnUse"
-                x1={x1}
-                y1={0}
-                x2={x2}
-                y2={0}
-              >
-                <stop offset="0%" stopColor={ribbon.source.color} stopOpacity={1}/>
-                <stop offset="100%" stopColor={ribbon.target.color} stopOpacity={0.95}/>
-              </linearGradient>
+                id={gradId}
+                x1={ribbon.source.x + ribbon.source.width}
+                x2={ribbon.target.x}
+                sourceColor={ribbon.source.color}
+                targetColor={ribbon.target.color}
+              />
             );
           })}
         </defs>
 
         {positionedRibbons.map((ribbon) => {
           const gradId = buildGradientId(ribbon.source.id, ribbon.target.id, ribbon.value);
+          const ribbonKey = getRibbonKey(ribbon);
           return (
             <DiagramRibbon
-              key={`${ribbon.source.id}-${ribbon.target.id}-${ribbon.value}`}
+              key={ribbonKey}
               ribbon={ribbon}
               gradientId={gradId}
               active={isRibbonActive(ribbon)}
-              isHovered={hoveredRibbon === ribbon}
-              onHover={(nextRibbon) => {
-                setHoveredRibbon(nextRibbon);
-                setHoveredNode(null);
-              }}
-              onLeave={() => setHoveredRibbon(null)}
+              isHovered={hoveredRibbonKey === ribbonKey}
+              onHover={handleRibbonHover}
+              onLeave={handleRibbonLeave}
             />
           );
         })}
@@ -557,7 +576,7 @@ export default function AlluvialDiagram({
             isActive={!hoveredNode || hoveredNode === node.id}
             isLastColumn={node.columnIndex === numColumns - 1}
             onHover={setHoveredNode}
-            onLeave={() => setHoveredNode(null)}
+            onLeave={handleNodeLeave}
           />
         ))}
 

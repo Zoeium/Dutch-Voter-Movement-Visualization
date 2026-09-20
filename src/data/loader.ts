@@ -1,6 +1,5 @@
 import * as yaml from 'js-yaml';
 import type {
-  DataSource,
   DiagramLink,
   DiagramNode,
   ElectionYear,
@@ -45,10 +44,35 @@ const movementSourceModules = import.meta.glob('@/../resources/elections/*/voter
   import: 'default',
 }) as Record<string, string>;
 
+const DEFAULT_PARTY_COLOR = '#6b7280';
+const MOVEMENT_SOURCE_PATH_SUFFIX = '/voters_movement/source.yaml';
+
 // Extract year from a path like "resources/elections/2021/vote_totals.yaml"
 function extractYear(path: string): string {
   const match = /\/elections\/(\d{4})\//.exec(path);
   return match ? match[1] : '';
+}
+
+/**
+ * True for a movement YAML that carries actual voter-movement data (i.e. not the
+ * `source.yaml` citation file). Defined once so the exclusion cannot drift
+ * between the visibility check and the loaders.
+ */
+function isMovementDataFile(path: string): boolean {
+  return !path.endsWith(MOVEMENT_SOURCE_PATH_SUFFIX);
+}
+
+// Bucket the movement modules by election year once, so per-year lookups are O(1)
+// instead of re-running the year regex over every module on each call.
+const movementFilesByYear = new Map<string, string[]>();
+for (const [path, raw] of Object.entries(movementModules)) {
+  if (!isMovementDataFile(path)) continue;
+  const year = extractYear(path);
+  if (!year || !raw) continue;
+
+  const files = movementFilesByYear.get(year) ?? [];
+  files.push(raw);
+  movementFilesByYear.set(year, files);
 }
 
 function getSortedElectionYears(...moduleGroups: Record<string, string>[]): string[] {
@@ -62,26 +86,31 @@ function getSortedElectionYears(...moduleGroups: Record<string, string>[]): stri
   ).sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * The single "does this year participate in the flow diagram" rule: a year is
+ * included when it has movement data of its own, or when the NEXT year does
+ * (voters moving INTO the next election are what the diagram renders). Defined
+ * once over a year list so the loader and the flow builder cannot drift.
+ */
+function movementYearFlags(
+  years: string[],
+  hasOwnMovementData: (year: string) => boolean
+): boolean[] {
+  return years.map((year, index) => {
+    if (hasOwnMovementData(year)) return true;
+    const nextYear = years[index + 1];
+    return !nextYear || hasOwnMovementData(nextYear);
+  });
+}
+
 function hasMovementDataForYear(year: string): boolean {
-  return Object.entries(movementModules).some(
-    ([path, raw]) =>
-      extractYear(path) === year &&
-      !path.endsWith('/voters_movement/source.yaml') &&
-      Boolean(raw)
-  );
+  return (movementFilesByYear.get(year)?.length ?? 0) > 0;
 }
 
 function getVisibleElectionYears(): string[] {
   const years = getSortedElectionYears(totalsModules, movementModules);
-
-  return years.filter((year, index) => {
-    if (hasMovementDataForYear(year)) {
-      return true;
-    }
-
-    const nextYear = years[index + 1];
-    return !nextYear || hasMovementDataForYear(nextYear);
-  });
+  const flags = movementYearFlags(years, hasMovementDataForYear);
+  return years.filter((_, index) => flags[index]);
 }
 
 function getDefaultTotals(): VoteTotals {
@@ -99,54 +128,63 @@ function getDefaultTotals(): VoteTotals {
 }
 
 export function loadParties(): PartyInfo[] {
-  return Object.values(partyModules).map((raw) => yaml.load(raw) as PartyInfo);
+  return Object.values(partyModules)
+    .map((raw) => yaml.load(raw) as PartyInfo | null | undefined)
+    .filter((party): party is PartyInfo => Boolean(party && typeof party.party === 'string'));
 }
 
-function hasIncomingMovementData(election: ElectionYear): boolean {
-  return election.movements.length > 0;
-}
-
-function hasMovementData(election: ElectionYear, nextElection: ElectionYear | undefined): boolean {
-  if (hasIncomingMovementData(election)) {
-    return true;
+/**
+ * Parse the given election years (totals + movements). Parsing lives here once so
+ * `loadElections` and `loadAllElections` cannot drift and each resource is only
+ * parsed a single time.
+ */
+function buildElections(years: string[]): ElectionYear[] {
+  const totalsPathByYear = new Map<string, string>();
+  for (const path of Object.keys(totalsModules)) {
+    const year = extractYear(path);
+    if (year && !totalsPathByYear.has(year)) {
+      totalsPathByYear.set(year, path);
+    }
   }
 
-  return !nextElection || hasIncomingMovementData(nextElection);
+  return years.map((year) => {
+    const totalsPath = totalsPathByYear.get(year);
+    if (!totalsPath) {
+      // Movement data without a totals file yields an all-zero VoteTotals, which
+      // would silently drop every flow - surface the broken year instead.
+      console.warn(`[loader] Missing vote_totals.yaml for election year ${year}`);
+    }
+    const totals = totalsPath ? (yaml.load(totalsModules[totalsPath]) as VoteTotals) : getDefaultTotals();
+
+    const movements = (movementFilesByYear.get(year) ?? [])
+      .map((raw) => yaml.load(raw) as VoterMovement | null | undefined)
+      .filter((movement): movement is VoterMovement => Boolean(movement && typeof movement.party === 'string'));
+
+    return {year, voteTotals: totals, movements};
+  });
 }
 
 export function loadElections(): ElectionYear[] {
-  const years = getVisibleElectionYears();
-
-  return years.map((year) => {
-    const totalsPath = Object.keys(totalsModules).find((path) => extractYear(path) === year);
-    const totals = totalsPath ? (yaml.load(totalsModules[totalsPath]) as VoteTotals) : getDefaultTotals();
-
-    const movements = Object.entries(movementModules)
-      .filter(([path]) => extractYear(path) === year && !path.endsWith('/voters_movement/source.yaml'))
-      .map(([, raw]) => yaml.load(raw) as VoterMovement);
-
-    return {year, voteTotals: totals, movements};
-  });
+  return buildElections(getVisibleElectionYears());
 }
 
 export function loadAllElections(): ElectionYear[] {
-  const years = getSortedElectionYears(totalsModules);
-
-  return years.map((year) => {
-    const totalsPath = Object.keys(totalsModules).find((path) => extractYear(path) === year);
-    const totals = totalsPath ? (yaml.load(totalsModules[totalsPath]) as VoteTotals) : getDefaultTotals();
-
-    const movements = Object.entries(movementModules)
-      .filter(([path]) => extractYear(path) === year && !path.endsWith('/voters_movement/source.yaml'))
-      .map(([, raw]) => yaml.load(raw) as VoterMovement);
-
-    return {year, voteTotals: totals, movements};
-  });
+  return buildElections(getSortedElectionYears(totalsModules));
 }
 
-function normalizeDataSource(source: unknown): DataSource | string | null {
+/**
+ * Only http(s) URLs are safe to render into an `<a href>`; anything else (e.g. a
+ * crafted `javascript:`/`data:` value) is dropped so the caller falls back to
+ * plain text.
+ */
+function sanitizeUrl(url: string): string {
+  const trimmed = url.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : '';
+}
+
+function normalizeDataSource(source: unknown): {name: string; url: string} | null {
   if (typeof source === 'string') {
-    return source;
+    return source ? {name: source, url: ''} : null;
   }
 
   if (!source || typeof source !== 'object') {
@@ -161,11 +199,11 @@ function normalizeDataSource(source: unknown): DataSource | string | null {
 
   return {
     name,
-    url: typeof record.url === 'string' ? record.url : '',
+    url: sanitizeUrl(typeof record.url === 'string' ? record.url : ''),
   };
 }
 
-type DataSourceEntry = {
+export type DataSourceEntry = {
   year: string;
   fromYear?: string;
   toYear?: string;
@@ -187,13 +225,12 @@ export function loadDataSources(): DataSourceEntry[] {
   const addUniqueSource = (
     year: string,
     kind: DataSourceEntry['kind'],
-    source: DataSource | string,
+    source: {name: string; url: string},
     fromYear?: string,
     toYear?: string
   ) => {
-    const normalized = typeof source === 'string' ? {name: source, url: ''} : source;
     const alreadyExists = sources.some(
-      (item) => item.year === year && item.kind === kind && item.name === normalized.name
+      (item) => item.year === year && item.kind === kind && item.name === source.name
     );
 
     if (alreadyExists) {
@@ -205,8 +242,8 @@ export function loadDataSources(): DataSourceEntry[] {
       fromYear,
       toYear,
       kind,
-      name: normalized.name,
-      url: normalized.url || undefined,
+      name: source.name,
+      url: source.url || undefined,
     });
   };
 
@@ -216,7 +253,10 @@ export function loadDataSources(): DataSourceEntry[] {
 
     const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
     const source = normalizeDataSource(doc?.source);
-    if (!source) continue;
+    if (!source) {
+      console.warn(`[loader] Skipping movement source with no resolvable source block: ${path}`);
+      continue;
+    }
 
     const fromYear = doc?.from_year ?? previousYearByYear.get(year) ?? year;
     const toYear = doc?.to_year ?? year;
@@ -230,12 +270,50 @@ export function loadDataSources(): DataSourceEntry[] {
 
     const doc = yaml.load(raw) as { source?: unknown } | null;
     const source = normalizeDataSource(doc?.source);
-    if (source) {
-      addUniqueSource(year, 'totals', source);
+    if (!source) {
+      console.warn(`[loader] Skipping totals source with no resolvable source block: ${path}`);
+      continue;
     }
+
+    addUniqueSource(year, 'totals', source);
   }
 
   return sources.sort((a, b) => a.year.localeCompare(b.year));
+}
+
+// Party lookups are linear scans per node/link otherwise; build name-keyed maps
+// once per `parties` array (the array is loaded once and passed around as-is).
+let cachedParties: PartyInfo[] | null = null;
+const partyByKey = new Map<string, PartyInfo>();
+const partyByPreviousName = new Map<string, PartyInfo>();
+const partyResolveMap = new Map<string, string>();
+
+function ensurePartyCache(parties: PartyInfo[]): void {
+  if (cachedParties === parties) return;
+
+  cachedParties = parties;
+  partyByKey.clear();
+  partyByPreviousName.clear();
+  partyResolveMap.clear();
+
+  for (const party of parties) {
+    if (!partyByKey.has(party.party)) {
+      partyByKey.set(party.party, party);
+    }
+    // First party (in array order) that claims a name - either as its own id or as
+    // a previous name - wins, mirroring the original linear-scan semantics.
+    if (!partyResolveMap.has(party.party)) {
+      partyResolveMap.set(party.party, party.party);
+    }
+    for (const previousName of party.previous_names ?? []) {
+      if (!partyByPreviousName.has(previousName)) {
+        partyByPreviousName.set(previousName, party);
+      }
+      if (!partyResolveMap.has(previousName)) {
+        partyResolveMap.set(previousName, party.party);
+      }
+    }
+  }
 }
 
 /**
@@ -245,37 +323,35 @@ export function resolvePartyName(
   name: string,
   parties: PartyInfo[]
 ): string {
-  for (const p of parties) {
-    if (p.party === name) return p.party;
-    if (p.previous_names?.includes(name)) return p.party;
-  }
-  return name;
+  ensurePartyCache(parties);
+  return partyResolveMap.get(name) ?? name;
 }
 
 /**
  * Get color for a party name. Resolves through previous_names for color matching.
  */
 export function getPartyColor(name: string, parties: PartyInfo[]): string {
+  ensurePartyCache(parties);
+
   // Prefer exact match (party had same id in this election)
-  const exact = parties.find((p) => p.party === name);
-  if (exact) return exact.color;
+  const exact = partyByKey.get(name);
+  if (exact) return exact.color || DEFAULT_PARTY_COLOR;
 
   // If this name appears as a previous name for some canonical party, try to use
   // the historical party's own color file (if present). Fall back to the canonical party color.
-  for (const p of parties) {
-    if (p.previous_names?.includes(name)) {
-      const hist = parties.find((h) => h.party === name);
-      if (hist) return hist.color;
-      return p.color;
-    }
+  const withPreviousName = partyByPreviousName.get(name);
+  if (withPreviousName) {
+    const historical = partyByKey.get(name);
+    if (historical) return historical.color || DEFAULT_PARTY_COLOR;
+    return withPreviousName.color || DEFAULT_PARTY_COLOR;
   }
 
   // Last resort: resolve to canonical and return that color if available
-  const resolved = resolvePartyName(name, parties);
-  const party = parties.find((p) => p.party === resolved);
-  if (party) return party.color;
+  const resolved = partyResolveMap.get(name);
+  const party = resolved ? partyByKey.get(resolved) : undefined;
+  if (party) return party.color || DEFAULT_PARTY_COLOR;
 
-  return '#6b7280';
+  return DEFAULT_PARTY_COLOR;
 }
 
 /**
@@ -283,20 +359,18 @@ export function getPartyColor(name: string, parties: PartyInfo[]): string {
  * NOT the resolved/canonical name.
  */
 export function getPartyDisplayName(name: string, parties: PartyInfo[]): string {
-  const party = parties.find((p) => p.party === name);
+  ensurePartyCache(parties);
+
+  const party = partyByKey.get(name);
   if (party) return party.display_name;
-  for (const p of parties) {
-    if (p.previous_names?.includes(name)) {
-      return name;
-    }
-  }
+
   return name;
 }
 
 /**
  * Check if two party names refer to the same party (for selectedParty filtering).
  */
-export function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolean {
+function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolean {
   return resolvePartyName(nameA, parties) === resolvePartyName(nameB, parties);
 }
 
@@ -328,7 +402,10 @@ function buildPairFlows(
     const targetVotes = toTotals[targetParty] ?? 0;
     if (targetVotes === 0) continue;
 
-    for (const [sourceName, pct] of Object.entries(movement.vote_last_election_in_percentile)) {
+    const sourceMap = movement.vote_last_election_in_percentile;
+    if (!sourceMap) continue;
+
+    for (const [sourceName, pct] of Object.entries(sourceMap)) {
       if (!shouldIncludeFlow(sourceName, targetParty, selectedParty, parties)) continue;
 
       const value = Math.round((pct / 100) * targetVotes);
@@ -341,10 +418,6 @@ function buildPairFlows(
   return flows;
 }
 
-function getPartyVoteCount(id: string, totals: Record<string, number>): number {
-  return totals[id] ?? 0;
-}
-
 function buildColumnNodes(
   ids: Set<string>,
   columnIndex: number,
@@ -354,16 +427,20 @@ function buildColumnNodes(
   selectedParty: string | null,
   isSource: boolean
 ): DiagramNode[] {
+  // Sum outgoing/incoming flow values once instead of filtering `flows` per node.
+  const outgoingSums: Record<string, number> = {};
+  const incomingSums: Record<string, number> = {};
+  for (const flow of flows) {
+    outgoingSums[flow.source] = (outgoingSums[flow.source] ?? 0) + flow.value;
+    incomingSums[flow.target] = (incomingSums[flow.target] ?? 0) + flow.value;
+  }
+
   return Array.from(ids)
-    .sort((a, b) => {
-      const aVotes = isSource ? getPartyVoteCount(a, totals) : totals[a] ?? 0;
-      const bVotes = isSource ? getPartyVoteCount(b, totals) : totals[b] ?? 0;
-      return bVotes - aVotes;
-    })
+    .sort((a, b) => (totals[b] ?? 0) - (totals[a] ?? 0))
     .map((id) => {
-      const value = !selectedParty ? totals[id] : flows
-        .filter((f) => (isSource ? f.source === id : f.target === id))
-        .reduce((sum, f) => sum + f.value, 0);
+      const value = !selectedParty
+        ? (totals[id] ?? 0)
+        : (isSource ? outgoingSums[id] ?? 0 : incomingSums[id] ?? 0);
 
       return {
         id: `${columnIndex}:${id}`,
@@ -406,11 +483,12 @@ function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
 }
 
 function getTotals(electionYear: ElectionYear, parties: PartyInfo[]) {
-  const totals = {...electionYear.voteTotals.parties_votes} as Record<string, number>;
-  totals['not_voted'] = electionYear.voteTotals.not_voted;
+  const partiesVotes = electionYear.voteTotals.parties_votes ?? {};
+  const totals = {...partiesVotes} as Record<string, number>;
+  totals['not_voted'] = electionYear.voteTotals.not_voted ?? 0;
 
   const partyIds = new Set(parties.map((party) => party.party));
-  totals['other'] = Object.entries(electionYear.voteTotals.parties_votes).reduce((sum, [party, votes]) => {
+  totals['other'] = Object.entries(partiesVotes).reduce((sum, [party, votes]) => {
     if (party === 'other') return sum + votes;
     if (partyIds.has(party)) return sum;
     return sum + votes;
@@ -423,6 +501,7 @@ function collectVisiblePartyIds(elections: ElectionYear[]): Set<string> {
 
   for (const election of elections) {
     for (const movement of election.movements) {
+      if (!movement) continue;
       visiblePartySet.add(movement.party);
 
       const sourceMap = movement.vote_last_election_in_percentile;
@@ -455,22 +534,15 @@ function remapHiddenParties(flows: Flow[], visiblePartySet: Set<string>): Flow[]
   });
 }
 
-function collectFlowIds(
-  flows: Flow[],
-  selectedParty: string | null,
-  parties: PartyInfo[]
-): { sourceIds: Set<string>; targetIds: Set<string> } {
+function collectFlowIds(flows: Flow[]): { sourceIds: Set<string>; targetIds: Set<string> } {
   const sourceIds = new Set<string>();
   const targetIds = new Set<string>();
 
+  // Ids come only from the (already remapped) flows, so a ribbon-less `'other'`
+  // block is not added to columns where nothing was actually remapped to it.
   for (const flow of flows) {
     sourceIds.add(flow.source);
     targetIds.add(flow.target);
-  }
-
-  if (!selectedParty && parties.some((party) => party.party === 'other')) {
-    sourceIds.add('other');
-    targetIds.add('other');
   }
 
   return {sourceIds, targetIds};
@@ -489,7 +561,7 @@ function buildStepNodesAndLinks(
   const toTotals = getTotals(toYear, parties);
   const flows = buildPairFlows(toYear, parties, selectedParty, toTotals);
   const remappedFlows = remapHiddenParties(flows, visiblePartySet);
-  const {sourceIds, targetIds} = collectFlowIds(remappedFlows, selectedParty, parties);
+  const {sourceIds, targetIds} = collectFlowIds(remappedFlows);
 
   return {
     nodes: [
@@ -505,9 +577,12 @@ export function buildMultiElectionFlows(
   parties: PartyInfo[],
   selectedParty: string | null,
 ): { nodes: DiagramNode[]; links: DiagramLink[] } {
-  const visibleElections = elections.filter((election, index) => {
-    return hasMovementData(election, elections[index + 1]);
-  });
+  const years = elections.map((election) => election.year);
+  const movementsByYear = new Map(
+    elections.map((election) => [election.year, election.movements.length > 0] as const)
+  );
+  const flags = movementYearFlags(years, (year) => movementsByYear.get(year) ?? false);
+  const visibleElections = elections.filter((_, index) => flags[index]);
 
   if (visibleElections.length < 2) {
     return {nodes: [], links: []};
@@ -538,18 +613,23 @@ export function buildMultiElectionFlows(
 export function loadCoalitions(): CoalitionData[] {
   return Object.entries(coalitionModules).map(([path, raw]) => {
     const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
-    const data = yaml.load(raw) as { inauguration?: unknown; name?: unknown; coalition: string[]; seats: Record<string, number> };
+    const data = yaml.load(raw) as {
+      inauguration?: unknown;
+      name?: unknown;
+      coalition?: string[];
+      seats?: Record<string, number>;
+    } | null;
     // Each coalition file carries an `inauguration` date (YYYY-MM-DD), which is
     // used to derive the year for sorting and column labels. Fall back to the
     // four-digit year encoded in the filename for files without the field.
-    const inauguration = typeof data.inauguration === 'string' ? data.inauguration : '';
+    const inauguration = typeof data?.inauguration === 'string' ? data.inauguration : '';
     const inaugurationMatch = /^(\d{4})/.exec(inauguration);
     const year = inaugurationMatch ? inaugurationMatch[1] : filenameYear;
     return {
-      name: typeof data.name === 'string' ? data.name : '',
+      name: typeof data?.name === 'string' ? data.name : '',
       year,
-      coalition: data.coalition || [],
-      seats: data.seats || {},
+      coalition: data?.coalition || [],
+      seats: data?.seats || {},
     };
   }).sort((a, b) => a.year.localeCompare(b.year));
 }

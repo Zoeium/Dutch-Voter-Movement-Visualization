@@ -1,6 +1,8 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import type {CoalitionData, PartyInfo} from '@/types';
 import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
+import {DualRangeSlider, RibbonGradient} from '@/components/shared';
+import {buildGradientId, buildRibbonPath} from '@/components/diagramUtils';
 
 interface ParliamentDiagramProps {
   coalitions: CoalitionData[];
@@ -20,8 +22,9 @@ interface PartyBlock {
   y: number;
 }
 
-const PX_PER_SEAT = 0.8;
+const PX_PER_SEAT = 5;
 const MIN_BLOCK_HEIGHT = 8;
+const MIN_LABEL_HEIGHT = 12;
 const ROW_GAP = 6;
 const COALITION_GAP = 26;
 const BLOCK_WIDTH = 120;
@@ -32,25 +35,38 @@ const LEGEND_SPACE = 62;
 const SPLIT_OFFSET = 14;
 
 function getSplitParents(party: string, parties: PartyInfo[]): string[] {
-  const p = parties.find((x) => x.party === party || x.previous_names?.includes(party));
-  return p?.split_off ?? [];
+  // Prefer the party's own entry over the `previous_names` fallback: `ppr` is also
+  // a previous name of groenlinks, and groenlinks sorts first, so a combined
+  // lookup would return groenlinks (no split_off) and never read ppr.yaml.
+  const exact = parties.find((x) => x.party === party);
+  if (exact) return exact.split_off ?? [];
+
+  const viaPreviousName = parties.find((x) => x.previous_names?.includes(party));
+  return viaPreviousName?.split_off ?? [];
 }
 
-export default function ParliamentDiagram({coalitions, parties}: Readonly<ParliamentDiagramProps>) {
-  const columns = coalitions.length;
-  const [hoveredParty, setHoveredParty] = useState<string | null>(null);
-  const [rangeStart, setRangeStart] = useState(0);
-  const [rangeEnd, setRangeEnd] = useState(Math.max(0, columns - 1));
+interface ParliamentLayout {
+  selected: CoalitionData[];
+  colBlocks: PartyBlock[][];
+  edges: { block: PartyBlock; next: PartyBlock }[];
+  mergeEdges: { from: PartyBlock; to: PartyBlock }[];
+  splitEdges: { from: PartyBlock; to: PartyBlock }[];
+  svgWidth: number;
+  svgHeight: number;
+}
 
-  if (columns === 0) {
-    return <div className="text-gray-400 text-center py-8">No coalition data available</div>;
-  }
-
-  const start = Math.max(0, Math.min(rangeStart, columns - 1));
-  const end = Math.max(start, Math.min(rangeEnd, columns - 1));
+/**
+ * Build every derived item for the currently selected range. Kept pure and
+ * module-level so the component can memoize it and hover updates stay cheap.
+ */
+function buildParliamentLayout(
+  coalitions: CoalitionData[],
+  parties: PartyInfo[],
+  start: number,
+  end: number
+): ParliamentLayout {
   const selected = coalitions.slice(start, end + 1);
   const selectedCount = selected.length;
-  const maxIndex = Math.max(1, columns - 1);
 
   // Build blocks per (selected) column, grouping by the LITERAL seat key so that
   // predecessor parties (e.g. PPR/PSP/CPN of GroenLinks) stay separate blocks until
@@ -58,7 +74,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
   const colBlocks: PartyBlock[][] = selected.map((coalition, colIndex) => {
     const coalitionSet = new Set(coalition.coalition);
 
-    const grouped = new Map<string, {seats: number; isCoalition: boolean}>();
+    const grouped = new Map<string, { seats: number; isCoalition: boolean }>();
     Object.entries(coalition.seats).forEach(([key, seats]) => {
       if (seats <= 0) return;
       const entry = grouped.get(key) ?? {seats: 0, isCoalition: false};
@@ -98,7 +114,9 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
       if (b.isCoalition && next && !next.isCoalition) y += COALITION_GAP;
     });
   };
-  colBlocks.forEach(layOutColumn);
+  colBlocks.forEach((colBlock, index) => {
+    layOutColumn(colBlock, index);
+  });
 
   // Each column is already built in the desired order: coalition parties first, then
   // opposition, each sorted by seat count descending (most seats at the top).
@@ -116,7 +134,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
   // Continuity flows: a party continuing with the SAME literal key into the next column.
   // Every continuation is shown so the party's lineage stays visible across all elections;
   // plunging no longer filters on coalition membership or seat changes.
-  const edges: {block: PartyBlock; next: PartyBlock}[] = [];
+  const edges: { block: PartyBlock; next: PartyBlock }[] = [];
   colBlocks.forEach((list, colIndex) => {
     if (colIndex >= selectedCount - 1) return;
     const nextList = colBlocks[colIndex + 1];
@@ -132,7 +150,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
   // merged party's OWN block starts a merge - a predecessor continuation (like PPR's own
   // PPR->PPR line, whose block canonicalizes to GroenLinks) must not also draw a merge,
   // otherwise every predecessor flow gets doubled.
-  const mergeEdges: {from: PartyBlock; to: PartyBlock}[] = [];
+  const mergeEdges: { from: PartyBlock; to: PartyBlock }[] = [];
   colBlocks.forEach((list, colIndex) => {
     if (colIndex < 1) return;
     const prevList = colBlocks[colIndex - 1];
@@ -159,7 +177,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
     });
   });
 
-  const splitEdges: {from: PartyBlock; to: PartyBlock}[] = [];
+  const splitEdges: { from: PartyBlock; to: PartyBlock }[] = [];
   colBlocks.forEach((list, colIndex) => {
     list.forEach((block) => {
       if (firstSeen[block.party] !== colIndex) return;
@@ -181,59 +199,56 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
     });
   });
 
-  // Build an alluvial-style ribbon between two blocks: a smooth cubic-bezier band that is
-  // flush with the source block's whole height at its right edge and the target block's
-  // whole height at its left edge. The top edge starts horizontal at the source and bends
-  // into the target; the bottom edge mirrors it. This is the same ribbon geometry the
-  // Alluvial diagram uses (no straight edges, no mid-flow bulge).
-  const buildRibbonPath = (a: PartyBlock, b: PartyBlock) => {
-    const sourceX = a.x + BLOCK_WIDTH;
-    const targetX = b.x;
-    const midX = (sourceX + targetX) / 2;
-    const d =
-      `M ${sourceX} ${a.y}` +
-      ` C ${midX} ${a.y}, ${midX} ${b.y}, ${targetX} ${b.y}` +
-      ` L ${targetX} ${b.y + b.height}` +
-      ` C ${midX} ${b.y + b.height}, ${midX} ${a.y + a.height}, ${sourceX} ${a.y + a.height}` +
-      ` Z`;
-    return {d, x1: sourceX, y1: a.y + a.height / 2, x2: targetX, y2: b.y + b.height / 2};
-  };
+  return {selected, colBlocks, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
+}
+
+export default function ParliamentDiagram({coalitions, parties}: Readonly<ParliamentDiagramProps>) {
+  const columns = coalitions.length;
+  const [hoveredParty, setHoveredParty] = useState<string | null>(null);
+  const [rangeStart, setRangeStart] = useState(0);
+  const [rangeEnd, setRangeEnd] = useState(Math.max(0, columns - 1));
+
+  const start = Math.max(0, Math.min(rangeStart, columns - 1));
+  const end = Math.max(start, Math.min(rangeEnd, columns - 1));
+
+  // Derived layout is memoized so hover updates (local state) do not re-run the
+  // effectively O(columns x blocks^2) edge/split computation on every mouse move.
+  const {selected, colBlocks, edges, mergeEdges, splitEdges, svgWidth, svgHeight} = useMemo(
+    () => buildParliamentLayout(coalitions, parties, start, end),
+    [coalitions, parties, start, end]
+  );
+
+  if (columns === 0) {
+    return <div className="text-gray-400 text-center py-8">No coalition data available</div>;
+  }
+
+  const selectedCount = selected.length;
+
+  // Ribbon path + gradient ids shared by the definitions and the rendered paths.
+  const ribbonPath = (a: PartyBlock, b: PartyBlock) =>
+    buildRibbonPath(a.x + BLOCK_WIDTH, a.y, a.y + a.height, b.x, b.y, b.y + b.height);
+
+  const mergeGradientId = (from: PartyBlock, to: PartyBlock) =>
+    buildGradientId('m', from.columnIndex, from.party, to.columnIndex, to.party);
+
+  const splitGradientId = (from: PartyBlock, to: PartyBlock) =>
+    buildGradientId('s', from.columnIndex, from.party, to.columnIndex, to.party);
 
   return (
     <div className="relative w-full">
       {/* Dual-thumb range slider (single control, two thumbs) */}
       <div className="flex items-center gap-3 flex-wrap mb-3">
         <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Range:</span>
-        <div className="relative w-56 h-6 flex items-center">
-          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
-          <div
-            className="absolute h-1.5 rounded-full bg-emerald-500"
-            style={{
-              left: `${(start / maxIndex) * 100}%`,
-              right: `${100 - (end / maxIndex) * 100}%`,
-            }}
-          />
-          <input
-            type="range"
-            aria-label="Range start"
-            min={0}
-            max={columns - 1}
-            value={start}
-            onChange={(e) => setRangeStart(Math.min(Number(e.target.value), end))}
-            className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-            style={{zIndex: start === end ? 4 : 3}}
-          />
-          <input
-            type="range"
-            aria-label="Range end"
-            min={0}
-            max={columns - 1}
-            value={end}
-            onChange={(e) => setRangeEnd(Math.max(Number(e.target.value), start))}
-            className="year-range-thumb absolute w-full appearance-none bg-transparent pointer-events-auto"
-            style={{zIndex: 4}}
-          />
-        </div>
+        <DualRangeSlider
+          min={0}
+          max={columns - 1}
+          start={start}
+          end={end}
+          onStartChange={setRangeStart}
+          onEndChange={setRangeEnd}
+          startAriaLabel="Range start"
+          endAriaLabel="Range end"
+        />
         <span className="text-xs text-gray-400 whitespace-nowrap">
           {selected[0].name} ({selected[0].year}) — {selected[selectedCount - 1].name} ({selected[selectedCount - 1].year})
         </span>
@@ -249,46 +264,38 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
         <defs>
           {/* Source->target gradients for merge ribbons (like the Alluvial diagram) */}
           {mergeEdges.map(({from, to}) => {
-            const gid = `pgrad-m${from.columnIndex}-${from.party}-${to.columnIndex}-${to.party}`;
+            const gid = mergeGradientId(from, to);
             return (
-              <linearGradient
-                id={gid}
+              <RibbonGradient
                 key={gid}
-                gradientUnits="userSpaceOnUse"
+                id={gid}
                 x1={from.x + BLOCK_WIDTH}
-                y1={0}
                 x2={to.x}
-                y2={0}
-              >
-                <stop offset="0%" stopColor={from.color} stopOpacity={1}/>
-                <stop offset="100%" stopColor={to.color} stopOpacity={0.95}/>
-              </linearGradient>
+                sourceColor={from.color}
+                targetColor={to.color}
+              />
             );
           })}
 
           {/* Source->target gradients for split flows: parent party color -> split party color */}
           {splitEdges.map(({from, to}) => {
-            const gid = `pgrad-s${from.columnIndex}-${from.party}-${to.columnIndex}-${to.party}`;
+            const gid = splitGradientId(from, to);
             return (
-              <linearGradient
-                id={gid}
+              <RibbonGradient
                 key={gid}
-                gradientUnits="userSpaceOnUse"
+                id={gid}
                 x1={from.x + BLOCK_WIDTH}
-                y1={0}
                 x2={to.x}
-                y2={0}
-              >
-                <stop offset="0%" stopColor={from.color} stopOpacity={1}/>
-                <stop offset="100%" stopColor={to.color} stopOpacity={0.95}/>
-              </linearGradient>
+                sourceColor={from.color}
+                targetColor={to.color}
+              />
             );
           })}
         </defs>
 
         {/* Election-to-election flows (alluvial ribbons) */}
         {edges.map(({block, next}) => {
-          const {d} = buildRibbonPath(block, next);
+          const d = ribbonPath(block, next);
           const isHovered = block.canonical === hoveredParty || next.canonical === hoveredParty;
           return (
             <path
@@ -304,9 +311,9 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
 
         {/* Merge flows (alluvial ribbons with a source->target gradient) */}
         {mergeEdges.map(({from, to}) => {
-          const {d} = buildRibbonPath(from, to);
+          const d = ribbonPath(from, to);
           const isHovered = from.canonical === hoveredParty || to.canonical === hoveredParty;
-          const gid = `pgrad-m${from.columnIndex}-${from.party}-${to.columnIndex}-${to.party}`;
+          const gid = mergeGradientId(from, to);
           return (
             <path
               key={`m${from.columnIndex}-${from.party}-${to.columnIndex}-${to.party}`}
@@ -322,7 +329,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
         {/* Split-off flows (gradient from the parent party color to the split party color);
             no arrow - and nothing is shown when the split is at the starting year */}
         {splitEdges.map(({from, to}) => {
-          const gid = `pgrad-s${from.columnIndex}-${from.party}-${to.columnIndex}-${to.party}`;
+          const gid = splitGradientId(from, to);
           const isHovered = from.canonical === hoveredParty || to.canonical === hoveredParty;
           if (to.columnIndex === 0) {
             // Starting year: there is no earlier coalition for the split to come from,
@@ -349,7 +356,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
               />
             );
           }
-          const {d} = buildRibbonPath(from, to);
+          const d = ribbonPath(from, to);
           return (
             <path
               key={`s${to.columnIndex}-${to.party}`}
@@ -404,7 +411,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
               {list.map((block) => {
                 const isHovered = block.canonical === hoveredParty;
                 const textY = block.y + block.height / 2;
-                const textSize = block.height >= 24 ? 'text-xs' : block.height >= 12 ? 'text-[9px]' : 'text-[7px]';
+                const textSize = block.height >= 24 ? 'text-xs' : 'text-[9px]';
 
                 return (
                   <g
@@ -423,7 +430,8 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                       opacity={hoveredParty && !isHovered ? 0.3 : 1}
                       style={{transition: 'opacity 0.2s ease'}}
                     />
-                    {block.height >= 11 && (
+                    {/* Only label blocks tall enough to contain the text without overflow. */}
+                    {block.height >= MIN_LABEL_HEIGHT && (
                       <text
                         x={block.x + BLOCK_WIDTH / 2}
                         y={textY}
