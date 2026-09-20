@@ -503,7 +503,7 @@ function getTotals(electionYear: ElectionYear, parties: PartyInfo[]) {
   const totals = {...partiesVotes} as Record<string, number>;
   totals['not_voted'] = electionYear.voteTotals.not_voted ?? 0;
 
-  const partyIds = new Set(parties.map((party) => party.party));
+  const partyIds = collectVisiblePartyIds(parties);
   totals['other'] = Object.entries(partiesVotes).reduce((sum, [party, votes]) => {
     if (party === 'other') return sum + votes;
     if (partyIds.has(party)) return sum;
@@ -512,27 +512,9 @@ function getTotals(electionYear: ElectionYear, parties: PartyInfo[]) {
   return totals;
 }
 
-/** Collect party identifiers explicitly represented in movement resources. */
-function collectVisiblePartyIds(elections: ElectionYear[]): Set<string> {
-  const visiblePartySet = new Set<string>();
-
-  for (const election of elections) {
-    for (const movement of election.movements) {
-      if (!movement) continue;
-      visiblePartySet.add(movement.party);
-
-      const sourceMap = movement.vote_last_election_in_percentile;
-      if (!sourceMap) {
-        continue;
-      }
-
-      for (const sourceName of Object.keys(sourceMap)) {
-        visiblePartySet.add(sourceName);
-      }
-    }
-  }
-
-  return visiblePartySet;
+/** Collect identifiers that have a displayable party definition. */
+function collectVisiblePartyIds(parties: PartyInfo[]): Set<string> {
+  return new Set(parties.flatMap(({party, previous_names = []}) => [party, ...previous_names]));
 }
 
 /** Aggregate flows for unrepresented parties into the synthetic other party. */
@@ -611,7 +593,7 @@ export function buildMultiElectionFlows(
 
   const allNodes: DiagramNode[] = [];
   const allLinks: DiagramLink[] = [];
-  const visiblePartySet = collectVisiblePartyIds(visibleElections);
+  const visiblePartySet = collectVisiblePartyIds(parties);
 
   for (let i = 0; i < visibleElections.length - 1; i++) {
     const step = buildStepNodesAndLinks(
