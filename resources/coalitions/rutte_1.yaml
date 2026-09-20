@@ -5,6 +5,10 @@ inauguration: 2010-10-14
 coalition:
   - vvd
   - cda
+# The PVV tolerated this minority coalition without joining it (gedoogpartner):
+# it supported the cabinet in parliament but supplied no ministers.
+support:
+  - pvv
 seats:
   vvd: 31
   pvda: 30

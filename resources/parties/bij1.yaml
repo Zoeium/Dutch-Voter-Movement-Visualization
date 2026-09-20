@@ -1,3 +1,5 @@
 party: bij1
 display_name: BIJ1
 color: '#FFFD54'
+split_off:
+  - denk

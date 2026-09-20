@@ -611,12 +611,13 @@ export function buildMultiElectionFlows(
 }
 
 export function loadCoalitions(): CoalitionData[] {
-  return Object.entries(coalitionModules).map(([path, raw]) => {
+  const entries = Object.entries(coalitionModules).map(([path, raw]) => {
     const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
     const data = yaml.load(raw) as {
       inauguration?: unknown;
       name?: unknown;
       coalition?: string[];
+      support?: unknown;
       seats?: Record<string, number>;
     } | null;
     // Each coalition file carries an `inauguration` date (YYYY-MM-DD), which is
@@ -626,10 +627,28 @@ export function loadCoalitions(): CoalitionData[] {
     const inaugurationMatch = /^(\d{4})/.exec(inauguration);
     const year = inaugurationMatch ? inaugurationMatch[1] : filenameYear;
     return {
+      // Sort on the full inauguration date, not just the year: several coalitions
+      // share a year, and Van Agt III (1982-05-29) must precede Lubbers I
+      // (1982-11-04). Falls back to the year for files without a date.
+      sortKey: inauguration || year,
       name: typeof data?.name === 'string' ? data.name : '',
       year,
       coalition: data?.coalition || [],
+      // Parties that tolerated the coalition without joining it (gedoogpartners).
+      support: Array.isArray(data?.support)
+        ? data.support.filter((party): party is string => typeof party === 'string')
+        : [],
       seats: data?.seats || {},
     };
-  }).sort((a, b) => a.year.localeCompare(b.year));
+  });
+
+  return entries
+    .toSorted((a, b) => a.sortKey.localeCompare(b.sortKey) || a.name.localeCompare(b.name))
+    .map((entry) => ({
+      name: entry.name,
+      year: entry.year,
+      coalition: entry.coalition,
+      support: entry.support,
+      seats: entry.seats,
+    }));
 }
