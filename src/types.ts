@@ -60,5 +60,6 @@ export interface CoalitionData {
   name: string;
   year: string;
   coalition: string[];
+  support?: string[];
   seats: Record<string, number>;
 }
