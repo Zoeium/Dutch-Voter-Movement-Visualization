@@ -42,20 +42,24 @@ const LABEL_SPACE = 130;
 const DIAGRAM_HEIGHT = 620;
 const DEFAULT_CONTAINER_WIDTH = 1200;
 
+/** Remove a column prefix from a diagram node identifier. */
 function getBaseId(id: string): string {
   const idx = id.indexOf(':');
   return idx >= 0 ? id.slice(idx + 1) : id;
 }
 
+/** Build a stable React key for a positioned ribbon. */
 function getRibbonKey(ribbon: PositionedRibbon): string {
   return `${ribbon.source.id}-${ribbon.target.id}-${ribbon.value}`;
 }
 
+/** Calculate the horizontal distance between diagram columns. */
 function getColumnSpacing(numColumns: number, svgWidth: number): number {
   const chartAreaWidth = svgWidth - LABEL_SPACE * 2;
   return numColumns > 1 ? chartAreaWidth / (numColumns - 1) : 0;
 }
 
+/** Sort one column while keeping selected and synthetic nodes prominent. */
 function sortNodesInColumn(
   column: PositionedNode[],
   selectedBase: string | null,
@@ -82,6 +86,7 @@ function sortNodesInColumn(
   });
 }
 
+/** Group links by their source or target node identifier. */
 function buildLinkGroups(
   links: DiagramLink[],
   key: 'source' | 'target'
@@ -99,6 +104,7 @@ function buildLinkGroups(
   return groups;
 }
 
+/** Sort each link group by the vertical position of its opposite endpoint. */
 function sortGroupsByNodeY(
   groups: Record<string, DiagramLink[]>,
   nodeMap: Record<string, PositionedNode>,
@@ -114,6 +120,7 @@ function sortGroupsByNodeY(
   }
 }
 
+/** Assign scaled SVG coordinates and heights to every diagram node. */
 function positionNodes(
   columns: PositionedNode[][],
   numColumns: number,
@@ -165,6 +172,7 @@ function buildNodeOffsets(allNodesFlat: PositionedNode[]): Record<string, number
   return offsets;
 }
 
+/** Allocate target-side vertical offsets for every link entering one node. */
 function applyIncomingOffsets(
   nodeId: string,
   targetOffsets: Record<string, number>,
@@ -184,6 +192,7 @@ function applyIncomingOffsets(
   }
 }
 
+/** Compute the target-side vertical span allocated to each link. */
 function buildTargetOffsets(
   allNodesFlat: PositionedNode[],
   incomingByTarget: Record<string, DiagramLink[]>,
@@ -199,6 +208,7 @@ function buildTargetOffsets(
   return linkTargetOffsets;
 }
 
+/** Convert links between positioned nodes into drawable ribbon geometry. */
 function buildRibbons(
   nodeMap: Record<string, PositionedNode>,
   outgoingBySource: Record<string, DiagramLink[]>,
@@ -244,6 +254,7 @@ function buildRibbons(
   return ribbons.sort((a, b) => b.value - a.value);
 }
 
+/** Derive responsive node and ribbon geometry for the alluvial diagram. */
 function computeDiagramLayout(
   nodes: DiagramNode[],
   links: DiagramLink[],
@@ -332,6 +343,7 @@ interface DiagramLabelProps {
   x: number;
 }
 
+/** Render a year label above an alluvial column. */
 function DiagramLabel({label, x}: Readonly<DiagramLabelProps>) {
   return (
     <text
@@ -354,7 +366,7 @@ interface DiagramRibbonProps {
   onLeave: () => void;
 }
 
-const DiagramRibbon = memo(function DiagramRibbon({
+const DiagramRibbon = memo(/** Render one interactive flow ribbon. */ function DiagramRibbon({
   ribbon,
   active,
   isHovered,
@@ -389,6 +401,7 @@ interface DiagramTooltipProps {
   text: string;
 }
 
+/** Render an SVG tooltip centered on the requested coordinate. */
 function DiagramTooltip({centerX, y, width, text}: Readonly<DiagramTooltipProps>) {
   return (
     <g style={{pointerEvents: 'none'}}>
@@ -421,7 +434,7 @@ interface DiagramNodeGlyphProps {
   onLeave: () => void;
 }
 
-const DiagramNodeGlyph = memo(function DiagramNodeGlyph({
+const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. */ function DiagramNodeGlyph({
   node,
   isActive,
   isLastColumn,
@@ -460,6 +473,7 @@ const DiagramNodeGlyph = memo(function DiagramNodeGlyph({
   );
 });
 
+/** Render a responsive, interactive alluvial voter-flow diagram. */
 export default function AlluvialDiagram({
                                           nodes,
                                           links,

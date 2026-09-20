@@ -39,10 +39,12 @@ const RED = '#ef4444';
 const SLATE = '#475569';
 const EMERALD = '#10b981';
 
+/** Format a vote count with locale-aware thousands separators. */
 function formatNumber(n: number): string {
   return n.toLocaleString('en-US');
 }
 
+/** Format a percentage with one decimal place. */
 function formatPct(n: number): string {
   return `${n.toFixed(1)}%`;
 }
@@ -67,6 +69,7 @@ function getSegmentValues(bar: TurnoutBar, scaleMode: ScaleMode): SegmentValues 
   };
 }
 
+/** Render a positioned HTML tooltip when its target is visible. */
 function Tooltip({x, y, visible, children}: Readonly<{
   x: number;
   y: number;
@@ -123,6 +126,7 @@ function BarSegment({
   );
 }
 
+/** Render election turnout as an interactive stacked bar chart. */
 export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps>) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);

@@ -52,14 +52,17 @@ function loadAppData(): AppData {
   return cachedAppData;
 }
 
+/** Build the visual state classes for a party-filter button. */
 const partyButtonClass = (selected: boolean): string =>
   `${selected ? 'ring-2 ring-offset-2 ring-offset-gray-950' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 
+/** Format a data-source entry for the citations footer. */
 const getSourceLabel = (source: DataSourceEntry) =>
   source.kind === 'totals'
     ? `Totals (${source.year})`
     : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
 
+/** Render the voter movement, turnout, and parliament views. */
 export default function App() {
   const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = loadAppData();
 
