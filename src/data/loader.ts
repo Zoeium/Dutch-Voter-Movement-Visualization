@@ -47,7 +47,7 @@ const movementSourceModules = import.meta.glob('@/../resources/elections/*/voter
 const DEFAULT_PARTY_COLOR = '#6b7280';
 const MOVEMENT_SOURCE_PATH_SUFFIX = '/voters_movement/source.yaml';
 
-// Extract year from a path like "resources/elections/2021/vote_totals.yaml"
+/** Extract an election year from a resource path. */
 function extractYear(path: string): string {
   const match = /\/elections\/(\d{4})\//.exec(path);
   return match ? match[1] : '';
@@ -75,6 +75,7 @@ for (const [path, raw] of Object.entries(movementModules)) {
   movementFilesByYear.set(year, files);
 }
 
+/** Collect unique election years from module groups in chronological order. */
 function getSortedElectionYears(...moduleGroups: Record<string, string>[]): string[] {
   return Array.from(
     new Set(
@@ -103,16 +104,19 @@ function movementYearFlags(
   });
 }
 
+/** Report whether an election year has at least one movement data file. */
 function hasMovementDataForYear(year: string): boolean {
   return (movementFilesByYear.get(year)?.length ?? 0) > 0;
 }
 
+/** Return the election years that can participate in the flow diagram. */
 function getVisibleElectionYears(): string[] {
   const years = getSortedElectionYears(totalsModules, movementModules);
   const flags = movementYearFlags(years, hasMovementDataForYear);
   return years.filter((_, index) => flags[index]);
 }
 
+/** Create empty vote totals for an election with a missing totals resource. */
 function getDefaultTotals(): VoteTotals {
   return {
     date: '',
@@ -127,6 +131,7 @@ function getDefaultTotals(): VoteTotals {
   };
 }
 
+/** Parse all valid party metadata resources. */
 export function loadParties(): PartyInfo[] {
   return Object.values(partyModules)
     .map((raw) => yaml.load(raw) as PartyInfo | null | undefined)
@@ -164,10 +169,12 @@ function buildElections(years: string[]): ElectionYear[] {
   });
 }
 
+/** Load elections that have enough movement data for the flow diagram. */
 export function loadElections(): ElectionYear[] {
   return buildElections(getVisibleElectionYears());
 }
 
+/** Load every election with vote totals for the turnout diagram. */
 export function loadAllElections(): ElectionYear[] {
   return buildElections(getSortedElectionYears(totalsModules));
 }
@@ -182,6 +189,7 @@ function sanitizeUrl(url: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : '';
 }
 
+/** Normalize a YAML source value into a safe, structured citation. */
 function normalizeDataSource(source: unknown): {name: string; url: string} | null {
   if (typeof source === 'string') {
     return source ? {name: source, url: ''} : null;
@@ -212,6 +220,7 @@ export type DataSourceEntry = {
   kind: 'totals' | 'movement';
 };
 
+/** Load and deduplicate citations for election totals and movements. */
 export function loadDataSources(): DataSourceEntry[] {
   const sources: DataSourceEntry[] = [];
   const electionYears = getVisibleElectionYears();
@@ -288,6 +297,7 @@ const partyByKey = new Map<string, PartyInfo>();
 const partyByPreviousName = new Map<string, PartyInfo>();
 const partyResolveMap = new Map<string, string>();
 
+/** Rebuild party lookup caches when the party array identity changes. */
 function ensurePartyCache(parties: PartyInfo[]): void {
   if (cachedParties === parties) return;
 
@@ -374,6 +384,7 @@ function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolea
   return resolvePartyName(nameA, parties) === resolvePartyName(nameB, parties);
 }
 
+/** Decide whether a flow matches the optional selected-party filter. */
 function shouldIncludeFlow(
   sourceName: string,
   targetParty: string,
@@ -389,6 +400,7 @@ function shouldIncludeFlow(
   return sourceMatches || targetMatches;
 }
 
+/** Convert movement percentages for an election pair into vote-count flows. */
 function buildPairFlows(
   toYear: ElectionYear,
   parties: PartyInfo[],
@@ -418,6 +430,7 @@ function buildPairFlows(
   return flows;
 }
 
+/** Build diagram nodes for one source or target election column. */
 function buildColumnNodes(
   ids: Set<string>,
   columnIndex: number,
@@ -452,6 +465,7 @@ function buildColumnNodes(
     });
 }
 
+/** Convert party flows into links between column-scoped node identifiers. */
 function buildLinks(
   flows: Flow[],
   fromCol: number,
@@ -466,6 +480,7 @@ function buildLinks(
   }));
 }
 
+/** Merge duplicate diagram nodes while retaining the largest value. */
 function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
   const nodeMap: Record<string, DiagramNode> = {};
 
@@ -482,6 +497,7 @@ function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
   return Object.values(nodeMap);
 }
 
+/** Build party totals for a column, including abstentions and unknown parties. */
 function getTotals(electionYear: ElectionYear, parties: PartyInfo[]) {
   const partiesVotes = electionYear.voteTotals.parties_votes ?? {};
   const totals = {...partiesVotes} as Record<string, number>;
@@ -496,6 +512,7 @@ function getTotals(electionYear: ElectionYear, parties: PartyInfo[]) {
   return totals;
 }
 
+/** Collect party identifiers explicitly represented in movement resources. */
 function collectVisiblePartyIds(elections: ElectionYear[]): Set<string> {
   const visiblePartySet = new Set<string>();
 
@@ -518,6 +535,7 @@ function collectVisiblePartyIds(elections: ElectionYear[]): Set<string> {
   return visiblePartySet;
 }
 
+/** Aggregate flows for unrepresented parties into the synthetic other party. */
 function remapHiddenParties(flows: Flow[], visiblePartySet: Set<string>): Flow[] {
   const remapAgg: Record<string, number> = {};
 
@@ -534,6 +552,7 @@ function remapHiddenParties(flows: Flow[], visiblePartySet: Set<string>): Flow[]
   });
 }
 
+/** Collect the source and target identifiers present in a set of flows. */
 function collectFlowIds(flows: Flow[]): { sourceIds: Set<string>; targetIds: Set<string> } {
   const sourceIds = new Set<string>();
   const targetIds = new Set<string>();
@@ -548,6 +567,7 @@ function collectFlowIds(flows: Flow[]): { sourceIds: Set<string>; targetIds: Set
   return {sourceIds, targetIds};
 }
 
+/** Build nodes and links for one transition between adjacent elections. */
 function buildStepNodesAndLinks(
   fromYear: ElectionYear,
   toYear: ElectionYear,
@@ -572,6 +592,7 @@ function buildStepNodesAndLinks(
   };
 }
 
+/** Build the complete multi-election node and link graph. */
 export function buildMultiElectionFlows(
   elections: ElectionYear[],
   parties: PartyInfo[],
@@ -610,6 +631,7 @@ export function buildMultiElectionFlows(
   return {nodes: mergeNodeMap(allNodes), links: allLinks};
 }
 
+/** Parse coalition resources and return them in inauguration order. */
 export function loadCoalitions(): CoalitionData[] {
   const entries = Object.entries(coalitionModules).map(([path, raw]) => {
     const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';

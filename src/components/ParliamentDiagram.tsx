@@ -88,6 +88,7 @@ const RANGE_PRESETS = [
   {label: 'Last 5', size: 5},
 ];
 
+/** Return the parties from which a literal party entry split. */
 function getSplitParents(party: string, parties: PartyInfo[]): string[] {
   // Prefer the party's own entry over the `previous_names` fallback: `ppr` is also
   // a previous name of groenlinks, and groenlinks sorts first, so a combined
@@ -317,6 +318,7 @@ function buildParliamentLayout(
   return {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
 }
 
+/** Render coalition composition and party lineage across cabinets. */
 export default function ParliamentDiagram({coalitions, parties}: Readonly<ParliamentDiagramProps>) {
   const columns = coalitions.length;
   const [hoveredParty, setHoveredParty] = useState<string | null>(null);
