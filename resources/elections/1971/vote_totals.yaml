@@ -1,0 +1,38 @@
+date: 1971-04-28
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1971'
+  url: https://data.overheid.nl/dataset/3584-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1971
+electorate: 8048726
+not_voted: 1684007
+total_votes: 6364719
+non_valid_votes_and_blanco_votes: 46567
+valid_votes: 6318152
+parties_votes:
+  pvda: 1554280
+  katholieke_volkspartij: 1379672
+  vvd: 653370
+  anti_revolutionaire_partij: 542742
+  d66: 428067
+  christelijk_historische_unie: 399106
+  ds70: 336719
+  cpn: 246569
+  sgp: 148192
+  ppr: 116049
+  gpv: 101790
+  nederlandse_middenstands_partij: 95706
+  psp: 90738
+  boeren_partij: 69656
+  algemeen_bejaarden_partij_nederland: 26878
+  nederlands_appèl: 24376
+  nieuwe_roomse_partij: 23047
+  kabouters: 21982
+  bejaarden_en_arbeiderspartij: 21488
+  binding_rechts: 15137
+  democraten_2000: 7189
+  bejaardenpartij_65: 5739
+  lijst_van_velsen: 3676
+  bejaarden_partij_algemeen_belang: 1840
+  sgg_18_t_m_65: 1647
+  landelijke_partij_voor_bejaarden: 1620
+  partij_van_het_recht: 477
+  positief_sociaal_democraten: 400

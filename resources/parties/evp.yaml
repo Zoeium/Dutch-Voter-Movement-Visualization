@@ -1,0 +1,5 @@
+party: evp
+display_name: EVP
+color: '#1B7A3D'
+split_off:
+  - cda

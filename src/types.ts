@@ -3,6 +3,7 @@ export interface PartyInfo {
   display_name: string;
   color: string;
   previous_names?: string[];
+  split_off?: string[];
 }
 
 export interface DataSource {
@@ -18,6 +19,7 @@ export interface VoteTotals {
   total_votes: number;
   non_valid_votes: number;
   blanco_votes: number;
+  non_valid_votes_and_blanco_votes?: number;
   valid_votes: number;
   parties_votes: Record<string, number>;
 }
@@ -52,4 +54,12 @@ export interface DiagramLink {
   target: string;
   value: number;
   color: string;
+}
+
+export interface CoalitionData {
+  name: string;
+  year: string;
+  coalition: string[];
+  support?: string[];
+  seats: Record<string, number>;
 }

@@ -1,0 +1,17 @@
+# Balkenende III (2003-2006) and II (2003)
+# CDA-VVD-D66 coalition
+name: Balkenende III
+inauguration: 2006-07-07
+coalition:
+  - cda
+  - vvd
+seats:
+  cda: 44
+  pvda: 42
+  vvd: 28
+  sp: 9
+  groenlinks: 8
+  d66: 6
+  christenunie: 3
+  sgp: 2
+  lpf: 8

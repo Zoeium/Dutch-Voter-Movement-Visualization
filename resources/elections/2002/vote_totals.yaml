@@ -1,0 +1,26 @@
+date: 2002-05-12
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 2002'
+  url: https://data.overheid.nl/dataset/3581-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--2002
+electorate: 12035935
+not_voted: 2520709
+total_votes: 9515226
+non_valid_votes_and_blanco_votes: 14074
+valid_votes: 9501152
+parties_votes:
+  cda: 2653723
+  lpf: 1614801
+  vvd: 1466722
+  pvda: 1436023
+  groenlinks: 660692
+  sp: 560447
+  d66: 484317
+  christenunie: 240953
+  sgp: 163562
+  ln: 153055
+  vsp: 39005
+  vip_ou: 10033
+  dn: 9058
+  pvdt: 6393
+  nmp: 2305
+  rvp: 63

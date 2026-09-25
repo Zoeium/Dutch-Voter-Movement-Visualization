@@ -1,0 +1,36 @@
+date: 1994-05-03
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1994'
+  url: https://data.overheid.nl/dataset/3568-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1994
+electorate: 11455924
+not_voted: 2434641
+total_votes: 9021283
+non_valid_votes_and_blanco_votes: 39727
+valid_votes: 8981556
+parties_votes:
+  pvda: 2153135
+  cda: 1996418
+  vvd: 1792401
+  d66: 1391202
+  aov: 326401
+  groenlinks: 311399
+  cd: 220734
+  rpf: 158705
+  sgp: 155251
+  gpv: 119158
+  sp: 118768
+  u55: 78147
+  cp86: 32327
+  nwp: 27665
+  vip: 17230
+  dg: 13902
+  ncpn: 11630
+  sbp: 9096
+  pmr: 8716
+  s93: 7919
+  psp92: 7385
+  dnp: 6825
+  adp: 5196
+  pda: 4845
+  sap: 4347
+  lp: 2754

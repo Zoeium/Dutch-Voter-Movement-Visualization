@@ -1,0 +1,29 @@
+date: 2010-06-09
+source:
+  name: 'overheid.nl: Verkiezingsuitslag Tweede Kamer 2010'
+  url: https://data.overheid.nl/dataset/verkiezingsuitslag-tweede-kamer-2010
+electorate: 12524152
+not_voted: 3081175
+total_votes: 9442977
+non_valid_votes: 18147
+blanco_votes: 8829
+valid_votes: 9416001
+parties_votes:
+  vvd: 1929575
+  pvda: 1848805
+  pvv: 1454493
+  cda: 1281886
+  sp: 924696
+  d66: 654167
+  groenlinks: 628096
+  christenunie: 305094
+  sgp: 163581
+  pvdd: 122317
+  trots: 52937
+  partij_voor_mens_en_spirit: 26196
+  piratenpartij: 10471
+  blanco_lijst_17: 7456
+  partij_oon: 2042
+  nieuw_nederland: 2010
+  heel_nl: 1255
+  blanco_lijst_19: 924
