@@ -7,7 +7,7 @@
 export const toggleButtonClass = (active: boolean): string =>
   active
     ? 'bg-emerald-500 text-white'
-    : 'bg-gray-800 text-gray-300 hover:bg-gray-700';
+    : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
 
 /** Filter an array by an inclusive index range. */
 export function sliceByIndexRange<T>(items: T[], start: number, end: number): T[] {

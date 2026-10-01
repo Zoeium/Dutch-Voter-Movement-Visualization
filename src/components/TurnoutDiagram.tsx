@@ -2,6 +2,7 @@ import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {Info} from 'lucide-react';
 import type {ElectionYear} from '@/types';
 import {buildStripeId, toggleButtonClass} from '@/components/diagramUtils';
+import {useI18n, type TranslationKey} from '@/theme';
 
 interface TurnoutDiagramProps {
   elections: ElectionYear[];
@@ -125,8 +126,15 @@ function Tooltip({x, y, visible, children}: Readonly<{
   if (!visible) return null;
   return (
     <div
-      className="absolute z-20 pointer-events-none bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200 shadow-xl whitespace-nowrap"
-      style={{left: x, top: y, transform: 'translate(-50%, -100%)'}}
+      className="absolute z-20 pointer-events-none rounded-lg px-3 py-2 text-xs shadow-xl whitespace-nowrap border"
+      style={{
+        left: x,
+        top: y,
+        transform: 'translate(-50%, -100%)',
+        backgroundColor: 'var(--c-tooltip-bg)',
+        borderColor: 'var(--c-tooltip-border)',
+        color: 'var(--c-tooltip-text)',
+      }}
     >
       {children}
     </div>
@@ -172,7 +180,11 @@ function BarSegment({
   );
 }
 
-function getTooltipDetail(bar: TurnoutBar, hoveredSegment: HoveredSegment | null): React.ReactNode {
+function getTooltipDetail(
+  bar: TurnoutBar,
+  hoveredSegment: HoveredSegment | null,
+  t: (key: TranslationKey) => string
+): React.ReactNode {
   if (!hoveredSegment) return null;
 
   const notVotedPct = bar.electorate > 0 ? Math.min(100, Math.max(0, (bar.notVoted / bar.electorate) * 100)) : 0;
@@ -180,26 +192,26 @@ function getTooltipDetail(bar: TurnoutBar, hoveredSegment: HoveredSegment | null
   switch (hoveredSegment.segment) {
     case 'valid':
       return (
-        <div className="mt-1 pt-1 border-t border-gray-700 text-emerald-400">
-          Valid: {formatNumber(bar.validVotes)} ({formatPct(bar.validPct)} of cast)
+        <div className="mt-1 pt-1 border-t text-emerald-400" style={{borderColor: 'var(--c-tooltip-border)'}}>
+          {t('valid')}: {formatNumber(bar.validVotes)} ({formatPct(bar.validPct)} {t('validOfCast')})
         </div>
       );
     case 'blanco':
       return (
-        <div className="mt-1 pt-1 border-t border-gray-700 text-amber-400">
-          {bar.isCombined ? 'Blanco + Invalid (combined): ' : 'Blanco: '}{formatNumber(bar.blancoVotes)}
+        <div className="mt-1 pt-1 border-t text-amber-400" style={{borderColor: 'var(--c-tooltip-border)'}}>
+          {bar.isCombined ? `${t('blancoInvalidCombined')}: ` : `${t('blanco')}: `}{formatNumber(bar.blancoVotes)}
         </div>
       );
     case 'invalid':
       return (
-        <div className="mt-1 pt-1 border-t border-gray-700 text-red-400">
-          Invalid: {formatNumber(bar.nonValidVotes)}
+        <div className="mt-1 pt-1 border-t text-red-400" style={{borderColor: 'var(--c-tooltip-border)'}}>
+          {t('invalid')}: {formatNumber(bar.nonValidVotes)}
         </div>
       );
     case 'notVoted':
       return (
-        <div className="mt-1 pt-1 border-t border-gray-700 text-gray-400">
-          Did not vote: {formatNumber(bar.notVoted)} ({formatPct(notVotedPct)})
+        <div className="mt-1 pt-1 border-t text-app-muted" style={{borderColor: 'var(--c-tooltip-border)'}}>
+          {t('didNotVote')}: {formatNumber(bar.notVoted)} ({formatPct(notVotedPct)})
         </div>
       );
     default:
@@ -209,6 +221,7 @@ function getTooltipDetail(bar: TurnoutBar, hoveredSegment: HoveredSegment | null
 
 /** Render election turnout as an interactive stacked bar chart. */
 export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps>) {
+  const {t} = useI18n();
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rectsRef = useRef<{
@@ -288,10 +301,10 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
 
   if (bars.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96 text-gray-500">
+      <div className="flex items-center justify-center h-96 text-app-muted">
         <div className="text-center">
           <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
-          <p>No turnout data available for the selected years.</p>
+          <p>{t('noTurnoutData')}</p>
         </div>
       </div>
     );
@@ -315,30 +328,30 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
     hoveredSegment?.year === year && hoveredSegment.segment === segment;
 
   const legendItems: { key: SegmentKind; label: string; color: string; active: boolean; setActive: (value: boolean) => void }[] = [
-    {key: 'valid', label: 'Valid votes', color: EMERALD, active: showValid, setActive: setShowValid},
-    {key: 'blanco', label: 'Blanco', color: EMBER, active: showBlanco, setActive: setShowBlanco},
-    {key: 'invalid', label: 'Invalid', color: RED, active: showInvalid, setActive: setShowInvalid},
-    {key: 'notVoted', label: 'Did not vote', color: SLATE, active: showNotVoted, setActive: setShowNotVoted},
+    {key: 'valid', label: t('validVotes'), color: EMERALD, active: showValid, setActive: setShowValid},
+    {key: 'blanco', label: t('blanco'), color: EMBER, active: showBlanco, setActive: setShowBlanco},
+    {key: 'invalid', label: t('invalid'), color: RED, active: showInvalid, setActive: setShowInvalid},
+    {key: 'notVoted', label: t('didNotVote'), color: SLATE, active: showNotVoted, setActive: setShowNotVoted},
   ];
 
   return (
     <div className="relative" ref={containerRef}>
       {/* Scale mode toggle */}
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm font-medium text-gray-400">Scale:</span>
+        <span className="text-sm font-medium text-app-muted">{t('scale')}</span>
         <button
           type="button"
           onClick={() => setScaleMode('absolute')}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(scaleMode === 'absolute')}`}
         >
-          Absolute
+          {t('absolute')}
         </button>
         <button
           type="button"
           onClick={() => setScaleMode('percentage')}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(scaleMode === 'percentage')}`}
         >
-          Percentage
+          {t('percentage')}
         </button>
       </div>
 
@@ -352,15 +365,15 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
               onClick={() => item.setActive(!item.active)}
               className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
                 item.active ? 'opacity-100' : 'opacity-40'
-              } hover:bg-gray-800`}
+              } hover:bg-app-btn`}
             >
               <span className="w-3 h-3 rounded-sm" style={{backgroundColor: item.color}}/>
-              <span className={item.active ? 'text-gray-300' : 'text-gray-500 line-through'}>{item.label}</span>
+              <span className={item.active ? 'text-app-text' : 'text-app-subtle line-through'}>{item.label}</span>
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-500 italic">
-          * Before 2010, blanco and invalid votes were reported as a combined total
+        <p className="text-xs text-app-subtle italic">
+          {t('blancoBeforeNote')}
         </p>
       </div>
 
@@ -371,10 +384,10 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
             x={10}
             y={40 + barHeight / 2}
             textAnchor="middle"
-            className="fill-gray-400 text-[10px] font-medium"
+            className="fill-app-muted text-[10px] font-medium"
             transform={`rotate(-90, 10, ${40 + barHeight / 2})`}
           >
-            {scaleMode === 'percentage' ? 'Percentage of electorate' : 'Number of votes'}
+            {scaleMode === 'percentage' ? t('pctOfElectorate') : t('numberVotes')}
           </text>
 
           {/* Y-axis grid lines */}
@@ -392,7 +405,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                   x2={svgWidth - labelSpace}
                   y1={y}
                   y2={y}
-                  stroke="#374151"
+                  stroke="var(--c-grid-line)"
                   strokeWidth={1}
                   strokeDasharray="3 4"
                 />
@@ -401,7 +414,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                   y={y}
                   dy="0.35em"
                   textAnchor="end"
-                  className="fill-gray-500 text-[10px]"
+                  className="fill-app-axis text-[10px]"
                 >
                   {tickLabel}
                 </text>
@@ -486,7 +499,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                       <>
                         <defs>
                           <pattern id={stripeId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
-                            <line x1="0" y1="0" x2="0" y2="4" stroke="#374151" strokeWidth="1" opacity="0.3"/>
+                            <line x1="0" y1="0" x2="0" y2="4" stroke="var(--c-grid-line)" strokeWidth="1" opacity="0.3"/>
                           </pattern>
                         </defs>
                         <rect
@@ -523,7 +536,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                       x={x + barWidth / 2}
                       y={yBase - totalH - 8}
                       textAnchor="middle"
-                      className="fill-gray-200 text-xs font-bold"
+                      className="fill-app-text text-xs font-bold"
                     >
                       {formatPct(bar.turnoutPct)}
                     </text>
@@ -531,9 +544,9 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                       x={x + barWidth / 2}
                       y={yBase - totalH - 22}
                       textAnchor="middle"
-                      className="fill-gray-500 text-[10px]"
+                      className="fill-app-subtle text-[10px]"
                     >
-                      turnout
+                      {t('turnout')}
                     </text>
                   </>
                 )}
@@ -543,7 +556,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                   x={x + barWidth / 2}
                   y={yBase + 20}
                   textAnchor="middle"
-                  className="fill-gray-300 text-sm font-semibold"
+                  className="fill-app-muted text-sm font-semibold"
                 >
                   {bar.year}
                 </text>
@@ -553,7 +566,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                   x={x + barWidth / 2}
                   y={yBase + 36}
                   textAnchor="middle"
-                  className="fill-gray-500 text-[10px]"
+                  className="fill-app-subtle text-[10px]"
                 >
                   {formatNumber(bar.electorate)}
                 </text>
@@ -566,20 +579,20 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
       {/* Tooltip */}
       {hoveredBar && tooltipPosition && (
         <Tooltip x={tooltipPosition.x} y={tooltipPosition.y} visible={true}>
-          <div className="font-semibold text-gray-100 mb-1">{hoveredBar.year} election</div>
-          <div className="text-gray-400">Electorate: {formatNumber(hoveredBar.electorate)}</div>
-          <div className="text-gray-400">Turnout: {formatNumber(hoveredBar.validVotes + hoveredBar.blancoVotes + hoveredBar.nonValidVotes)} ({formatPct(hoveredBar.turnoutPct)})</div>
-          <div className="text-emerald-400">Valid: {formatNumber(hoveredBar.validVotes)} ({formatPct(hoveredBar.validPct)} of cast)</div>
+          <div className="font-semibold mb-1" style={{color: 'var(--c-tooltip-text)'}}>{hoveredBar.year} {t('election')}</div>
+          <div style={{color: 'var(--c-text-muted)'}}>{t('electorate')}: {formatNumber(hoveredBar.electorate)}</div>
+          <div style={{color: 'var(--c-text-muted)'}}>{t('turnoutLabel')}: {formatNumber(hoveredBar.validVotes + hoveredBar.blancoVotes + hoveredBar.nonValidVotes)} ({formatPct(hoveredBar.turnoutPct)})</div>
+          <div className="text-emerald-400">{t('valid')}: {formatNumber(hoveredBar.validVotes)} ({formatPct(hoveredBar.validPct)} {t('validOfCast')})</div>
           {hoveredBar.isCombined ? (
-            <div className="text-amber-400">Blanco + Invalid: {formatNumber(hoveredBar.blancoVotes)}</div>
+            <div className="text-amber-400">{t('blancoInvalid')}: {formatNumber(hoveredBar.blancoVotes)}</div>
           ) : (
             <>
-              <div className="text-amber-400">Blanco: {formatNumber(hoveredBar.blancoVotes)}</div>
-              <div className="text-red-400">Invalid: {formatNumber(hoveredBar.nonValidVotes)}</div>
+              <div className="text-amber-400">{t('blanco')}: {formatNumber(hoveredBar.blancoVotes)}</div>
+              <div className="text-red-400">{t('invalid')}: {formatNumber(hoveredBar.nonValidVotes)}</div>
             </>
           )}
-          <div className="text-gray-400">Did not vote: {formatNumber(hoveredBar.notVoted)}</div>
-          {getTooltipDetail(hoveredBar, hoveredSegment)}
+          <div style={{color: 'var(--c-text-muted)'}}>{t('didNotVote')}: {formatNumber(hoveredBar.notVoted)}</div>
+          {getTooltipDetail(hoveredBar, hoveredSegment, t)}
         </Tooltip>
       )}
     </div>

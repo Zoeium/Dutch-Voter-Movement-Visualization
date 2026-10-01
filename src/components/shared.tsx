@@ -47,7 +47,7 @@ export function DualRangeSlider({
 
   return (
     <div className="relative w-56 h-6 flex items-center">
-      <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-700"/>
+      <div className="absolute inset-x-0 h-1.5 rounded-full" style={{backgroundColor: 'var(--c-slider-track)'}}/>
       <div
         className="absolute h-1.5 rounded-full bg-emerald-500"
         style={{
