@@ -24,20 +24,13 @@ interface AppData {
   coalitions: CoalitionData[];
 }
 
-let cachedAppData: AppData | null = null;
-
 /**
- * Loading runs lazily (and once) so a malformed resource throws a descriptive
- * error during render - where the ErrorBoundary can surface it - instead of
- * aborting the module import and leaving a blank page.
+ * Load the static dataset once per component instance so a malformed resource
+ * still surfaces as a render-time error without keeping module-scoped state.
  */
 function loadAppData(): AppData {
-  if (cachedAppData) {
-    return cachedAppData;
-  }
-
   try {
-    cachedAppData = {
+    return {
       parties: loadParties(),
       allElections: loadElections(),
       allElectionsForTurnout: loadAllElections(),
@@ -48,8 +41,6 @@ function loadAppData(): AppData {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to load election data: ${message}`);
   }
-
-  return cachedAppData;
 }
 
 /** Build the visual state classes for a party-filter button. */
@@ -62,9 +53,44 @@ const getSourceLabel = (source: DataSourceEntry) =>
     ? `Totals (${source.year})`
     : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
 
+/** Gather the parties present in the selected election slice. */
+function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): PartyInfo[] {
+  const partySet = new Set<string>();
+
+  for (const election of elections) {
+    for (const movement of election.movements) {
+      partySet.add(movement.party);
+    }
+  }
+
+  return parties
+    .filter((party) => partySet.has(party.party))
+    .sort((a, b) => a.display_name.localeCompare(b.display_name));
+}
+
+/** Filter citations for the active view while keeping the logic outside the component tree. */
+function getFilteredDataSources(
+  activeTab: 'alluvial' | 'turnout' | 'parliament',
+  elections: ElectionYear[],
+  turnoutElections: ElectionYear[],
+  dataSources: DataSourceEntry[]
+): DataSourceEntry[] {
+  if (activeTab === 'alluvial') {
+    const yearSet = new Set(elections.map((election) => election.year));
+    return dataSources.filter((source) => yearSet.has(source.year));
+  }
+
+  if (activeTab === 'parliament') {
+    return [];
+  }
+
+  const yearSet = new Set(turnoutElections.map((election) => election.year));
+  return dataSources.filter((source) => source.kind === 'totals' && yearSet.has(source.year));
+}
+
 /** Render the voter movement, turnout, and parliament views. */
 export default function App() {
-  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = loadAppData();
+  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(loadAppData, []);
 
   const electionYears = useMemo(() => allElections.map((e) => e.year), [allElections]);
   const defaultYearEnd = Math.max(0, electionYears.length - 1);
@@ -109,36 +135,12 @@ export default function App() {
 
   // Build party list for selector (only parties that appear in movement data).
   // If some parties are not present in movement data, collapse them into a single "other" block.
-  const availableParties = useMemo(() => {
-    const partySet = new Set<string>();
-    for (const election of elections) {
-      for (const movement of election.movements) {
-        partySet.add(movement.party);
-      }
-    }
+  const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
 
-    return parties
-      .filter((p) => partySet.has(p.party))
-      .sort((a, b) => a.display_name.localeCompare(b.display_name));
-
-  }, [elections, parties]);
-
-  // Filter data sources based on active tab
-  const filteredDataSources = useMemo(() => {
-    if (activeTab === 'alluvial') {
-      // For alluvial: show sources for years in the selected range (both totals and movements)
-      const yearSet = new Set(elections.map(e => e.year));
-      return dataSources.filter(source => yearSet.has(source.year));
-    } else if (activeTab === 'parliament') {
-      // For parliament: coalition sources are not tracked yet, so show none.
-      // Keep turnout totals/sources out of the shared footer on this tab.
-      return [];
-    } else {
-      // For turnout: show totals for all years in the turnout range, exclude movements
-      const yearSet = new Set(turnoutElections.map(e => e.year));
-      return dataSources.filter(source => source.kind === 'totals' && yearSet.has(source.year));
-    }
-  }, [activeTab, elections, turnoutElections, dataSources]);
+  const filteredDataSources = useMemo(
+    () => getFilteredDataSources(activeTab, elections, turnoutElections, dataSources),
+    [activeTab, elections, turnoutElections, dataSources]
+  );
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">

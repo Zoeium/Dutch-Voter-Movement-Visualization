@@ -37,3 +37,27 @@
 .year-range-thumb::-moz-range-track {
   background: transparent;
 }
+
+.parliament-scroll {
+  scrollbar-color: #10b981 #1f2937;
+  scrollbar-width: thin;
+}
+
+.parliament-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.parliament-scroll::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 9999px;
+}
+
+.parliament-scroll::-webkit-scrollbar-thumb {
+  background: #059669;
+  border: 2px solid #1f2937;
+  border-radius: 9999px;
+}
+
+.parliament-scroll::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
