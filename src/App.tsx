@@ -1,5 +1,5 @@
-import {useDeferredValue, useMemo, useState} from 'react';
-import {Users, Info, ArrowDownUp, CalendarRange} from 'lucide-react';
+import {useDeferredValue, useMemo, useState, useEffect, useCallback} from 'react';
+import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
 import ParliamentDiagram from '@/components/ParliamentDiagram';
@@ -15,6 +15,14 @@ import {
 } from '@/data/loader';
 import {DualRangeSlider} from '@/components/shared';
 import {sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
+import {
+  ThemeContext,
+  LanguageContext,
+  translations,
+  type Theme,
+  type Language,
+  type TranslationKey,
+} from '@/theme';
 
 interface AppData {
   parties: PartyInfo[];
@@ -24,10 +32,6 @@ interface AppData {
   coalitions: CoalitionData[];
 }
 
-/**
- * Load the static dataset once per component instance so a malformed resource
- * still surfaces as a render-time error without keeping module-scoped state.
- */
 function loadAppData(): AppData {
   try {
     return {
@@ -43,17 +47,9 @@ function loadAppData(): AppData {
   }
 }
 
-/** Build the visual state classes for a party-filter button. */
 const partyButtonClass = (selected: boolean): string =>
-  `${selected ? 'ring-2 ring-offset-2 ring-offset-gray-950' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
+  `${selected ? 'ring-2 ring-offset-2 ring-offset-app-bg' : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 
-/** Format a data-source entry for the citations footer. */
-const getSourceLabel = (source: DataSourceEntry) =>
-  source.kind === 'totals'
-    ? `Totals (${source.year})`
-    : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
-
-/** Gather the parties present in the selected election slice. */
 function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): PartyInfo[] {
   const partySet = new Set<string>();
 
@@ -68,7 +64,6 @@ function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): P
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
 
-/** Filter citations for the active view while keeping the logic outside the component tree. */
 function getFilteredDataSources(
   activeTab: 'alluvial' | 'turnout' | 'parliament',
   elections: ElectionYear[],
@@ -88,9 +83,27 @@ function getFilteredDataSources(
   return dataSources.filter((source) => source.kind === 'totals' && yearSet.has(source.year));
 }
 
-/** Render the voter movement, turnout, and parliament views. */
 export default function App() {
   const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(loadAppData, []);
+
+  const [theme, setTheme] = useState<Theme>('dark');
+  const [lang, setLang] = useState<Language>('en');
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  const toggleLanguage = useCallback(() => {
+    setLang((prev) => (prev === 'en' ? 'nl' : 'en'));
+  }, []);
+
+  const t = useCallback((key: TranslationKey) => translations[lang][key], [lang]);
 
   const electionYears = useMemo(() => allElections.map((e) => e.year), [allElections]);
   const defaultYearEnd = Math.max(0, electionYears.length - 1);
@@ -101,14 +114,11 @@ export default function App() {
   const [yearStart, setYearStart] = useState<number>(0);
   const [yearEnd, setYearEnd] = useState<number>(defaultYearEnd);
 
-  // Separate year range for turnout diagram
   const turnoutYears = useMemo(() => allElectionsForTurnout.map((e) => e.year), [allElectionsForTurnout]);
   const defaultTurnoutYearEnd = Math.max(0, turnoutYears.length - 1);
   const [turnoutYearStart, setTurnoutYearStart] = useState<number>(0);
   const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(defaultTurnoutYearEnd);
 
-  // Dragging the range slider fires onChange continuously; defer the expensive
-  // dataset rebuild so pointer movement stays responsive.
   const deferredYearStart = useDeferredValue(yearStart);
   const deferredYearEnd = useDeferredValue(yearEnd);
 
@@ -124,7 +134,6 @@ export default function App() {
     return buildMultiElectionFlows(elections, parties, selectedParty);
   }, [elections, parties, selectedParty]);
 
-  // For turnout, filter by turnout year range
   const deferredTurnoutYearStart = useDeferredValue(turnoutYearStart);
   const deferredTurnoutYearEnd = useDeferredValue(turnoutYearEnd);
 
@@ -133,8 +142,6 @@ export default function App() {
     [allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd]
   );
 
-  // Build party list for selector (only parties that appear in movement data).
-  // If some parties are not present in movement data, collapse them into a single "other" block.
   const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
 
   const filteredDataSources = useMemo(
@@ -142,10 +149,17 @@ export default function App() {
     [activeTab, elections, turnoutElections, dataSources]
   );
 
+  const getSourceLabel = (source: DataSourceEntry) =>
+    source.kind === 'totals'
+      ? `${t('totals')} (${source.year})`
+      : `${t('movements')} (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
+
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <ThemeContext.Provider value={{theme, toggleTheme}}>
+      <LanguageContext.Provider value={{lang, toggleLanguage, t}}>
+    <div className="min-h-screen bg-app-bg text-app-text">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-app-border bg-app-header backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -153,9 +167,31 @@ export default function App() {
               <Users className="w-5 h-5 text-white"/>
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Voter Flow</h1>
-              <p className="text-xs text-gray-400">Dutch election voter movement analysis</p>
+              <h1 className="text-lg font-bold tracking-tight text-app-heading">{t('appTitle')}</h1>
+              <p className="text-xs text-app-muted">{t('appSubtitle')}</p>
             </div>
+          </div>
+
+          {/* Theme & Language toggles */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover"
+              aria-label="Toggle language"
+            >
+              <Languages className="w-4 h-4"/>
+              {lang === 'en' ? 'NL' : 'EN'}
+            </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
+              {theme === 'dark' ? t('lightMode') : t('darkMode')}
+            </button>
           </div>
         </div>
       </header>
@@ -168,127 +204,119 @@ export default function App() {
             onClick={() => setActiveTab('alluvial')}
             className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'alluvial')}`}
           >
-            Voter Movements
+            {t('tabAlluvial')}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('turnout')}
             className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'turnout')}`}
           >
-            Turnout Overview
+            {t('tabTurnout')}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('parliament')}
             className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'parliament')}`}
           >
-            Parliament Composition
+            {t('tabParliament')}
           </button>
         </div>
 
         {/* Alluvial Tab */}
         {activeTab === 'alluvial' && (
           <>
-            {/* Intro */}
             <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Voter movements between parties</h2>
-              <p className="text-gray-400 max-w-2xl">
-                Visualizes voter migration across Dutch parliamentary elections. Each flow shows
-                where a party's voters came from — or where they went. Hover over a party block
-                to highlight its flows, or filter to a single party.
+              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('alluvialTitle')}</h2>
+              <p className="text-app-muted max-w-2xl">
+                {t('alluvialDescription')}
               </p>
             </div>
 
-            {/* Controls */}
-        <div className="mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-          {/* Party filter */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Party filter:</span>
-            <button
-              type="button"
-              onClick={() => setSelectedParty(null)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(selectedParty === null)}`}
-            >
-              All parties
-            </button>
-            {availableParties.map((p) => {
-              const isSelected = selectedParty === p.party;
-
-              return (
+            <div className="mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('partyFilter')}</span>
                 <button
                   type="button"
-                  key={p.party}
-                  onClick={() => setSelectedParty(isSelected ? null : p.party)}
-                  className={partyButtonClass(isSelected)}
-                  style={
-                    isSelected
-                      ? {
-                        backgroundColor: p.color,
-                        color: '#fff',
-                        boxShadow: `0 0 0 2px ${p.color}`,
-                      }
-                      : undefined
-                  }
+                  onClick={() => setSelectedParty(null)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(selectedParty === null)}`}
                 >
-                  <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
-                  {p.display_name}
+                  {t('allParties')}
                 </button>
-              );
-            })}
-          </div>
-        </div>
+                {availableParties.map((p) => {
+                  const isSelected = selectedParty === p.party;
 
-        <div className="mb-6 flex items-center gap-4 flex-wrap">
-          {/* Year range slider */}
-          <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
-            <CalendarRange className="w-4 h-4 text-gray-400"/>
-            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
-              {hasSelectableYears
-                ? `Years: ${electionYears[yearStart]}–${electionYears[yearEnd]}`
-                : 'Years: none available'}
-            </span>
-            {hasSelectableYears && (
-              <DualRangeSlider
-                min={0}
-                max={electionYears.length - 1}
-                start={yearStart}
-                end={yearEnd}
-                onStartChange={setYearStart}
-                onEndChange={setYearEnd}
-                startAriaLabel="Range start"
-                endAriaLabel="Range end"
-              />
-            )}
-          </div>
+                  return (
+                    <button
+                      type="button"
+                      key={p.party}
+                      onClick={() => setSelectedParty(isSelected ? null : p.party)}
+                      className={partyButtonClass(isSelected)}
+                      style={
+                        isSelected
+                          ? {
+                            backgroundColor: p.color,
+                            color: '#fff',
+                            boxShadow: `0 0 0 2px ${p.color}`,
+                          }
+                          : undefined
+                      }
+                    >
+                      <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
+                      {p.display_name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2 ml-auto">
-            <ArrowDownUp className="w-4 h-4 text-gray-400"/>
-            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Sort:</span>
-            <button
-              type="button"
-              onClick={() => setSortMode('votes')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'votes')}`}
-            >
-              By votes
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode('alphabetical')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'alphabetical')}`}
-            >
-              Alphabetical
-            </button>
+            <div className="mb-6 flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
+                <CalendarRange className="w-4 h-4 text-app-muted"/>
+                <span className="text-sm font-medium text-app-muted whitespace-nowrap">
+                  {hasSelectableYears
+                    ? `${t('years')}: ${electionYears[yearStart]}–${electionYears[yearEnd]}`
+                    : t('yearsNone')}
+                </span>
+                {hasSelectableYears && (
+                  <DualRangeSlider
+                    min={0}
+                    max={electionYears.length - 1}
+                    start={yearStart}
+                    end={yearEnd}
+                    onStartChange={setYearStart}
+                    onEndChange={setYearEnd}
+                    startAriaLabel="Range start"
+                    endAriaLabel="Range end"
+                  />
+                )}
+              </div>
 
-          </div>
-        </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <ArrowDownUp className="w-4 h-4 text-app-muted"/>
+                <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('sort')}</span>
+                <button
+                  type="button"
+                  onClick={() => setSortMode('votes')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'votes')}`}
+                >
+                  {t('sortByVotes')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortMode('alphabetical')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'alphabetical')}`}
+                >
+                  {t('sortAlphabetical')}
+                </button>
+              </div>
+            </div>
 
-            {/* Diagram */}
-            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
+            <div className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
               {nodes.length === 0 ? (
-                <div className="flex items-center justify-center h-96 text-gray-500">
+                <div className="flex items-center justify-center h-96 text-app-muted">
                   <div className="text-center">
                     <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
-                    <p>No flow data available for the selected filters.</p>
+                    <p>{t('noFlowData')}</p>
                   </div>
                 </div>
               ) : (
@@ -308,22 +336,19 @@ export default function App() {
         {/* Turnout Tab */}
         {activeTab === 'turnout' && (
           <>
-            {/* Intro */}
             <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Turnout & vote breakdown</h2>
-              <p className="text-gray-400 max-w-2xl">
-                Total electorate split into valid votes, blanco, invalid, and those who did not vote.
-                Hover a bar for details.
+              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('turnoutTitle')}</h2>
+              <p className="text-app-muted max-w-2xl">
+                {t('turnoutDescription')}
               </p>
             </div>
 
-            {/* Year range selector for turnout */}
             <div className="mb-6 flex items-center gap-3 flex-wrap">
-              <CalendarRange className="w-4 h-4 text-gray-400"/>
-              <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
+              <CalendarRange className="w-4 h-4 text-app-muted"/>
+              <span className="text-sm font-medium text-app-muted whitespace-nowrap">
                 {turnoutYears.length > 0
-                  ? `Years: ${turnoutYears[turnoutYearStart]}–${turnoutYears[turnoutYearEnd]}`
-                  : 'Years: none available'}
+                  ? `${t('years')}: ${turnoutYears[turnoutYearStart]}–${turnoutYears[turnoutYearEnd]}`
+                  : t('yearsNone')}
               </span>
               {turnoutYears.length > 0 && (
                 <DualRangeSlider
@@ -339,8 +364,7 @@ export default function App() {
               )}
             </div>
 
-            {/* Turnout Diagram */}
-            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
+            <div className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
               <TurnoutDiagram elections={turnoutElections}/>
             </div>
           </>
@@ -349,40 +373,36 @@ export default function App() {
         {/* Parliament Tab */}
         {activeTab === 'parliament' && (
           <>
-            {/* Intro */}
             <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Parliament composition</h2>
-              <p className="text-gray-400 max-w-2xl">
-                Coalition and opposition parties across elections. Parties are sorted by number of seats,
-                with coalition parties shown above the dashed line and opposition parties below.
-                Lines connect the same party (or successor parties) across elections.
+              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('parliamentTitle')}</h2>
+              <p className="text-app-muted max-w-2xl">
+                {t('parliamentDescription')}
               </p>
             </div>
 
-            {/* Parliament Diagram */}
-            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
+            <div className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
               <ParliamentDiagram coalitions={coalitions} parties={parties}/>
             </div>
           </>
         )}
       </main>
 
-      <footer className="border-t border-gray-800 mt-12 py-8">
+      <footer className="border-t border-app-border mt-12 py-8">
         <div className="max-w-[1600px] mx-auto px-6">
-          <div className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-gray-400">
-            Sources
+          <div className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted">
+            {t('sources')}
           </div>
-          <ul className="space-y-3 text-sm text-gray-500">
+          <ul className="space-y-3 text-sm text-app-subtle">
             {filteredDataSources.map((source) => (
               <li key={`${source.year}-${source.kind}-${source.name}`}
                   className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                <span className="text-gray-300 font-medium min-w-[170px]">{getSourceLabel(source)}</span>
+                <span className="text-app-text font-medium min-w-[170px]">{getSourceLabel(source)}</span>
                 {source.url ? (
                   <a
                     href={source.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-emerald-400 underline decoration-dotted underline-offset-4 hover:text-emerald-300"
+                    className="text-app-link underline decoration-dotted underline-offset-4 hover:text-app-link-hover"
                   >
                     {source.name}
                   </a>
@@ -395,5 +415,7 @@ export default function App() {
         </div>
       </footer>
     </div>
+      </LanguageContext.Provider>
+    </ThemeContext.Provider>
   );
 }
