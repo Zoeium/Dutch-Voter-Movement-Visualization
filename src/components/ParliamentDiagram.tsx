@@ -22,6 +22,18 @@ interface PartyBlock {
   y: number;
 }
 
+interface LineageRibbon {
+  kind: 'continuity' | 'merge' | 'split';
+  from: PartyBlock;
+  to: PartyBlock;
+  sourceSeats: number;
+  targetSeats: number;
+  sourceYTop: number;
+  sourceYBottom: number;
+  targetYTop: number;
+  targetYBottom: number;
+}
+
 const PX_PER_SEAT = 3;
 const MIN_BLOCK_HEIGHT = 8;
 // Block height at which the in-block label steps up to the regular font size. Every block is
@@ -145,6 +157,125 @@ function collectMergeLineage(
   visit(successors);
 
   return related;
+}
+
+/**
+ * Allocate seat-proportional slices for split and merge ribbons. Each endpoint
+ * stacks its flows in counterpart order, scaling down only when their combined
+ * seat counts exceed that party's block.
+ */
+function buildLineageRibbons(
+  edges: { block: PartyBlock; next: PartyBlock }[],
+  mergeEdges: { from: PartyBlock; to: PartyBlock }[],
+  splitEdges: { from: PartyBlock; to: PartyBlock }[]
+): LineageRibbon[] {
+  const ribbons: LineageRibbon[] = [
+    ...edges.map(({block, next}) => ({
+      kind: 'continuity' as const,
+      from: block,
+      to: next,
+      sourceSeats: block.seats,
+      targetSeats: next.seats,
+      sourceYTop: 0,
+      sourceYBottom: 0,
+      targetYTop: 0,
+      targetYBottom: 0,
+    })),
+    ...mergeEdges.map(({from, to}) => ({
+      kind: 'merge' as const,
+      from,
+      to,
+      sourceSeats: from.seats,
+      targetSeats: to.seats,
+      sourceYTop: 0,
+      sourceYBottom: 0,
+      targetYTop: 0,
+      targetYBottom: 0,
+    })),
+    ...splitEdges.map(({from, to}) => ({
+      kind: 'split' as const,
+      from,
+      to,
+      sourceSeats: to.seats,
+      targetSeats: to.seats,
+      sourceYTop: 0,
+      sourceYBottom: 0,
+      targetYTop: 0,
+      targetYBottom: 0,
+    })),
+  ];
+
+  const sourceGroups = new Map<PartyBlock, LineageRibbon[]>();
+  const targetGroups = new Map<PartyBlock, LineageRibbon[]>();
+  for (const ribbon of ribbons) {
+    const outgoing = sourceGroups.get(ribbon.from) ?? [];
+    outgoing.push(ribbon);
+    sourceGroups.set(ribbon.from, outgoing);
+
+    const incoming = targetGroups.get(ribbon.to) ?? [];
+    incoming.push(ribbon);
+    targetGroups.set(ribbon.to, incoming);
+  }
+
+  const allocate = (
+    block: PartyBlock,
+    group: LineageRibbon[],
+    side: 'source' | 'target'
+  ) => {
+    if (!group.some((ribbon) => ribbon.kind !== 'continuity')) {
+      for (const ribbon of group) {
+        if (side === 'source') {
+          ribbon.sourceYTop = block.y;
+          ribbon.sourceYBottom = block.y + block.height;
+        } else {
+          ribbon.targetYTop = block.y;
+          ribbon.targetYBottom = block.y + block.height;
+        }
+      }
+      return;
+    }
+
+    group.sort((a, b) =>
+      side === 'source' ? a.to.y - b.to.y : a.from.y - b.from.y
+    );
+    const totalSeats = group.reduce(
+      (total, ribbon) => total + (side === 'source' ? ribbon.sourceSeats : ribbon.targetSeats),
+      0
+    );
+    if (totalSeats === 0) {
+      for (const ribbon of group) {
+        if (side === 'source') {
+          ribbon.sourceYTop = block.y;
+          ribbon.sourceYBottom = block.y;
+        } else {
+          ribbon.targetYTop = block.y;
+          ribbon.targetYBottom = block.y;
+        }
+      }
+      return;
+    }
+
+    const pixelsPerSeat = Math.min(PX_PER_SEAT, block.height / totalSeats);
+    let y = block.y;
+
+    for (const ribbon of group) {
+      const seats = side === 'source' ? ribbon.sourceSeats : ribbon.targetSeats;
+      const bottom = y + seats * pixelsPerSeat;
+      if (side === 'source') {
+        ribbon.sourceYTop = y;
+        ribbon.sourceYBottom = bottom;
+      } else {
+        ribbon.targetYTop = y;
+        ribbon.targetYBottom = bottom;
+      }
+      y = bottom;
+    }
+  };
+
+  for (const [block, group] of sourceGroups) allocate(block, group, 'source');
+  for (const [block, group] of targetGroups) allocate(block, group, 'target');
+
+  return ribbons;
 }
 
 interface ParliamentLayout {
@@ -341,6 +472,13 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
     () => collectMergeLineage(hoveredParty, mergeEdges),
     [hoveredParty, mergeEdges]
   );
+  const lineageRibbons = useMemo(
+    () => buildLineageRibbons(edges, mergeEdges, splitEdges),
+    [edges, mergeEdges, splitEdges]
+  );
+  const continuityRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'continuity');
+  const mergeRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'merge');
+  const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
 
   if (columns === 0) {
     return <div className="text-gray-400 text-center py-8">No coalition data available</div>;
@@ -350,9 +488,16 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
 
   const isPartyHighlighted = (party: string) => !highlightedParties || highlightedParties.has(party);
 
-  // Ribbon path + gradient ids shared by the definitions and the rendered paths.
-  const ribbonPath = (a: PartyBlock, b: PartyBlock) =>
-    buildRibbonPath(a.x + BLOCK_WIDTH, a.y, a.y + a.height, b.x, b.y, b.y + b.height);
+  // Ribbon paths + gradient ids shared by the definitions and the rendered paths.
+  const lineageRibbonPath = (ribbon: LineageRibbon) =>
+    buildRibbonPath(
+      ribbon.from.x + BLOCK_WIDTH,
+      ribbon.sourceYTop,
+      ribbon.sourceYBottom,
+      ribbon.to.x,
+      ribbon.targetYTop,
+      ribbon.targetYBottom
+    );
 
   const mergeGradientId = (from: PartyBlock, to: PartyBlock) =>
     buildGradientId('m', from.columnIndex, from.party, to.columnIndex, to.party);
@@ -414,7 +559,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
         >
         <defs>
           {/* Source->target gradients for merge ribbons (like the Alluvial diagram) */}
-          {mergeEdges.map(({from, to}) => {
+          {mergeRibbons.map(({from, to}) => {
             const gid = mergeGradientId(from, to);
             return (
               <RibbonGradient
@@ -429,7 +574,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           })}
 
           {/* Source->target gradients for split flows: parent party color -> split party color */}
-          {splitEdges.map(({from, to}) => {
+          {splitRibbons.map(({from, to}) => {
             const gid = splitGradientId(from, to);
             return (
               <RibbonGradient
@@ -445,8 +590,9 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
         </defs>
 
         {/* Election-to-election flows (alluvial ribbons) */}
-        {edges.map(({block, next}) => {
-          const d = ribbonPath(block, next);
+        {continuityRibbons.map((ribbon) => {
+          const {from: block, to: next} = ribbon;
+          const d = lineageRibbonPath(ribbon);
           const isHovered = isPartyHighlighted(block.party);
           return (
             <path
@@ -461,8 +607,9 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
         })}
 
         {/* Merge flows (alluvial ribbons with a source->target gradient) */}
-        {mergeEdges.map(({from, to}) => {
-          const d = ribbonPath(from, to);
+        {mergeRibbons.map((ribbon) => {
+          const {from, to} = ribbon;
+          const d = lineageRibbonPath(ribbon);
           const isHovered = isPartyHighlighted(from.party) && isPartyHighlighted(to.party);
           const gid = mergeGradientId(from, to);
           return (
@@ -479,7 +626,8 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
 
         {/* Split-off flows (gradient from the parent party color to the split party color);
             no arrow - and nothing is shown when the split is at the starting year */}
-        {splitEdges.map(({from, to}) => {
+        {splitRibbons.map((ribbon) => {
+          const {from, to} = ribbon;
           const gid = splitGradientId(from, to);
           const isHovered = isPartyHighlighted(from.party) || isPartyHighlighted(to.party);
           if (to.columnIndex === 0) {
@@ -490,11 +638,17 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           const sameColumn = from.columnIndex === to.columnIndex;
           if (sameColumn) {
             const x1 = from.x + BLOCK_WIDTH;
-            const y1 = from.y + from.height / 2;
-            const y2 = to.y + to.height / 2;
+            const y1 = (ribbon.sourceYTop + ribbon.sourceYBottom) / 2;
+            const y2 = (ribbon.targetYTop + ribbon.targetYBottom) / 2;
             const o = SPLIT_OFFSET;
             const mid = (y1 + y2) / 2;
-            const w = Math.max(2, Math.min(from.height, to.height));
+            const w = Math.max(
+              2,
+              Math.min(
+                ribbon.sourceYBottom - ribbon.sourceYTop,
+                ribbon.targetYBottom - ribbon.targetYTop
+              )
+            );
             return (
               <path
                 key={`s${to.columnIndex}-${to.party}`}
@@ -507,7 +661,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
               />
             );
           }
-          const d = ribbonPath(from, to);
+          const d = lineageRibbonPath(ribbon);
           return (
             <path
               key={`s${to.columnIndex}-${to.party}`}
