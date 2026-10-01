@@ -1,0 +1,21 @@
+# Kok I (1994-1998)
+# PvdA-VVD-D66 (Purple coalition)
+name: Kok I
+inauguration: 1994-08-22
+coalition:
+  - pvda
+  - vvd
+  - d66
+seats:
+  pvda: 37
+  cda: 34
+  vvd: 31
+  d66: 24
+  aov: 6
+  groenlinks: 5
+  cd: 3
+  rpf: 3
+  sgp: 2
+  gpv: 2
+  sp: 2
+  u55plus: 1

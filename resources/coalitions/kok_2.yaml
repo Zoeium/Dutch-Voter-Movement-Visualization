@@ -1,0 +1,18 @@
+# Kok II (1998-2002)
+# PvdA-VVD-D66 (Purple coalition)
+name: Kok II
+inauguration: 1998-08-03
+coalition:
+  - pvda
+  - vvd
+  - d66
+seats:
+  pvda: 45
+  vvd: 38
+  cda: 29
+  d66: 14
+  groenlinks: 11
+  sp: 5
+  rpf: 3
+  sgp: 3
+  gpv: 2

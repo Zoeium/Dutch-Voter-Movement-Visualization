@@ -1,0 +1,18 @@
+# Drees III (1952-1956)
+# PvdA-KVP-ARP-CHU coalition
+name: Drees III
+inauguration: 1952-09-02
+coalition:
+  - pvda
+  - kvp
+  - arp
+  - chu
+seats:
+  pvda: 30
+  kvp: 30
+  arp: 12
+  chu: 9
+  vvd: 9
+  cpn: 6
+  knp: 2
+  sgp: 2

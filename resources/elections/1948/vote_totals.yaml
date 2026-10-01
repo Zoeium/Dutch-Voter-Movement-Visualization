@@ -1,0 +1,22 @@
+date: 1948-07-07
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1948'
+  url: https://data.overheid.nl/dataset/3590-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1948
+electorate: 5433633
+not_voted: 344051
+total_votes: 5089582
+non_valid_votes_and_blanco_votes: 156625
+valid_votes: 4932959
+parties_votes:
+  katholieke_volkspartij: 1531154
+  pvda: 1263058
+  anti_revolutionaire_partij: 651612
+  christelijk_historische_unie: 453226
+  vvd: 391925
+  cpn: 382001
+  sgp: 116937
+  lijst_welter: 62376
+  middenstandspartij: 40949
+  onafhankelijke_nationale_groep: 22175
+  pvw_sdap: 15322
+  revolutionnair_communistische_partij: 2224

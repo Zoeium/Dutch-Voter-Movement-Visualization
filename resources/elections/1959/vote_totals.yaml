@@ -1,0 +1,22 @@
+date: 1959-03-12
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1959'
+  url: https://data.overheid.nl/dataset/3587-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1959
+electorate: 6427864
+not_voted: 284455
+total_votes: 6143409
+non_valid_votes_and_blanco_votes: 143878
+valid_votes: 5999531
+parties_votes:
+  katholieke_volkspartij: 1895914
+  pvda: 1821285
+  vvd: 732658
+  anti_revolutionaire_partij: 563091
+  christelijk_historische_unie: 486429
+  cpn: 144542
+  sgp: 129678
+  psp: 110499
+  gpv: 39972
+  bp_plm: 39423
+  bruggroep: 34723
+  pcnu: 1317

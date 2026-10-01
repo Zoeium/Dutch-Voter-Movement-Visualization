@@ -1,0 +1,38 @@
+date: 1981-05-26
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1981'
+  url: https://data.overheid.nl/dataset/3572-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1981
+electorate: 10040121
+not_voted: 1301883
+total_votes: 8738238
+non_valid_votes_and_blanco_votes: 47401
+valid_votes: 8690837
+parties_votes:
+  cda: 2677259
+  pvda: 2458452
+  vvd: 1505311
+  d66: 961121
+  psp: 184422
+  cpn: 178292
+  sgp: 171324
+  ppr: 171042
+  rpf: 108364
+  gpv: 70878
+  ds70: 48568
+  evp: 45189
+  sp: 30380
+  rkpn: 20812
+  rvp: 17371
+  cp: 12242
+  nvu: 10641
+  ln: 8336
+  sos: 3377
+  r81: 2080
+  ikb: 1814
+  gmo: 918
+  we_we_bew: 891
+  pln: 826
+  dvp: 464
+  pvr: 207
+  kp: 186
+  nep: 70

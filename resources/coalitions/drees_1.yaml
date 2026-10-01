@@ -1,0 +1,18 @@
+# Drees I (1948-1951)
+# KVP-PvdA-CHU-VVD coalition
+name: Drees I
+inauguration: 1948-08-07
+coalition:
+  - kvp
+  - pvda
+  - chu
+  - vvd
+seats:
+  kvp: 32
+  pvda: 27
+  arp: 13
+  chu: 9
+  vvd: 8
+  cpn: 8
+  sgp: 2
+  knp: 1

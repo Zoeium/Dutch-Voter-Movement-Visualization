@@ -1,3 +1,5 @@
 party: ja21
 display_name: JA21
 color: '#242B57'
+split_off:
+  - fvd

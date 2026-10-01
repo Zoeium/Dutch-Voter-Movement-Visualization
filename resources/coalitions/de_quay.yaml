@@ -1,0 +1,18 @@
+# De Quay (1959-1963)
+# KVP-VVD-ARP-CHU coalition
+name: De Quay
+inauguration: 1959-05-19
+coalition:
+  - kvp
+  - vvd
+  - arp
+  - chu
+seats:
+  kvp: 49
+  pvda: 48
+  vvd: 19
+  arp: 14
+  chu: 12
+  cpn: 3
+  sgp: 3
+  psp: 2

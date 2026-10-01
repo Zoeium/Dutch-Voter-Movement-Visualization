@@ -1,0 +1,34 @@
+date: 1977-05-25
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1977'
+  url: https://data.overheid.nl/dataset/3582-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1977
+electorate: 9506318
+not_voted: 1140489
+total_votes: 8365829
+non_valid_votes_and_blanco_votes: 48217
+valid_votes: 8317612
+parties_votes:
+  pvda: 2813793
+  cda: 2652278
+  vvd: 1492689
+  d66: 452423
+  sgp: 177010
+  cpn: 143481
+  ppr: 140910
+  gpv: 79421
+  psp: 77972
+  bp: 69914
+  ds70: 59487
+  rpf: 53220
+  nvu: 33434
+  rkpn: 33227
+  sp: 24420
+  fbn: 4379
+  vaw: 4110
+  ken: 2649
+  dac: 2150
+  pvdb: 201
+  ecu: 197
+  jusia: 91
+  nmp: 89
+  griek: 67

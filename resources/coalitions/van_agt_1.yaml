@@ -1,0 +1,19 @@
+# Van Agt I (1977-1981)
+# CDA-VVD coalition
+name: Van Agt I
+inauguration: 1977-12-19
+coalition:
+  - cda
+  - vvd
+seats:
+  pvda: 53
+  cda: 49
+  vvd: 28
+  d66: 8
+  sgp: 3
+  ppr: 3
+  cpn: 2
+  gpv: 1
+  psp: 1
+  boerenpartij: 1
+  ds70: 1

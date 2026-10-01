@@ -1,0 +1,19 @@
+# Van Agt II (1981-1982)
+# CDA-PvdA-D'66 coalition
+name: Van Agt II
+inauguration: 1981-09-11
+coalition:
+  - cda
+  - pvda
+  - d66
+seats:
+  cda: 48
+  pvda: 44
+  vvd: 26
+  d66: 17
+  psp: 3
+  cpn: 3
+  sgp: 3
+  ppr: 3
+  rpf: 2
+  gpv: 1

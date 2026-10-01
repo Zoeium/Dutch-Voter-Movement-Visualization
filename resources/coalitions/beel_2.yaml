@@ -1,0 +1,16 @@
+# Beel II (1958-1959)
+# KVP-ARP-CHU coalition (interim/caretaker)
+name: Beel II
+inauguration: 1958-12-22
+coalition:
+  - kvp
+  - arp
+  - chu
+seats:
+  pvda: 50
+  kvp: 49
+  arp: 15
+  vvd: 13
+  chu: 13
+  cpn: 7
+  sgp: 3

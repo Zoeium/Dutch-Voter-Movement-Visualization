@@ -1,0 +1,15 @@
+# Beel I (1946-1948)
+# KVP-PvdA (Roman/Red) coalition
+name: Beel I
+inauguration: 1946-07-03
+coalition:
+  - kvp
+  - pvda
+seats:
+  kvp: 32
+  pvda: 29
+  arp: 13
+  cpn: 10
+  chu: 8
+  vvd: 6
+  sgp: 2

@@ -1,0 +1,17 @@
+# Drees IV (1956-1958)
+# PvdA-KVP-ARP-CHU coalition
+name: Drees IV
+inauguration: 1956-10-13
+coalition:
+  - pvda
+  - kvp
+  - arp
+  - chu
+seats:
+  pvda: 50
+  kvp: 49
+  arp: 15
+  vvd: 13
+  chu: 13
+  cpn: 7
+  sgp: 3

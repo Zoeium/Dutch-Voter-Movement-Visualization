@@ -1,0 +1,25 @@
+# Coalition formed after 2023 election
+# VVD-NSC-BBB-CDA coalition (Schoof cabinet)
+name: Schoof
+inauguration: 2024-07-02
+coalition:
+  - vvd
+  - nsc
+  - bbb
+  - pvv
+seats:
+  pvv: 37
+  glpvda: 25
+  vvd: 24
+  nsc: 20
+  d66: 9
+  bbb: 7
+  cda: 5
+  sp: 5
+  denk: 3
+  pvdd: 3
+  fvd: 3
+  sgp: 3
+  christenunie: 3
+  volt: 2
+  ja21: 1

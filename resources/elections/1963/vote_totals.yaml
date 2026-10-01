@@ -1,0 +1,27 @@
+date: 1963-05-15
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1963'
+  url: https://data.overheid.nl/dataset/3586-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1963
+electorate: 6748611
+not_voted: 329165
+total_votes: 6419446
+non_valid_votes_and_blanco_votes: 161441
+valid_votes: 6258521
+parties_votes:
+  katholieke_volkspartij: 1995352
+  pvda: 1753084
+  vvd: 643839
+  anti_revolutionaire_partij: 545836
+  christelijk_historische_unie: 536801
+  psp: 189373
+  cpn: 173325
+  sgp: 143818
+  boeren_partij: 133231
+  gpv: 46324
+  partij_economisch_appèl: 37554
+  liberale_staatspartij: 22353
+  lu_vv: 21048
+  nieuw_democratische_partij: 13064
+  cnvp: 1824
+  lijst_grol: 876
+  volksreferendum: 819

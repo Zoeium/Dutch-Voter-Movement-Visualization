@@ -1,0 +1,20 @@
+# Marijnen (1963-1965)
+# KVP-VVD-ARP-CHU coalition
+name: Marijnen
+inauguration: 1963-07-24
+coalition:
+  - kvp
+  - vvd
+  - arp
+  - chu
+seats:
+  kvp: 50
+  pvda: 43
+  vvd: 16
+  arp: 13
+  chu: 13
+  psp: 4
+  cpn: 4
+  sgp: 3
+  boerenpartij: 3
+  gpv: 1
