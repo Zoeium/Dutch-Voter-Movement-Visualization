@@ -34,6 +34,8 @@ interface LineageRibbon {
   targetYBottom: number;
 }
 
+type RibbonSide = 'source' | 'target';
+
 const PX_PER_SEAT = 3;
 const MIN_BLOCK_HEIGHT = 8;
 // Block height at which the in-block label steps up to the regular font size. Every block is
@@ -60,6 +62,68 @@ type PartyRole = 'coalition' | 'support' | 'opposition';
 
 // Draw order within a column: coalition band, tolerating party, then opposition.
 const ROLE_ORDER: Record<PartyRole, number> = {coalition: 0, support: 1, opposition: 2};
+
+function setRibbonSpan(
+  ribbon: LineageRibbon,
+  side: RibbonSide,
+  top: number,
+  bottom: number
+): void {
+  if (side === 'source') {
+    ribbon.sourceYTop = top;
+    ribbon.sourceYBottom = bottom;
+    return;
+  }
+
+  ribbon.targetYTop = top;
+  ribbon.targetYBottom = bottom;
+}
+
+function setFullBlockSpans(block: PartyBlock, group: LineageRibbon[], side: RibbonSide): void {
+  const bottom = block.y + block.height;
+  for (const ribbon of group) {
+    setRibbonSpan(ribbon, side, block.y, bottom);
+  }
+}
+
+function compareRibbonCounterpart(a: LineageRibbon, b: LineageRibbon, side: RibbonSide): number {
+  const aY = side === 'source' ? a.to.y : a.from.y;
+  const bY = side === 'source' ? b.to.y : b.from.y;
+  return aY - bY;
+}
+
+function getRibbonSeats(ribbon: LineageRibbon, side: RibbonSide): number {
+  return side === 'source' ? ribbon.sourceSeats : ribbon.targetSeats;
+}
+
+function allocateRibbonGroup(
+  block: PartyBlock,
+  group: LineageRibbon[],
+  side: RibbonSide
+): void {
+  const hasLineage = group.some((ribbon) => ribbon.kind !== 'continuity');
+  if (!hasLineage) {
+    setFullBlockSpans(block, group, side);
+    return;
+  }
+
+  group.sort((a, b) => compareRibbonCounterpart(a, b, side));
+  const totalSeats = group.reduce((total, ribbon) => total + getRibbonSeats(ribbon, side), 0);
+  if (totalSeats === 0) {
+    for (const ribbon of group) {
+      setRibbonSpan(ribbon, side, block.y, block.y);
+    }
+    return;
+  }
+
+  const pixelsPerSeat = Math.min(PX_PER_SEAT, block.height / totalSeats);
+  let y = block.y;
+  for (const ribbon of group) {
+    const bottom = y + getRibbonSeats(ribbon, side) * pixelsPerSeat;
+    setRibbonSpan(ribbon, side, y, bottom);
+    y = bottom;
+  }
+}
 
 /**
  * Readable text colour for a filled block, picked from the party colour's relative
@@ -217,63 +281,8 @@ function buildLineageRibbons(
     targetGroups.set(ribbon.to, incoming);
   }
 
-  const allocate = (
-    block: PartyBlock,
-    group: LineageRibbon[],
-    side: 'source' | 'target'
-  ) => {
-    if (!group.some((ribbon) => ribbon.kind !== 'continuity')) {
-      for (const ribbon of group) {
-        if (side === 'source') {
-          ribbon.sourceYTop = block.y;
-          ribbon.sourceYBottom = block.y + block.height;
-        } else {
-          ribbon.targetYTop = block.y;
-          ribbon.targetYBottom = block.y + block.height;
-        }
-      }
-      return;
-    }
-
-    group.sort((a, b) =>
-      side === 'source' ? a.to.y - b.to.y : a.from.y - b.from.y
-    );
-    const totalSeats = group.reduce(
-      (total, ribbon) => total + (side === 'source' ? ribbon.sourceSeats : ribbon.targetSeats),
-      0
-    );
-    if (totalSeats === 0) {
-      for (const ribbon of group) {
-        if (side === 'source') {
-          ribbon.sourceYTop = block.y;
-          ribbon.sourceYBottom = block.y;
-        } else {
-          ribbon.targetYTop = block.y;
-          ribbon.targetYBottom = block.y;
-        }
-      }
-      return;
-    }
-
-    const pixelsPerSeat = Math.min(PX_PER_SEAT, block.height / totalSeats);
-    let y = block.y;
-
-    for (const ribbon of group) {
-      const seats = side === 'source' ? ribbon.sourceSeats : ribbon.targetSeats;
-      const bottom = y + seats * pixelsPerSeat;
-      if (side === 'source') {
-        ribbon.sourceYTop = y;
-        ribbon.sourceYBottom = bottom;
-      } else {
-        ribbon.targetYTop = y;
-        ribbon.targetYBottom = bottom;
-      }
-      y = bottom;
-    }
-  };
-
-  for (const [block, group] of sourceGroups) allocate(block, group, 'source');
-  for (const [block, group] of targetGroups) allocate(block, group, 'target');
+  for (const [block, group] of sourceGroups) allocateRibbonGroup(block, group, 'source');
+  for (const [block, group] of targetGroups) allocateRibbonGroup(block, group, 'target');
 
   return ribbons;
 }
@@ -294,6 +303,195 @@ interface ParliamentLayout {
  * Build every derived item for the currently selected range. Kept pure and
  * module-level so the component can memoize it and hover updates stay cheap.
  */
+function getPartyRole(
+  coalitionSet: Set<string>,
+  supportSet: Set<string>,
+  key: string
+): PartyRole {
+  if (coalitionSet.has(key)) {
+    return 'coalition';
+  }
+
+  if (supportSet.has(key)) {
+    return 'support';
+  }
+
+  return 'opposition';
+}
+
+function buildColumnBlocks(
+  coalition: CoalitionData,
+  colIndex: number,
+  parties: PartyInfo[]
+): PartyBlock[] {
+  const coalitionSet = new Set(coalition.coalition);
+  const supportSet = new Set(coalition.support ?? []);
+
+  const grouped = new Map<string, { seats: number; role: PartyRole }>();
+  Object.entries(coalition.seats).forEach(([key, seats]) => {
+    if (seats <= 0) return;
+
+    const entry = grouped.get(key) ?? {seats: 0, role: 'opposition' as PartyRole};
+    entry.seats += seats;
+
+    const role = getPartyRole(coalitionSet, supportSet, key);
+    if (ROLE_ORDER[role] < ROLE_ORDER[entry.role]) {
+      entry.role = role;
+    }
+
+    grouped.set(key, entry);
+  });
+
+  const list = Array.from(grouped.entries()).map(([key, g]) => ({
+    party: key,
+    canonical: resolvePartyName(key, parties),
+    displayName: getPartyDisplayName(key, parties),
+    color: getPartyColor(key, parties),
+    seats: g.seats,
+    role: g.role,
+    columnIndex: colIndex,
+    height: Math.max(MIN_BLOCK_HEIGHT, g.seats * PX_PER_SEAT),
+    x: LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP),
+    y: 0,
+  }) as PartyBlock);
+
+  list.sort((a, b) => {
+    if (a.role !== b.role) return ROLE_ORDER[a.role] - ROLE_ORDER[b.role];
+    return b.seats - a.seats;
+  });
+
+  return list;
+}
+
+function layoutColumnBlocks(list: PartyBlock[], colIndex: number): number[] {
+  let y = HEADER_SPACE;
+  const dividers: number[] = [];
+
+  list.forEach((block, idx) => {
+    block.x = LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP);
+    block.y = y;
+    y += block.height + ROW_GAP;
+
+    const next = list[idx + 1];
+    if (next && next.role !== block.role) {
+      dividers.push(y + ROLE_GAP / 2);
+      y += ROLE_GAP;
+    }
+  });
+
+  return dividers;
+}
+
+function collectContinuityEdges(colBlocks: PartyBlock[][], selectedCount: number): { block: PartyBlock; next: PartyBlock }[] {
+  const edges: { block: PartyBlock; next: PartyBlock }[] = [];
+
+  for (let colIndex = 0; colIndex < selectedCount - 1; colIndex += 1) {
+    const list = colBlocks[colIndex];
+    const nextList = colBlocks[colIndex + 1];
+
+    for (const block of list) {
+      for (const next of nextList) {
+        if (next.party === block.party) {
+          edges.push({block, next});
+        }
+      }
+    }
+  }
+
+  return edges;
+}
+
+function collectFirstSeen(colBlocks: PartyBlock[][]): Record<string, number> {
+  const firstSeen: Record<string, number> = {};
+
+  for (const [colIndex, list] of colBlocks.entries()) {
+    for (const block of list) {
+      const previous = firstSeen[block.party];
+      firstSeen[block.party] = previous === undefined ? colIndex : Math.min(previous, colIndex);
+    }
+  }
+
+  return firstSeen;
+}
+
+function collectMergeEdges(
+  colBlocks: PartyBlock[][],
+  parties: PartyInfo[],
+  firstSeen: Record<string, number>
+): { from: PartyBlock; to: PartyBlock }[] {
+  const mergeEdges: { from: PartyBlock; to: PartyBlock }[] = [];
+  const previousNamesByParty = new Map<string, string[]>();
+  for (const party of parties) {
+    if (!previousNamesByParty.has(party.party)) {
+      previousNamesByParty.set(party.party, party.previous_names ?? []);
+    }
+  }
+
+  for (let colIndex = 1; colIndex < colBlocks.length; colIndex += 1) {
+    const previousBlocks = new Map(colBlocks[colIndex - 1].map((block) => [block.party, block]));
+    appendColumnMergeEdges(
+      mergeEdges,
+      colBlocks[colIndex],
+      previousBlocks,
+      previousNamesByParty,
+      firstSeen,
+      colIndex
+    );
+  }
+
+  return mergeEdges;
+}
+
+function appendColumnMergeEdges(
+  edges: { from: PartyBlock; to: PartyBlock }[],
+  blocks: PartyBlock[],
+  previousBlocks: Map<string, PartyBlock>,
+  previousNamesByParty: Map<string, string[]>,
+  firstSeen: Record<string, number>,
+  colIndex: number
+): void {
+  for (const block of blocks) {
+    if (firstSeen[block.party] !== colIndex) continue;
+
+    const predecessors = previousNamesByParty.get(block.party) ?? [];
+    for (const predecessor of predecessors) {
+      const from = previousBlocks.get(predecessor);
+      if (from && from.party !== block.party) {
+        edges.push({from, to: block});
+      }
+    }
+  }
+}
+
+function collectSplitEdges(
+  colBlocks: PartyBlock[][],
+  parties: PartyInfo[],
+  firstSeen: Record<string, number>
+): { from: PartyBlock; to: PartyBlock }[] {
+  const splitEdges: { from: PartyBlock; to: PartyBlock }[] = [];
+
+  for (let colIndex = 0; colIndex < colBlocks.length; colIndex += 1) {
+    const list = colBlocks[colIndex];
+
+    for (const block of list) {
+      if (firstSeen[block.party] !== colIndex) continue;
+
+      const parents = getSplitParents(block.party, parties);
+      if (parents.length === 0) continue;
+
+      const parent = parents[0];
+      const previousList = colBlocks[colIndex - 1];
+      const from = previousList?.find((candidate) => candidate.party === parent || candidate.canonical === parent)
+        ?? list.find((candidate) => candidate.party === parent || candidate.canonical === parent);
+
+      if (!from || from === block) continue;
+      splitEdges.push({from, to: block});
+    }
+  }
+
+  return splitEdges;
+}
+
 function buildParliamentLayout(
   coalitions: CoalitionData[],
   parties: PartyInfo[],
@@ -303,72 +501,12 @@ function buildParliamentLayout(
   const selected = coalitions.slice(start, end + 1);
   const selectedCount = selected.length;
 
-  // Build blocks per (selected) column, grouping by the LITERAL seat key so that
-  // predecessor parties (e.g. PPR/PSP/CPN of GroenLinks) stay separate blocks until
-  // they literally appear as a single party in the data.
-  const colBlocks: PartyBlock[][] = selected.map((coalition, colIndex) => {
-    const coalitionSet = new Set(coalition.coalition);
-    const supportSet = new Set(coalition.support ?? []);
-
-    const roleOf = (key: string): PartyRole =>
-      coalitionSet.has(key) ? 'coalition' : supportSet.has(key) ? 'support' : 'opposition';
-
-    const grouped = new Map<string, { seats: number; role: PartyRole }>();
-    Object.entries(coalition.seats).forEach(([key, seats]) => {
-      if (seats <= 0) return;
-      const entry = grouped.get(key) ?? {seats: 0, role: 'opposition' as PartyRole};
-      entry.seats += seats;
-      // A party (wrongly) listed twice keeps the stronger role.
-      const role = roleOf(key);
-      if (ROLE_ORDER[role] < ROLE_ORDER[entry.role]) entry.role = role;
-      grouped.set(key, entry);
-    });
-
-    const list = Array.from(grouped.entries()).map(([key, g]) => ({
-      party: key,
-      canonical: resolvePartyName(key, parties),
-      displayName: getPartyDisplayName(key, parties),
-      color: getPartyColor(key, parties),
-      seats: g.seats,
-      role: g.role,
-      columnIndex: colIndex,
-      height: Math.max(MIN_BLOCK_HEIGHT, g.seats * PX_PER_SEAT),
-      x: LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP),
-      y: 0,
-    }) as PartyBlock);
-
-    // Coalition band first, then the tolerating party (if any), then the opposition -
-    // each group sorted by seat count descending.
-    list.sort((a, b) => {
-      if (a.role !== b.role) return ROLE_ORDER[a.role] - ROLE_ORDER[b.role];
-      return b.seats - a.seats;
-    });
-    return list;
-  });
-
-  const layOutColumn = (list: PartyBlock[], colIndex: number) => {
-    let y = HEADER_SPACE;
-    const dividers: number[] = [];
-    list.forEach((b, idx) => {
-      b.x = LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP);
-      b.y = y;
-      y += b.height + ROW_GAP;
-      const next = list[idx + 1];
-      if (next && next.role !== b.role) {
-        // Role change: leave extra room and remember where the divider line belongs.
-        dividers.push(y + ROLE_GAP / 2);
-        y += ROLE_GAP;
-      }
-    });
-    return dividers;
-  };
-  const colDividers = colBlocks.map((colBlock, index) => layOutColumn(colBlock, index));
-
-  // Each column is already built in the desired order: coalition parties first, then
-  // opposition, each sorted by seat count descending (most seats at the top).
+  const colBlocks = selected.map((coalition, colIndex) =>
+    buildColumnBlocks(coalition, colIndex, parties)
+  );
+  const colDividers = colBlocks.map((colBlock, index) => layoutColumnBlocks(colBlock, index));
 
   const columnWidth = selectedCount * (BLOCK_WIDTH + COLUMN_GAP) + LABEL_SPACE * 2 - COLUMN_GAP;
-  // Keep enough room for the legend even on a two- or three-column selection.
   const svgWidth = Math.max(columnWidth, LEGEND_WIDTH);
   const maxColHeight = Math.max(
     0,
@@ -379,72 +517,10 @@ function buildParliamentLayout(
   );
   const svgHeight = Math.ceil(maxColHeight + LEGEND_SPACE);
 
-  // Continuity flows: a party continuing with the SAME literal key into the next column.
-  // Every continuation is shown so the party's lineage stays visible across all elections;
-  // plunging no longer filters on coalition membership or seat changes.
-  const edges: { block: PartyBlock; next: PartyBlock }[] = [];
-  colBlocks.forEach((list, colIndex) => {
-    if (colIndex >= selectedCount - 1) return;
-    const nextList = colBlocks[colIndex + 1];
-    list.forEach((block) => {
-      nextList.filter((n) => n.party === block.party).forEach((n) => {
-        edges.push({block, next: n});
-      });
-    });
-  });
-
-  // First column in which each literal party key appears. Both the merge and the split
-  // flows are drawn once, at the point the party shows up in the selection.
-  const firstSeen: Record<string, number> = {};
-  colBlocks.forEach((list, colIndex) => {
-    list.forEach((block) => {
-      firstSeen[block.party] = Math.min(firstSeen[block.party] ?? colIndex, colIndex);
-    });
-  });
-
-  // Merge flows: when a merged party first appears (e.g. GroenLinks from PPR/PSP,
-  // ChristenUnie from RPF/GPV, GL-PvdA from GroenLinks/PvdA), draw one flow from each of
-  // its predecessors into it. The predecessor list comes from the block's OWN party entry,
-  // looked up by its literal key: `groenlinks` resolves to `glpvda`, so a canonical-name
-  // lookup returned glpvda's entry (no PPR/PSP) and silently dropped GroenLinks' merges.
-  const mergeEdges: { from: PartyBlock; to: PartyBlock }[] = [];
-  colBlocks.forEach((list, colIndex) => {
-    if (colIndex < 1) return;
-    const prevList = colBlocks[colIndex - 1];
-    list.forEach((block) => {
-      if (firstSeen[block.party] !== colIndex) return;
-      const predecessors = parties.find((x) => x.party === block.party)?.previous_names ?? [];
-      if (predecessors.length === 0) return;
-      predecessors.forEach((pred) => {
-        // Flows only ever come from the IMMEDIATELY preceding coalition. Reaching further
-        // back would draw a ribbon across elections the party took no part in - CPN held no
-        // seats after Van Agt III, so it contributes no ribbon into GroenLinks.
-        const from = prevList.find((b) => b.party === pred);
-        if (from && from.party !== block.party) mergeEdges.push({from, to: block});
-      });
-    });
-  });
-
-  // Split-off flows: a party splits off from another (e.g. DENK from PvdA, NSC from CDA).
-  // Drawn only at the first column where the split-off party appears, from its parent.
-
-  const splitEdges: { from: PartyBlock; to: PartyBlock }[] = [];
-  colBlocks.forEach((list, colIndex) => {
-    list.forEach((block) => {
-      if (firstSeen[block.party] !== colIndex) return;
-      const parents = getSplitParents(block.party, parties);
-      if (parents.length === 0) return;
-      const parent = parents[0];
-      // The parent is looked up in the immediately preceding coalition only, so the flow
-      // always spans exactly one election boundary (e.g. VVD in Balkenende III to PVV in
-      // Balkenende IV). Only fall back to the same column (a short elbow) when the parent
-      // is new in this very column.
-      let from = colBlocks[colIndex - 1]?.find((b) => b.party === parent || b.canonical === parent);
-      from ??= list.find((b) => b.party === parent || b.canonical === parent);
-      if (!from || from === block) return;
-      splitEdges.push({from, to: block});
-    });
-  });
+  const edges = collectContinuityEdges(colBlocks, selectedCount);
+  const firstSeen = collectFirstSeen(colBlocks);
+  const mergeEdges = collectMergeEdges(colBlocks, parties, firstSeen);
+  const splitEdges = collectSplitEdges(colBlocks, parties, firstSeen);
 
   return {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
 }
@@ -548,7 +624,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
 
       {/* Horizontal scroll keeps every column at its natural, legible width instead of
           squashing a long selection down to illegible slivers. */}
-      <div className="overflow-x-auto">
+      <div className="parliament-scroll overflow-x-auto">
         <svg
           width="100%"
           height={svgHeight}
@@ -678,9 +754,10 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
         {selected.map((coalition, colIndex) => {
           const list = colBlocks[colIndex];
           const dividers = colDividers[colIndex] ?? [];
+          const columnKey = `${coalition.name}-${coalition.year}`;
 
           return (
-            <g key={colIndex}>
+            <g key={columnKey}>
               {/* Coalition header */}
               <text
                 x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}

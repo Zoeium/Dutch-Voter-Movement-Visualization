@@ -290,40 +290,37 @@ export function loadDataSources(): DataSourceEntry[] {
   return sources.sort((a, b) => a.year.localeCompare(b.year));
 }
 
-// Party lookups are linear scans per node/link otherwise; build name-keyed maps
-// once per `parties` array (the array is loaded once and passed around as-is).
-let cachedParties: PartyInfo[] | null = null;
-const partyByKey = new Map<string, PartyInfo>();
-const partyByPreviousName = new Map<string, PartyInfo>();
-const partyResolveMap = new Map<string, string>();
+export interface PartyIndex {
+  byKey: Map<string, PartyInfo>;
+  byPreviousName: Map<string, PartyInfo>;
+  resolveMap: Map<string, string>;
+}
 
-/** Rebuild party lookup caches when the party array identity changes. */
-function ensurePartyCache(parties: PartyInfo[]): void {
-  if (cachedParties === parties) return;
-
-  cachedParties = parties;
-  partyByKey.clear();
-  partyByPreviousName.clear();
-  partyResolveMap.clear();
+/** Build a reusable party lookup index for a dataset without shared module state. */
+export function createPartyIndex(parties: PartyInfo[]): PartyIndex {
+  const byKey = new Map<string, PartyInfo>();
+  const byPreviousName = new Map<string, PartyInfo>();
+  const resolveMap = new Map<string, string>();
 
   for (const party of parties) {
-    if (!partyByKey.has(party.party)) {
-      partyByKey.set(party.party, party);
+    if (!byKey.has(party.party)) {
+      byKey.set(party.party, party);
     }
-    // First party (in array order) that claims a name - either as its own id or as
-    // a previous name - wins, mirroring the original linear-scan semantics.
-    if (!partyResolveMap.has(party.party)) {
-      partyResolveMap.set(party.party, party.party);
+    if (!resolveMap.has(party.party)) {
+      resolveMap.set(party.party, party.party);
     }
+
     for (const previousName of party.previous_names ?? []) {
-      if (!partyByPreviousName.has(previousName)) {
-        partyByPreviousName.set(previousName, party);
+      if (!byPreviousName.has(previousName)) {
+        byPreviousName.set(previousName, party);
       }
-      if (!partyResolveMap.has(previousName)) {
-        partyResolveMap.set(previousName, party.party);
+      if (!resolveMap.has(previousName)) {
+        resolveMap.set(previousName, party.party);
       }
     }
   }
+
+  return {byKey, byPreviousName, resolveMap};
 }
 
 /**
@@ -333,32 +330,24 @@ export function resolvePartyName(
   name: string,
   parties: PartyInfo[]
 ): string {
-  ensurePartyCache(parties);
-  return partyResolveMap.get(name) ?? name;
+  const index = createPartyIndex(parties);
+  return index.resolveMap.get(name) ?? name;
 }
 
 /**
  * Get color for a party name. Resolves through previous_names for color matching.
  */
 export function getPartyColor(name: string, parties: PartyInfo[]): string {
-  ensurePartyCache(parties);
+  const index = createPartyIndex(parties);
 
-  // Prefer exact match (party had same id in this election)
-  const exact = partyByKey.get(name);
+  const exact = index.byKey.get(name);
   if (exact) return exact.color || DEFAULT_PARTY_COLOR;
 
-  // If this name appears as a previous name for some canonical party, try to use
-  // the historical party's own color file (if present). Fall back to the canonical party color.
-  const withPreviousName = partyByPreviousName.get(name);
-  if (withPreviousName) {
-    const historical = partyByKey.get(name);
-    if (historical) return historical.color || DEFAULT_PARTY_COLOR;
-    return withPreviousName.color || DEFAULT_PARTY_COLOR;
-  }
+  const withPreviousName = index.byPreviousName.get(name);
+  if (withPreviousName) return withPreviousName.color || DEFAULT_PARTY_COLOR;
 
-  // Last resort: resolve to canonical and return that color if available
-  const resolved = partyResolveMap.get(name);
-  const party = resolved ? partyByKey.get(resolved) : undefined;
+  const resolved = index.resolveMap.get(name);
+  const party = resolved ? index.byKey.get(resolved) : undefined;
   if (party) return party.color || DEFAULT_PARTY_COLOR;
 
   return DEFAULT_PARTY_COLOR;
@@ -369,9 +358,7 @@ export function getPartyColor(name: string, parties: PartyInfo[]): string {
  * NOT the resolved/canonical name.
  */
 export function getPartyDisplayName(name: string, parties: PartyInfo[]): string {
-  ensurePartyCache(parties);
-
-  const party = partyByKey.get(name);
+  const party = createPartyIndex(parties).byKey.get(name);
   if (party) return party.display_name;
 
   return name;
@@ -451,9 +438,11 @@ function buildColumnNodes(
   return Array.from(ids)
     .sort((a, b) => (totals[b] ?? 0) - (totals[a] ?? 0))
     .map((id) => {
-      const value = !selectedParty
-        ? (totals[id] ?? 0)
-        : (isSource ? outgoingSums[id] ?? 0 : incomingSums[id] ?? 0);
+      let value = totals[id] ?? 0;
+
+      if (selectedParty) {
+        value = isSource ? (outgoingSums[id] ?? 0) : (incomingSums[id] ?? 0);
+      }
 
       return {
         id: `${columnIndex}:${id}`,
@@ -615,7 +604,16 @@ export function buildMultiElectionFlows(
 
 /** Parse coalition resources and return them in inauguration order. */
 export function loadCoalitions(): CoalitionData[] {
-  const entries = Object.entries(coalitionModules).map(([path, raw]) => {
+  type CoalitionEntry = {
+    sortKey: string;
+    name: string;
+    year: string;
+    coalition: string[];
+    support: string[];
+    seats: Record<string, number>;
+  };
+
+  const entries: CoalitionEntry[] = Object.entries(coalitionModules).map(([path, raw]) => {
     const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
     const data = yaml.load(raw) as {
       inauguration?: unknown;
@@ -624,21 +622,15 @@ export function loadCoalitions(): CoalitionData[] {
       support?: unknown;
       seats?: Record<string, number>;
     } | null;
-    // Each coalition file carries an `inauguration` date (YYYY-MM-DD), which is
-    // used to derive the year for sorting and column labels. Fall back to the
-    // four-digit year encoded in the filename for files without the field.
     const inauguration = typeof data?.inauguration === 'string' ? data.inauguration : '';
     const inaugurationMatch = /^(\d{4})/.exec(inauguration);
     const year = inaugurationMatch ? inaugurationMatch[1] : filenameYear;
+
     return {
-      // Sort on the full inauguration date, not just the year: several coalitions
-      // share a year, and Van Agt III (1982-05-29) must precede Lubbers I
-      // (1982-11-04). Falls back to the year for files without a date.
       sortKey: inauguration || year,
       name: typeof data?.name === 'string' ? data.name : '',
       year,
       coalition: data?.coalition || [],
-      // Parties that tolerated the coalition without joining it (gedoogpartners).
       support: Array.isArray(data?.support)
         ? data.support.filter((party): party is string => typeof party === 'string')
         : [],
@@ -646,13 +638,15 @@ export function loadCoalitions(): CoalitionData[] {
     };
   });
 
-  return entries
-    .toSorted((a, b) => a.sortKey.localeCompare(b.sortKey) || a.name.localeCompare(b.name))
-    .map((entry) => ({
-      name: entry.name,
-      year: entry.year,
-      coalition: entry.coalition,
-      support: entry.support,
-      seats: entry.seats,
-    }));
+  const sortedEntries = [...entries].sort(
+    (a, b) => a.sortKey.localeCompare(b.sortKey) || a.name.localeCompare(b.name)
+  );
+
+  return sortedEntries.map((entry) => ({
+    name: entry.name,
+    year: entry.year,
+    coalition: entry.coalition,
+    support: entry.support,
+    seats: entry.seats,
+  }));
 }
