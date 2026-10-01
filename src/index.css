@@ -2,6 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --c-bg: #f8fafc;
+  --c-bg-card: #ffffff;
+  --c-bg-header: rgba(255, 255, 255, 0.85);
+  --c-border: #e2e8f0;
+  --c-border-strong: #cbd5e1;
+  --c-text: #1e293b;
+  --c-text-heading: #0f172a;
+  --c-text-muted: #64748b;
+  --c-text-subtle: #94a3b8;
+  --c-btn-inactive: #f1f5f9;
+  --c-btn-inactive-text: #475569;
+  --c-btn-inactive-hover: #e2e8f0;
+  --c-slider-track: #cbd5e1;
+  --c-slider-border: #064e3b;
+  --c-grid-line: #e2e8f0;
+  --c-axis-text: #94a3b8;
+  --c-tooltip-bg: #1e293b;
+  --c-tooltip-border: #334155;
+  --c-tooltip-text: #e2e8f0;
+  --c-divider-line: #cbd5e1;
+  --c-scrollbar-track: #e2e8f0;
+  --c-scrollbar-thumb: #10b981;
+  --c-link: #059669;
+  --c-link-hover: #047857;
+}
+
+:root.dark {
+  --c-bg: #030712;
+  --c-bg-card: #111827;
+  --c-bg-header: rgba(17, 24, 39, 0.5);
+  --c-border: #1f2937;
+  --c-border-strong: #374151;
+  --c-text: #f3f4f6;
+  --c-text-heading: #f9fafb;
+  --c-text-muted: #9ca3af;
+  --c-text-subtle: #6b7280;
+  --c-btn-inactive: #1f2937;
+  --c-btn-inactive-text: #d1d5db;
+  --c-btn-inactive-hover: #374151;
+  --c-slider-track: #374151;
+  --c-slider-border: #064e3b;
+  --c-grid-line: #374151;
+  --c-axis-text: #6b7280;
+  --c-tooltip-bg: #1f2937;
+  --c-tooltip-border: #374151;
+  --c-tooltip-text: #f3f4f6;
+  --c-divider-line: #4b5563;
+  --c-scrollbar-track: #1f2937;
+  --c-scrollbar-thumb: #059669;
+  --c-link: #34d399;
+  --c-link-hover: #6ee7b7;
+}
+
 .year-range-thumb {
   pointer-events: none;
   background: transparent;
@@ -14,7 +68,7 @@
   height: 18px;
   border-radius: 50%;
   background: #10b981;
-  border: 2px solid #064e3b;
+  border: 2px solid var(--c-slider-border);
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
@@ -25,7 +79,7 @@
   height: 18px;
   border-radius: 50%;
   background: #10b981;
-  border: 2px solid #064e3b;
+  border: 2px solid var(--c-slider-border);
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
@@ -39,7 +93,7 @@
 }
 
 .parliament-scroll {
-  scrollbar-color: #10b981 #1f2937;
+  scrollbar-color: var(--c-scrollbar-thumb) var(--c-scrollbar-track);
   scrollbar-width: thin;
 }
 
@@ -48,13 +102,13 @@
 }
 
 .parliament-scroll::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: var(--c-scrollbar-track);
   border-radius: 9999px;
 }
 
 .parliament-scroll::-webkit-scrollbar-thumb {
-  background: #059669;
-  border: 2px solid #1f2937;
+  background: var(--c-scrollbar-thumb);
+  border: 2px solid var(--c-scrollbar-track);
   border-radius: 9999px;
 }
 

@@ -2,6 +2,7 @@ import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {DiagramNode, DiagramLink} from '@/types';
 import {RibbonGradient} from './shared';
 import {buildGradientId, buildRibbonPath} from './diagramUtils';
+import {useI18n} from '@/theme';
 
 export type SortMode = 'votes' | 'alphabetical';
 
@@ -350,7 +351,7 @@ function DiagramLabel({label, x}: Readonly<DiagramLabelProps>) {
       x={x}
       y={22}
       textAnchor="middle"
-      className="fill-gray-300 text-sm font-semibold"
+      className="fill-app-muted text-sm font-semibold"
     >
       {label}
     </text>
@@ -411,14 +412,14 @@ function DiagramTooltip({centerX, y, width, text}: Readonly<DiagramTooltipProps>
         width={width}
         height={30}
         rx={6}
-        fill="#1f2937"
+        fill="var(--c-tooltip-bg)"
         fillOpacity={0.95}
       />
       <text
         x={centerX}
         y={y + 18}
         textAnchor="middle"
-        className="fill-gray-100 text-xs font-medium"
+        className="fill-app-tooltip-text text-xs font-medium"
       >
         {text}
       </text>
@@ -464,7 +465,7 @@ const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. 
         y={node.y + node.nodeHeight / 2}
         dy="0.35em"
         textAnchor={textProps.textAnchor}
-        className="fill-gray-200 text-xs font-medium"
+        className="fill-app-text text-xs font-medium"
         style={{pointerEvents: 'none'}}
       >
         {node.label}
@@ -482,6 +483,7 @@ export default function AlluvialDiagram({
                                           selectedParty,
                                           sortMode = 'votes',
                                         }: Readonly<AlluvialDiagramProps>) {
+  const {t} = useI18n();
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredRibbonKey, setHoveredRibbonKey] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -599,7 +601,7 @@ export default function AlluvialDiagram({
             centerX={svgWidth / 2}
             y={contentHeight - 44}
             width={280}
-            text={`${hoveredRibbon.source.label} → ${hoveredRibbon.target.label}: ${hoveredRibbon.value.toLocaleString()} votes`}
+            text={`${hoveredRibbon.source.label} → ${hoveredRibbon.target.label}: ${hoveredRibbon.value.toLocaleString()} ${t('votes')}`}
           />
         )}
 
@@ -612,7 +614,7 @@ export default function AlluvialDiagram({
               centerX={svgWidth / 2}
               y={contentHeight - 80}
               width={280}
-              text={`${node.label}: ${node.value.toLocaleString()} votes`}
+              text={`${node.label}: ${node.value.toLocaleString()} ${t('votes')}`}
             />
           );
         })()}

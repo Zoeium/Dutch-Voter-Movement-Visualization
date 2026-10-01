@@ -30,10 +30,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.error) {
       return (
-        <div className="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center p-6">
+        <div className="min-h-screen flex items-center justify-center p-6"
+          style={{backgroundColor: 'var(--c-bg)', color: 'var(--c-text)'}}>
           <div className="max-w-xl text-center">
             <h1 className="text-xl font-bold mb-2">Something went wrong</h1>
-            <p className="text-sm text-gray-400 break-words">{this.state.error.message}</p>
+            <p className="text-sm break-words" style={{color: 'var(--c-text-muted)'}}>{this.state.error.message}</p>
           </div>
         </div>
       );

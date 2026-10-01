@@ -3,6 +3,7 @@ import type {CoalitionData, PartyInfo} from '@/types';
 import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
 import {DualRangeSlider, RibbonGradient} from '@/components/shared';
 import {buildGradientId, buildRibbonPath, toggleButtonClass} from '@/components/diagramUtils';
+import {useI18n} from '@/theme';
 
 interface ParliamentDiagramProps {
   coalitions: CoalitionData[];
@@ -159,9 +160,9 @@ const DEFAULT_VISIBLE_COLUMNS = 10;
 // Quick range presets; `size` is how many coalitions to show counting back from the
 // newest one (`0` means every coalition).
 const RANGE_PRESETS = [
-  {label: 'All', size: 0},
-  {label: 'Last 10', size: 10},
-  {label: 'Last 5', size: 5},
+  {labelKey: 'all' as const, size: 0},
+  {labelKey: 'last10' as const, size: 10},
+  {labelKey: 'last5' as const, size: 5},
 ];
 
 /** Return the parties from which a literal party entry split. */
@@ -527,6 +528,7 @@ function buildParliamentLayout(
 
 /** Render coalition composition and party lineage across cabinets. */
 export default function ParliamentDiagram({coalitions, parties}: Readonly<ParliamentDiagramProps>) {
+  const {t} = useI18n();
   const columns = coalitions.length;
   const [hoveredParty, setHoveredParty] = useState<string | null>(null);
   const [rangeStart, setRangeStart] = useState(Math.max(0, columns - DEFAULT_VISIBLE_COLUMNS));
@@ -557,7 +559,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
   const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
 
   if (columns === 0) {
-    return <div className="text-gray-400 text-center py-8">No coalition data available</div>;
+    return <div className="text-app-muted text-center py-8">{t('noCoalitionData')}</div>;
   }
 
   const selectedCount = selected.length;
@@ -585,7 +587,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
     <div className="relative w-full">
       {/* Dual-thumb range slider (single control, two thumbs) */}
       <div className="flex items-center gap-3 flex-wrap mb-3">
-        <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Range:</span>
+        <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('range')}</span>
         <DualRangeSlider
           min={0}
           max={columns - 1}
@@ -596,7 +598,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           startAriaLabel="Range start"
           endAriaLabel="Range end"
         />
-        <span className="text-xs text-gray-400 whitespace-nowrap">
+        <span className="text-xs text-app-muted whitespace-nowrap">
           {selected[0].name} ({selected[0].year}) — {selected[selectedCount - 1].name} ({selected[selectedCount - 1].year})
         </span>
         {/* Quick ranges: reading ~30 columns at once is not useful, so offer a window. */}
@@ -608,14 +610,14 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
             return (
               <button
                 type="button"
-                key={preset.label}
+                key={preset.labelKey}
                 onClick={() => {
                   setRangeStart(presetStart);
                   setRangeEnd(columns - 1);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${toggleButtonClass(isActive)}`}
               >
-                {preset.label}
+                {t(preset.labelKey)}
               </button>
             );
           })}
@@ -763,7 +765,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                 x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}
                 y={26}
                 textAnchor="middle"
-                className="fill-gray-300 text-sm font-bold"
+                className="fill-app-muted text-sm font-bold"
               >
                 {coalition.name}
               </text>
@@ -771,7 +773,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                 x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}
                 y={40}
                 textAnchor="middle"
-                className="fill-gray-500 text-[10px]"
+                className="fill-app-subtle text-[10px]"
               >
                 {coalition.year}
               </text>
@@ -785,7 +787,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                   x2={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH + 10}
                   y1={dividerY}
                   y2={dividerY}
-                  stroke="#4b5563"
+                  stroke="var(--c-divider-line)"
                   strokeWidth={2}
                   strokeDasharray="4 4"
                 />
@@ -855,13 +857,13 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
             strokeWidth={2}
             strokeDasharray="4 3"
           />
-          <text x={26} y={10} className="fill-gray-400 text-[10px]">
-            Tolerating party (gedoogpartner)
+          <text x={26} y={10} className="fill-app-muted text-[10px]">
+            {t('toleratingParty')}
           </text>
 
-          <line x1={232} x2={260} y1={5} y2={5} stroke="#4b5563" strokeWidth={2} strokeDasharray="4 4"/>
-          <text x={268} y={10} className="fill-gray-400 text-[10px]">
-            Coalition above · opposition below
+          <line x1={232} x2={260} y1={5} y2={5} stroke="var(--c-divider-line)" strokeWidth={2} strokeDasharray="4 4"/>
+          <text x={268} y={10} className="fill-app-muted text-[10px]">
+            {t('coalitionOpposition')}
           </text>
         </g>
         </svg>
