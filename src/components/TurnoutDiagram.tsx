@@ -582,17 +582,22 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
           <div className="font-semibold mb-1" style={{color: 'var(--c-tooltip-text)'}}>{hoveredBar.year} {t('election')}</div>
           <div style={{color: 'var(--c-text-muted)'}}>{t('electorate')}: {formatNumber(hoveredBar.electorate)}</div>
           <div style={{color: 'var(--c-text-muted)'}}>{t('turnoutLabel')}: {formatNumber(hoveredBar.validVotes + hoveredBar.blancoVotes + hoveredBar.nonValidVotes)} ({formatPct(hoveredBar.turnoutPct)})</div>
-          <div className="text-emerald-400">{t('valid')}: {formatNumber(hoveredBar.validVotes)} ({formatPct(hoveredBar.validPct)} {t('validOfCast')})</div>
-          {hoveredBar.isCombined ? (
-            <div className="text-amber-400">{t('blancoInvalid')}: {formatNumber(hoveredBar.blancoVotes)}</div>
+          {hoveredSegment ? (
+            getTooltipDetail(hoveredBar, hoveredSegment, t)
           ) : (
             <>
-              <div className="text-amber-400">{t('blanco')}: {formatNumber(hoveredBar.blancoVotes)}</div>
-              <div className="text-red-400">{t('invalid')}: {formatNumber(hoveredBar.nonValidVotes)}</div>
+              <div className="text-emerald-500">{t('valid')}: {formatNumber(hoveredBar.validVotes)} ({formatPct(hoveredBar.validPct)} {t('validOfCast')})</div>
+              {hoveredBar.isCombined ? (
+                <div className="text-amber-500">{t('blancoInvalid')}: {formatNumber(hoveredBar.blancoVotes)}</div>
+              ) : (
+                <>
+                  <div className="text-amber-500">{t('blanco')}: {formatNumber(hoveredBar.blancoVotes)}</div>
+                  <div className="text-red-500">{t('invalid')}: {formatNumber(hoveredBar.nonValidVotes)}</div>
+                </>
+              )}
+              <div style={{color: 'var(--c-text-muted)'}}>{t('didNotVote')}: {formatNumber(hoveredBar.notVoted)}</div>
             </>
           )}
-          <div style={{color: 'var(--c-text-muted)'}}>{t('didNotVote')}: {formatNumber(hoveredBar.notVoted)}</div>
-          {getTooltipDetail(hoveredBar, hoveredSegment, t)}
         </Tooltip>
       )}
     </div>
