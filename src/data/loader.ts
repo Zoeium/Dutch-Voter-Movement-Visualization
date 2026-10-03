@@ -665,3 +665,18 @@ export function loadCoalitions(): CoalitionData[] {
     seats: entry.seats,
   }));
 }
+
+/**
+ * Coalition seat snapshots are labeled by cabinet inauguration year, which can
+ * be after the election year that determined those seats.
+ */
+export function getElectionSeats(
+  electionYear: string,
+  coalitions: CoalitionData[]
+): Record<string, number> | null {
+  const matching = coalitions.find((coalition) => coalition.year === electionYear)
+    ?? coalitions
+      .filter((coalition) => coalition.year > electionYear)
+      .sort((a, b) => a.year.localeCompare(b.year))[0];
+  return matching?.seats ?? null;
+}
