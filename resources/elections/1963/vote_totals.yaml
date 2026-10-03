@@ -6,22 +6,22 @@ electorate: 6748611
 not_voted: 329165
 total_votes: 6419446
 non_valid_votes_and_blanco_votes: 161441
-valid_votes: 6258521
+valid_votes: 6258005
 parties_votes:
-  kvp: 1995352
-  pvda: 1753084
-  vvd: 643839
-  arp: 545836
-  chu: 536801
-  psp: 189373
-  cpn: 173325
-  sgp: 143818
-  boerenpartij: 133231
+  kvp: 1995348
+  pvda: 1753025
+  vvd: 643820
+  arp: 545718
+  chu: 536782
+  psp: 189370
+  cpn: 173322
+  sgp: 143549
+  boerenpartij: 133210
   gpv: 46324
   partij_economisch_appèl: 37554
   liberale_staatspartij: 22353
   lu_vv: 21048
   nieuw_democratische_partij: 13064
-  cnvp: 1824
+  cnvp: 1823
   lijst_grol: 876
   volksreferendum: 819
