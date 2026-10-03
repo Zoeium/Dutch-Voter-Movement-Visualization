@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
-import {Check, X, Users} from 'lucide-react';
+import {Check, ChevronDown, X, Users} from 'lucide-react';
 import type {CoalitionData, PartyInfo} from '@/types';
-import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
+import {getPartyColor, getPartyDisplayName} from '@/data/loader';
 import {useI18n} from '@/theme';
 
 interface CoalitionExplorerProps {
@@ -9,13 +9,78 @@ interface CoalitionExplorerProps {
   parties: PartyInfo[];
 }
 
-const MAJORITY = 76;
-
 interface PartySeat {
   partyId: string;
   label: string;
   color: string;
   seats: number;
+}
+
+interface ChamberSeat {
+  partyId: string;
+  label: string;
+  color: string;
+  selected: boolean;
+  x: number;
+  y: number;
+  row: number;
+}
+
+interface ChamberLayout {
+  seats: ChamberSeat[];
+  borderRadius: number;
+}
+
+function createChamberLayout(parties: PartySeat[], selectedParties: Set<string>): ChamberLayout {
+  const rowCapacities: number[] = [];
+  for (let capacity = 10; capacity <= 26; capacity += 2) {
+    rowCapacities.push(capacity);
+  }
+
+  const positions: {x: number; y: number; row: number}[] = [];
+  const selectedSeats = parties.filter((party) => selectedParties.has(party.partyId)).flatMap((party) =>
+    Array.from({length: party.seats}, () => ({
+      partyId: party.partyId,
+      label: party.label,
+      color: party.color,
+      selected: true,
+    }))
+  );
+  const emptySeats = parties.filter((party) => !selectedParties.has(party.partyId)).flatMap((party) =>
+    Array.from({length: party.seats}, () => ({
+      partyId: party.partyId,
+      label: party.label,
+      color: party.color,
+      selected: false,
+    }))
+  );
+  const partySeats = [...selectedSeats, ...emptySeats];
+  let positionIndex = 0;
+  let outerRadius = 0;
+
+  for (let row = 0; row < rowCapacities.length && positionIndex < partySeats.length; row++) {
+    const rowCount = Math.min(rowCapacities[row], partySeats.length - positionIndex);
+    const radius = 76 + row * 21;
+    outerRadius = radius;
+    for (let position = 0; position < rowCount; position++) {
+      const angle = Math.PI - (Math.PI * position) / Math.max(rowCount - 1, 1);
+      positions.push({
+        x: 300 + radius * Math.cos(angle),
+        y: 294 - radius * Math.sin(angle),
+        row,
+      });
+      positionIndex++;
+    }
+  }
+
+  // Assign selected seats by horizontal position, so the chamber fills left to right.
+  positions.sort((a, b) => a.x - b.x || b.y - a.y || a.row - b.row);
+  const seats = positions.map((position, index) => ({
+    ...partySeats[index],
+    ...position,
+  }));
+
+  return {seats, borderRadius: Math.min(255, outerRadius + 32)};
 }
 
 export default function CoalitionExplorer({coalitions, parties}: Readonly<CoalitionExplorerProps>) {
@@ -60,22 +125,17 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
     () => allPartiesWithSeats.reduce((sum, p) => sum + p.seats, 0),
     [allPartiesWithSeats]
   );
+  const majority = Math.floor(totalSeats / 2) + 1;
 
   const selectedTotal = useMemo(() => {
     let total = 0;
     for (const p of allPartiesWithSeats) {
-      const canonical = resolvePartyName(p.partyId, parties);
-      if (selectedParties.has(canonical)) {
+      if (selectedParties.has(p.partyId)) {
         total += p.seats;
       }
     }
     return total;
-  }, [allPartiesWithSeats, selectedParties, parties]);
-
-  const remainingParties = useMemo(
-    () => allPartiesWithSeats.filter((p) => !selectedParties.has(resolvePartyName(p.partyId, parties))),
-    [allPartiesWithSeats, selectedParties, parties]
-  );
+  }, [allPartiesWithSeats, selectedParties]);
 
   const actualCoalitionParties = coalitionForYear?.coalition ?? [];
   const actualSupportParties = coalitionForYear?.support ?? [];
@@ -88,9 +148,13 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
     return sum + seats;
   }, 0);
 
-  const hasReachedMajority = selectedTotal >= MAJORITY;
-  const surplus = Math.max(0, selectedTotal - MAJORITY);
-  const shortfall = Math.max(0, MAJORITY - selectedTotal);
+  const hasReachedMajority = selectedTotal >= majority;
+  const surplus = Math.max(0, selectedTotal - majority);
+  const shortfall = Math.max(0, majority - selectedTotal);
+  const chamberLayout = useMemo(
+    () => createChamberLayout(allPartiesWithSeats, selectedParties),
+    [allPartiesWithSeats, selectedParties]
+  );
 
   const handleYearChange = (year: string) => {
     setSelectedYear(year);
@@ -113,7 +177,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
     if (!coalitionForYear) return;
     const set = new Set<string>();
     for (const partyId of coalitionForYear.coalition) {
-      set.add(resolvePartyName(partyId, parties));
+      set.add(partyId);
     }
     setSelectedParties(set);
   };
@@ -121,7 +185,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
   const partyButtonClass = (selected: boolean): string =>
     `${selected ? 'ring-2 ring-offset-2 ring-offset-app-card' : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 
-  const selectClass = 'px-3 py-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text hover:bg-app-btn-hover border border-app-border transition-all cursor-pointer';
+  const selectClass = 'app-select';
 
   if (yearsWithSeats.length === 0) {
     return (
@@ -136,9 +200,12 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
       {/* Election selector */}
       <div className="flex items-center gap-2">
         <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('coalitionSelectElection')}</label>
-        <select value={selectedYear} onChange={(e) => handleYearChange(e.target.value)} className={selectClass}>
-          {yearsWithSeats.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
+        <span className="relative">
+          <select value={selectedYear} onChange={(e) => handleYearChange(e.target.value)} className={selectClass}>
+            {yearsWithSeats.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <ChevronDown className="app-select-chevron w-4 h-4"/>
+        </span>
       </div>
 
       {/* Majority meter */}
@@ -150,29 +217,42 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-app-heading">{selectedTotal}</span>
-            <span className="text-sm text-app-muted">/ {MAJORITY} {t('coalitionSeatsLabel')}</span>
+            <span className="text-sm text-app-muted">/ {majority} {t('coalitionSeatsLabel')}</span>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="relative h-8 rounded-full bg-app-btn overflow-hidden">
-          {/* Majority line marker */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-app-border-strong z-10"
-            style={{left: `${(MAJORITY / totalSeats) * 100}%`}}
+        <svg
+          viewBox="0 0 600 330"
+          role="img"
+          aria-label={`${selectedTotal} of ${totalSeats} seats selected; ${majority} seats needed for a majority`}
+          className="mx-auto block w-full max-w-3xl"
+        >
+          <path
+            d={`M ${300 - chamberLayout.borderRadius} 294 A ${chamberLayout.borderRadius} ${chamberLayout.borderRadius} 0 0 1 ${300 + chamberLayout.borderRadius} 294`}
+            fill="none"
+            stroke="var(--c-border)"
+            strokeWidth="2"
           />
-          {/* Filled portion */}
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${hasReachedMajority ? 'bg-emerald-500' : 'bg-amber-500'}`}
-            style={{width: `${Math.min(100, (selectedTotal / totalSeats) * 100)}%`}}
-          />
-          {/* Seat count text inside bar */}
-          {selectedTotal > 0 && (
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
-              {selectedTotal} / {MAJORITY}
-            </span>
-          )}
-        </div>
+          {chamberLayout.seats.map((seat, index) => (
+            <circle
+                key={`${seat.partyId}-${index}`}
+                cx={seat.x}
+                cy={seat.y}
+                r="5"
+                fill={seat.selected ? seat.color : 'var(--c-bg-card)'}
+                stroke={seat.selected ? seat.color : 'var(--c-border-strong)'}
+                strokeWidth="1"
+              >
+              <title>{`${seat.label}${seat.selected ? ' (selected)' : ''}`}</title>
+            </circle>
+          ))}
+          <text x="300" y="250" textAnchor="middle" fill="var(--c-text-heading)" fontSize="30" fontWeight="700">
+            {selectedTotal} / {majority}
+          </text>
+          <text x="300" y="273" textAnchor="middle" fill="var(--c-text-muted)" fontSize="13">
+            {t('coalitionSeatsLabel')}
+          </text>
+        </svg>
 
         {/* Status */}
         <div className="mt-3 flex items-center gap-2">
@@ -235,13 +315,12 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
         <h4 className="text-sm font-semibold text-app-heading mb-3">{t('coalitionSelectParties')}</h4>
         <div className="flex flex-wrap gap-2">
           {allPartiesWithSeats.map((p) => {
-            const canonical = resolvePartyName(p.partyId, parties);
-            const isSelected = selectedParties.has(canonical);
+            const isSelected = selectedParties.has(p.partyId);
             return (
               <button
                 type="button"
                 key={p.partyId}
-                onClick={() => toggleParty(canonical)}
+                onClick={() => toggleParty(p.partyId)}
                 className={partyButtonClass(isSelected)}
                 style={
                   isSelected
@@ -279,7 +358,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
           </div>
           <div className="space-y-2">
             {allPartiesWithSeats
-              .filter((p) => selectedParties.has(resolvePartyName(p.partyId, parties)))
+              .filter((p) => selectedParties.has(p.partyId))
               .map((p) => (
                 <div key={p.partyId} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
@@ -288,30 +367,6 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
                   </div>
                   <span className="text-app-muted font-medium">{p.seats} {t('coalitionSeatsLabel')}</span>
                 </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Remaining parties */}
-      {remainingParties.length > 0 && selectedParties.size > 0 && !hasReachedMajority && (
-        <div>
-          <h4 className="text-sm font-semibold text-app-heading mb-3">{t('coalitionRemaining')}</h4>
-          <div className="flex flex-wrap gap-2">
-            {remainingParties
-              .sort((a, b) => b.seats - a.seats)
-              .slice(0, 10)
-              .map((p) => (
-                <button
-                  type="button"
-                  key={p.partyId}
-                  onClick={() => toggleParty(resolvePartyName(p.partyId, parties))}
-                  className="px-3 py-1.5 rounded-lg text-sm bg-app-btn text-app-btn-text hover:bg-app-btn-hover transition-all flex items-center gap-2"
-                >
-                  <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
-                  {p.label}
-                  <span className="opacity-75">({p.seats})</span>
-                </button>
               ))}
           </div>
         </div>

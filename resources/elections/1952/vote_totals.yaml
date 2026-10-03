@@ -9,12 +9,12 @@ non_valid_votes_and_blanco_votes: 165981
 valid_votes: 5335745
 parties_votes:
   pvda: 1545867
-  katholieke_volkspartij: 1529508
-  anti_revolutionaire_partij: 603329
-  christelijk_historische_unie: 476195
+  kvp: 1529508
+  arp: 603329
+  chu: 476195
   vvd: 471040
   cpn: 328621
-  katholieke_nationale_partij_welter: 144520
+  knp: 144520
   sgp: 129081
   gpv: 35497
   middenstandspartij: 25128

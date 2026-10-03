@@ -9,19 +9,19 @@ non_valid_votes_and_blanco_votes: 46567
 valid_votes: 6318152
 parties_votes:
   pvda: 1554280
-  katholieke_volkspartij: 1379672
+  kvp: 1379672
   vvd: 653370
-  anti_revolutionaire_partij: 542742
+  arp: 542742
   d66: 428067
-  christelijk_historische_unie: 399106
+  chu: 399106
   ds70: 336719
   cpn: 246569
   sgp: 148192
   ppr: 116049
   gpv: 101790
-  nederlandse_middenstands_partij: 95706
+  nmp: 95706
   psp: 90738
-  boeren_partij: 69656
+  boerenpartij: 69656
   algemeen_bejaarden_partij_nederland: 26878
   nederlands_appèl: 24376
   nieuwe_roomse_partij: 23047

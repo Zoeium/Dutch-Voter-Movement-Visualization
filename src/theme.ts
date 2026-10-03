@@ -10,7 +10,6 @@ export interface ThemeContextValue {
 
 export interface LanguageContextValue {
   lang: Language;
-  toggleLanguage: () => void;
   t: (key: TranslationKey) => string;
 }
 
@@ -21,7 +20,6 @@ export const ThemeContext = createContext<ThemeContextValue>({
 
 export const LanguageContext = createContext<LanguageContextValue>({
   lang: 'en',
-  toggleLanguage: () => {},
   t: () => '',
 });
 
@@ -98,6 +96,8 @@ export const translations = {
 
     // Footer
     sources: 'Sources',
+    sourcesShow: 'Show all sources',
+    sourcesHide: 'Hide sources',
     totals: 'Totals',
     movements: 'Movements',
 
@@ -107,24 +107,19 @@ export const translations = {
     // Theme/Language toggles
     lightMode: 'Light',
     darkMode: 'Dark',
-    english: 'EN',
-    dutch: 'NL',
+    language: 'Language',
 
     // Compare Elections
     compareTitle: 'Compare elections',
     compareDescription:
       'Select two elections to see how party votes and seats changed between them. Gains and losses are shown with percentage-point differences.',
-    compareElectionA: 'Election A',
-    compareElectionB: 'Election B',
+    compareElectionYear: 'Election year',
     compareParty: 'Party',
-    compareVotesA: 'Votes A',
-    compareVotesB: 'Votes B',
+    compareVotes: 'Votes',
     compareVoteChange: 'Vote change',
-    compareSeatsA: 'Seats A',
-    compareSeatsB: 'Seats B',
+    compareSeats: 'Seats',
     compareSeatChange: 'Seat change',
-    compareVoteShareA: 'Share A',
-    compareVoteShareB: 'Share B',
+    compareVoteShare: 'Share',
     compareShareChange: 'pp change',
     compareTotalVotes: 'Total valid votes',
     compareTotalSeats: 'Total seats',
@@ -137,17 +132,15 @@ export const translations = {
     // Coalition Explorer
     coalitionExplTitle: 'Coalition explorer',
     coalitionExplDescription:
-      'Select an election and pick parties to see if they reach a majority (76 seats). Compare potential coalitions by total seats and surplus.',
+      'Select an election and pick parties to see if they reach a majority. The majority threshold adjusts to the number of seats in each election.',
     coalitionSelectElection: 'Election',
     coalitionSelectParties: 'Parties',
     coalitionTotalSeats: 'Total seats',
-    coalitionMajority: 'Majority (76)',
     coalitionReached: 'Majority reached!',
     coalitionNotReached: 'Not enough seats',
     coalitionSurplus: 'Surplus',
     coalitionShortfall: 'Shortfall',
     coalitionSeatsLabel: 'seats',
-    coalitionRemaining: 'Remaining parties',
     coalitionActual: 'Actual coalition',
     coalitionNoSeatData: 'No seat data available for this election year.',
     coalitionNoElection: 'Select an election to explore coalitions.',
@@ -220,6 +213,8 @@ export const translations = {
     coalitionOpposition: 'Coalitie boven \u00b7 oppositie onder',
 
     sources: 'Bronnen',
+    sourcesShow: 'Alle bronnen tonen',
+    sourcesHide: 'Bronnen verbergen',
     totals: 'Totalen',
     movements: 'Migratie',
 
@@ -227,23 +222,18 @@ export const translations = {
 
     lightMode: 'Licht',
     darkMode: 'Donker',
-    english: 'EN',
-    dutch: 'NL',
+    language: 'Taal',
 
     compareTitle: 'Verkiezingen vergelijken',
     compareDescription:
       'Selecteer twee verkiezingen om te zien hoe partijstemmen en zetels veranderden. Winst en verlies worden getoond met verschil in procentpunten.',
-    compareElectionA: 'Verkiezing A',
-    compareElectionB: 'Verkiezing B',
+    compareElectionYear: 'Verkiezingsjaar',
     compareParty: 'Partij',
-    compareVotesA: 'Stemmen A',
-    compareVotesB: 'Stemmen B',
+    compareVotes: 'Stemmen',
     compareVoteChange: 'Stemverschil',
-    compareSeatsA: 'Zetels A',
-    compareSeatsB: 'Zetels B',
+    compareSeats: 'Zetels',
     compareSeatChange: 'Zetelverschil',
-    compareVoteShareA: 'Aandeel A',
-    compareVoteShareB: 'Aandeel B',
+    compareVoteShare: 'Aandeel',
     compareShareChange: 'pp verschil',
     compareTotalVotes: 'Totaal geldige stemmen',
     compareTotalSeats: 'Totaal zetels',
@@ -255,17 +245,15 @@ export const translations = {
 
     coalitionExplTitle: 'Coalitie verkenner',
     coalitionExplDescription:
-      'Selecteer een verkiezing en kies partijen om te zien of zij een meerderheid (76 zetels) halen. Vergelijk mogelijke coalities op totaal aantal zetels en meerderheid.',
+      'Selecteer een verkiezing en kies partijen om te zien of zij een meerderheid halen. De meerderheidsgrens wordt aangepast aan het aantal zetels bij elke verkiezing.',
     coalitionSelectElection: 'Verkiezing',
     coalitionSelectParties: 'Partijen',
     coalitionTotalSeats: 'Totaal zetels',
-    coalitionMajority: 'Meerderheid (76)',
     coalitionReached: 'Meerderheid bereikt!',
     coalitionNotReached: 'Niet genoeg zetels',
     coalitionSurplus: 'Meerderheid',
     coalitionShortfall: 'Tekort',
     coalitionSeatsLabel: 'zetels',
-    coalitionRemaining: 'Overige partijen',
     coalitionActual: 'Werkelijke coalitie',
     coalitionNoSeatData: 'Geen zeteldata beschikbaar voor dit verkiezingsjaar.',
     coalitionNoElection: 'Selecteer een verkiezing om coalities te verkennen.',
