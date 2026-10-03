@@ -211,6 +211,20 @@ function normalizeDataSource(source: unknown): {name: string; url: string} | nul
   };
 }
 
+// Cache so repeated lookups with the same party array reuse one index.
+let cachedParties: PartyInfo[] | null = null;
+let cachedIndex: PartyIndex | null = null;
+
+/** Return a party index, rebuilding it only when the party list actually changes. */
+function getPartyIndex(parties: PartyInfo[]): PartyIndex {
+  if (cachedParties === parties && cachedIndex) {
+    return cachedIndex;
+  }
+  cachedParties = parties;
+  cachedIndex = createPartyIndex(parties);
+  return cachedIndex;
+}
+
 export type DataSourceEntry = {
   year: string;
   fromYear?: string;
@@ -223,7 +237,8 @@ export type DataSourceEntry = {
 /** Load and deduplicate citations for election totals and movements. */
 export function loadDataSources(): DataSourceEntry[] {
   const sources: DataSourceEntry[] = [];
-  const electionYears = getSortedElectionYears(totalsModules, movementModules);
+  const electionYears = getVisibleElectionYears();
+  const visibleYearSet = new Set(electionYears);
   const previousYearByYear = new Map<string, string | undefined>();
 
   electionYears.forEach((year, index) => {
@@ -257,7 +272,7 @@ export function loadDataSources(): DataSourceEntry[] {
 
   for (const [path, raw] of Object.entries(movementSourceModules)) {
     const year = extractYear(path);
-    if (!year) continue;
+    if (!year || !visibleYearSet.has(year)) continue;
 
     const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
     const source = normalizeDataSource(doc?.source);
@@ -329,7 +344,7 @@ export function resolvePartyName(
   name: string,
   parties: PartyInfo[]
 ): string {
-  const index = createPartyIndex(parties);
+  const index = getPartyIndex(parties);
   return index.resolveMap.get(name) ?? name;
 }
 
@@ -337,7 +352,7 @@ export function resolvePartyName(
  * Get color for a party name. Resolves through previous_names for color matching.
  */
 export function getPartyColor(name: string, parties: PartyInfo[]): string {
-  const index = createPartyIndex(parties);
+  const index = getPartyIndex(parties);
 
   const exact = index.byKey.get(name);
   if (exact) return exact.color || DEFAULT_PARTY_COLOR;
@@ -357,7 +372,7 @@ export function getPartyColor(name: string, parties: PartyInfo[]): string {
  * NOT the resolved/canonical name.
  */
 export function getPartyDisplayName(name: string, parties: PartyInfo[]): string {
-  const party = createPartyIndex(parties).byKey.get(name);
+  const party = getPartyIndex(parties).byKey.get(name);
   if (party) return party.display_name;
 
   return name;
@@ -367,7 +382,8 @@ export function getPartyDisplayName(name: string, parties: PartyInfo[]): string 
  * Check if two party names refer to the same party (for selectedParty filtering).
  */
 function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolean {
-  return resolvePartyName(nameA, parties) === resolvePartyName(nameB, parties);
+  const index = getPartyIndex(parties);
+  return (index.resolveMap.get(nameA) ?? nameA) === (index.resolveMap.get(nameB) ?? nameB);
 }
 
 /** Decide whether a flow matches the optional selected-party filter. */
@@ -648,19 +664,4 @@ export function loadCoalitions(): CoalitionData[] {
     support: entry.support,
     seats: entry.seats,
   }));
-}
-
-/**
- * Coalition seat snapshots are labeled by cabinet inauguration year, which can
- * be after the election year that determined those seats.
- */
-export function getElectionSeats(
-  electionYear: string,
-  coalitions: CoalitionData[]
-): Record<string, number> | null {
-  const matching = coalitions.find((coalition) => coalition.year === electionYear)
-    ?? coalitions
-      .filter((coalition) => coalition.year > electionYear)
-      .sort((a, b) => a.year.localeCompare(b.year))[0];
-  return matching?.seats ?? null;
 }
