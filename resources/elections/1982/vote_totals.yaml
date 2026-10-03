@@ -2,10 +2,10 @@ date: 1982-09-08
 source:
   name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1982'
   url: https://data.overheid.nl/dataset/3571-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1982
-electorate: 10.216.627
-not_voted: 1.942.996
-total_votes: 8.273.631
-non_valid_votes_and_blanco_votes: 37.115
+electorate: 10216627
+not_voted: 1942996
+total_votes: 8273631
+non_valid_votes_and_blanco_votes: 37115
 valid_votes: 8236516
 parties_votes:
   pvda: 2503517

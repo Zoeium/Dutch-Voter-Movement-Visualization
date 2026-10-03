@@ -1,5 +1,5 @@
-import {useDeferredValue, useMemo, useState, useEffect, useCallback, useRef} from 'react';
-import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check} from 'lucide-react';
+import {useDeferredValue, useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef} from 'react';
+import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check, ChevronDown, ChevronUp} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
 import ParliamentDiagram from '@/components/ParliamentDiagram';
@@ -13,6 +13,7 @@ import {
   loadDataSources,
   loadCoalitions,
   buildMultiElectionFlows,
+  getElectionSeats,
   type DataSourceEntry,
 } from '@/data/loader';
 import {DualRangeSlider} from '@/components/shared';
@@ -69,29 +70,11 @@ function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): P
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
 
-function getFilteredDataSources(
-  activeTab: TabKey,
-  elections: ElectionYear[],
-  turnoutElections: ElectionYear[],
-  dataSources: DataSourceEntry[]
-): DataSourceEntry[] {
-  if (activeTab === 'alluvial') {
-    const yearSet = new Set(elections.map((election) => election.year));
-    return dataSources.filter((source) => yearSet.has(source.year));
-  }
-
-  if (activeTab === 'parliament' || activeTab === 'coalition') {
-    return [];
-  }
-
-  const yearSet = new Set(turnoutElections.map((election) => election.year));
-  return dataSources.filter((source) => source.kind === 'totals' && yearSet.has(source.year));
-}
-
 /** Parse initial state from URL search params. */
-function getInitialStateFromUrl(allElections: ElectionYear[]) {
+function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElections: ElectionYear[]) {
   const params = new URLSearchParams(window.location.search);
   const electionYears = allElections.map((e) => e.year);
+  const comparisonYears = comparisonElections.map((e) => e.year);
 
   const tab = (params.get('tab') as TabKey) || 'alluvial';
   const validTabs: TabKey[] = ['alluvial', 'turnout', 'parliament', 'compare', 'coalition'];
@@ -100,10 +83,23 @@ function getInitialStateFromUrl(allElections: ElectionYear[]) {
   const theme = (params.get('theme') as Theme) || 'dark';
   const lang = (params.get('lang') as Language) || 'en';
 
-  const yearStart = params.get('ys') !== null ? Math.max(0, Math.min(electionYears.length - 1, Number(params.get('ys')))) : 0;
-  const yearEnd = params.get('ye') !== null ? Math.max(yearStart, Math.min(electionYears.length - 1, Number(params.get('ye')))) : Math.max(0, electionYears.length - 1);
+  const readIndex = (key: string, fallback: number, max: number): number => {
+    if (!params.has(key)) return fallback;
+    const value = Number(params.get(key));
+    return Number.isInteger(value) ? Math.max(0, Math.min(max, value)) : fallback;
+  };
+  const maxElectionIndex = Math.max(0, electionYears.length - 1);
+  const maxComparisonIndex = Math.max(0, comparisonYears.length - 1);
+  const yearStart = readIndex('ys', 0, maxElectionIndex);
+  const yearEnd = Math.max(yearStart, readIndex('ye', maxElectionIndex, maxElectionIndex));
+  const turnoutYearStart = readIndex('tys', 0, maxComparisonIndex);
+  const turnoutYearEnd = Math.max(turnoutYearStart, readIndex('tye', maxComparisonIndex, maxComparisonIndex));
 
   const sort = (params.get('sort') as SortMode) || 'votes';
+  const defaultCompareYearA = comparisonYears[Math.max(0, comparisonYears.length - 2)] ?? '';
+  const defaultCompareYearB = comparisonYears[comparisonYears.length - 1] ?? '';
+  const requestedCompareYearA = params.get('cmpA');
+  const requestedCompareYearB = params.get('cmpB');
 
   return {
     tab: validTabs.includes(tab) ? tab : 'alluvial' as TabKey,
@@ -112,36 +108,46 @@ function getInitialStateFromUrl(allElections: ElectionYear[]) {
     lang: (lang === 'en' || lang === 'nl') ? lang : 'en' as Language,
     yearStart,
     yearEnd,
+    turnoutYearStart,
+    turnoutYearEnd,
     sortMode: (sort === 'alphabetical' || sort === 'votes') ? sort : 'votes' as SortMode,
+    compareYearA: requestedCompareYearA && comparisonYears.includes(requestedCompareYearA)
+      ? requestedCompareYearA
+      : defaultCompareYearA,
+    compareYearB: requestedCompareYearB && comparisonYears.includes(requestedCompareYearB)
+      ? requestedCompareYearB
+      : defaultCompareYearB,
   };
 }
 
 export default function App() {
   const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(loadAppData, []);
 
-  const initialState = useMemo(() => getInitialStateFromUrl(allElections), [allElections]);
+  const initialState = useMemo(
+    () => getInitialStateFromUrl(allElections, allElectionsForTurnout),
+    [allElections, allElectionsForTurnout]
+  );
 
   const [theme, setTheme] = useState<Theme>(initialState.theme);
   const [lang, setLang] = useState<Language>(initialState.lang);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
   }, [theme]);
 
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  }, []);
-
-  const toggleLanguage = useCallback(() => {
-    setLang((prev) => (prev === 'en' ? 'nl' : 'en'));
   }, []);
 
   const t = useCallback((key: TranslationKey) => translations[lang][key], [lang]);
 
   const electionYears = useMemo(() => allElections.map((e) => e.year), [allElections]);
-  const defaultYearEnd = Math.max(0, electionYears.length - 1);
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialState.tab);
   const [selectedParty, setSelectedParty] = useState<string | null>(initialState.party);
@@ -150,17 +156,12 @@ export default function App() {
   const [yearEnd, setYearEnd] = useState<number>(initialState.yearEnd);
 
   // Compare tab state
-  const [compareYearA, setCompareYearA] = useState<string>(
-    electionYears[Math.max(0, electionYears.length - 2)] ?? ''
-  );
-  const [compareYearB, setCompareYearB] = useState<string>(
-    electionYears[electionYears.length - 1] ?? ''
-  );
+  const [compareYearA, setCompareYearA] = useState<string>(initialState.compareYearA);
+  const [compareYearB, setCompareYearB] = useState<string>(initialState.compareYearB);
 
   const turnoutYears = useMemo(() => allElectionsForTurnout.map((e) => e.year), [allElectionsForTurnout]);
-  const defaultTurnoutYearEnd = Math.max(0, turnoutYears.length - 1);
-  const [turnoutYearStart, setTurnoutYearStart] = useState<number>(0);
-  const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(defaultTurnoutYearEnd);
+  const [turnoutYearStart, setTurnoutYearStart] = useState<number>(initialState.turnoutYearStart);
+  const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(initialState.turnoutYearEnd);
 
   const deferredYearStart = useDeferredValue(yearStart);
   const deferredYearEnd = useDeferredValue(yearEnd);
@@ -187,54 +188,49 @@ export default function App() {
 
   const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
 
-  const filteredDataSources = useMemo(
-    () => getFilteredDataSources(activeTab, elections, turnoutElections, dataSources),
-    [activeTab, elections, turnoutElections, dataSources]
-  );
-
   const getSourceLabel = (source: DataSourceEntry) =>
     source.kind === 'totals'
       ? `${t('totals')} (${source.year})`
       : `${t('movements')} (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
 
-  // URL sync
-  useEffect(() => {
-    updateUrl({
+  const urlState = useMemo(() => {
+    const state: Record<string, string | number | boolean | null> = {
       tab: activeTab,
-      ys: yearStart,
-      ye: yearEnd,
-      party: selectedParty,
-      sort: sortMode,
       theme,
       lang,
-    });
-  }, [activeTab, yearStart, yearEnd, selectedParty, sortMode, theme, lang]);
+    };
+    if (activeTab === 'alluvial') {
+      state.ys = yearStart;
+      state.ye = yearEnd;
+      state.party = selectedParty;
+      state.sort = sortMode;
+    } else if (activeTab === 'turnout') {
+      state.tys = turnoutYearStart;
+      state.tye = turnoutYearEnd;
+    } else if (activeTab === 'compare') {
+      state.cmpA = compareYearA;
+      state.cmpB = compareYearB;
+    }
+    return state;
+  }, [activeTab, yearStart, yearEnd, selectedParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
+
+  useEffect(() => {
+    updateUrl(urlState);
+  }, [urlState]);
 
   // Share & export state
   const [shareFeedback, setShareFeedback] = useState(false);
   const [exportFeedback, setExportFeedback] = useState(false);
+  const [areSourcesOpen, setAreSourcesOpen] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const handleShare = useCallback(async () => {
-    const state: Record<string, string | number | boolean | null> = {
-      tab: activeTab,
-      ys: yearStart,
-      ye: yearEnd,
-      party: selectedParty,
-      sort: sortMode,
-      theme,
-      lang,
-    };
-    if (activeTab === 'compare') {
-      state.cmpA = compareYearA;
-      state.cmpB = compareYearB;
-    }
-    const success = await copyShareUrl(state);
+    const success = await copyShareUrl(urlState);
     if (success) {
       setShareFeedback(true);
       setTimeout(() => setShareFeedback(false), 2000);
     }
-  }, [activeTab, yearStart, yearEnd, selectedParty, sortMode, theme, lang, compareYearA, compareYearB]);
+  }, [urlState]);
 
   const handleExportChart = useCallback(() => {
     const svg = chartContainerRef.current?.querySelector('svg');
@@ -246,80 +242,37 @@ export default function App() {
   }, [activeTab]);
 
   const handleExportData = useCallback(() => {
-    if (activeTab === 'alluvial') {
-      const headers = ['Party', ...electionLabels.flatMap((y) => [`${y} value`, `${y} flows in`, `${y} flows out`])];
-      const rows: (string | number)[][] = [];
-      const partyIds = new Set<string>();
-      for (const node of nodes) {
-        const baseId = node.id.includes(':') ? node.id.split(':').slice(1).join(':') : node.id;
-        partyIds.add(baseId);
-      }
-      for (const partyId of partyIds) {
-        const row: (string | number)[] = [partyId];
-        for (let col = 0; col < elections.length; col++) {
-          const node = nodes.find((n) => n.id === `${col}:${partyId}`);
-          const incoming = links.filter((l) => l.target === `${col}:${partyId}`).reduce((s, l) => s + l.value, 0);
-          const outgoing = links.filter((l) => l.source === `${col}:${partyId}`).reduce((s, l) => s + l.value, 0);
-          row.push(node?.value ?? 0, incoming, outgoing);
-        }
-        rows.push(row);
-      }
-      exportCsv(headers, rows, `voterflow-alluvial-${Date.now()}.csv`);
-    } else if (activeTab === 'compare') {
-      const headers = ['Party', `Votes ${compareYearA}`, `Votes ${compareYearB}`, 'Vote change', `Share ${compareYearA}`, `Share ${compareYearB}`, 'Share change pp', `Seats ${compareYearA}`, `Seats ${compareYearB}`, 'Seat change'];
-      const rows: (string | number)[][] = [];
-      const elA = elections.find((e) => e.year === compareYearA);
-      const elB = elections.find((e) => e.year === compareYearB);
-      if (elA && elB && compareYearA !== compareYearB) {
-        const votesA = elA.voteTotals.parties_votes ?? {};
-        const votesB = elB.voteTotals.parties_votes ?? {};
-        const totalA = elA.voteTotals.valid_votes || 1;
-        const totalB = elB.voteTotals.valid_votes || 1;
-        const seatsA = coalitions.find((c) => c.year === compareYearA)?.seats ?? {};
-        const seatsB = coalitions.find((c) => c.year === compareYearB)?.seats ?? {};
-        const allIds = new Set([...Object.keys(votesA), ...Object.keys(votesB)]);
-        for (const pid of allIds) {
-          const vA = votesA[pid] ?? 0;
-          const vB = votesB[pid] ?? 0;
-          if (vA === 0 && vB === 0) continue;
-          rows.push([
-            pid, vA, vB, vB - vA,
-            ((vA / totalA) * 100).toFixed(1),
-            ((vB / totalB) * 100).toFixed(1),
-            (((vB / totalB) * 100) - ((vA / totalA) * 100)).toFixed(1),
-            seatsA[pid] ?? 0,
-            seatsB[pid] ?? 0,
-            (seatsB[pid] ?? 0) - (seatsA[pid] ?? 0),
-          ]);
-        }
-      }
-      exportCsv(headers, rows, `voterflow-compare-${Date.now()}.csv`);
-    } else if (activeTab === 'turnout') {
-      const headers = ['Year', 'Electorate', 'Valid votes', 'Blanco', 'Invalid', 'Not voted', 'Turnout %'];
-      const rows = turnoutElections.map((e) => {
-        const vt = e.voteTotals;
-        return [
-          e.year, vt.electorate, vt.valid_votes, vt.blanco_votes,
-          vt.non_valid_votes, vt.not_voted,
-          vt.electorate > 0 ? ((vt.total_votes / vt.electorate) * 100).toFixed(1) : '0',
-        ];
-      });
-      exportCsv(headers, rows, `voterflow-turnout-${Date.now()}.csv`);
-    } else if (activeTab === 'coalition') {
-      const headers = ['Party', 'Seats', 'In selected coalition'];
-      const latestYear = coalitions.length > 0 ? coalitions[coalitions.length - 1].year : '';
-      const coalition = coalitions.find((c) => c.year === latestYear);
-      if (coalition) {
-        const rows = Object.entries(coalition.seats)
-          .filter(([, s]) => s > 0)
-          .sort((a, b) => b[1] - a[1])
-          .map(([pid, seats]) => [pid, seats, coalition.coalition.includes(pid) ? 'yes' : 'no']);
-        exportCsv(headers, rows, `voterflow-coalition-${Date.now()}.csv`);
+    const headers = ['Party', `Votes ${compareYearA}`, `Votes ${compareYearB}`, 'Vote change', `Share ${compareYearA}`, `Share ${compareYearB}`, 'Share change pp', `Seats ${compareYearA}`, `Seats ${compareYearB}`, 'Seat change'];
+    const rows: (string | number)[][] = [];
+    const elA = allElectionsForTurnout.find((e) => e.year === compareYearA);
+    const elB = allElectionsForTurnout.find((e) => e.year === compareYearB);
+    if (elA && elB && compareYearA !== compareYearB) {
+      const votesA = elA.voteTotals.parties_votes ?? {};
+      const votesB = elB.voteTotals.parties_votes ?? {};
+      const totalA = elA.voteTotals.valid_votes || 1;
+      const totalB = elB.voteTotals.valid_votes || 1;
+      const seatsA = getElectionSeats(compareYearA, coalitions) ?? {};
+      const seatsB = getElectionSeats(compareYearB, coalitions) ?? {};
+      const allIds = new Set([...Object.keys(votesA), ...Object.keys(votesB)]);
+      for (const pid of allIds) {
+        const vA = votesA[pid] ?? 0;
+        const vB = votesB[pid] ?? 0;
+        if (vA === 0 && vB === 0) continue;
+        rows.push([
+          pid, vA, vB, vB - vA,
+          ((vA / totalA) * 100).toFixed(1),
+          ((vB / totalB) * 100).toFixed(1),
+          (((vB / totalB) * 100) - ((vA / totalA) * 100)).toFixed(1),
+          seatsA[pid] ?? 0,
+          seatsB[pid] ?? 0,
+          (seatsB[pid] ?? 0) - (seatsA[pid] ?? 0),
+        ]);
       }
     }
+    exportCsv(headers, rows, `voterflow-compare-${Date.now()}.csv`);
     setExportFeedback(true);
     setTimeout(() => setExportFeedback(false), 2000);
-  }, [activeTab, elections, electionLabels, nodes, links, turnoutElections, coalitions, compareYearA, compareYearB]);
+  }, [allElectionsForTurnout, coalitions, compareYearA, compareYearB]);
 
   const tabs: {key: TabKey; label: string}[] = [
     {key: 'alluvial', label: t('tabAlluvial')},
@@ -329,11 +282,9 @@ export default function App() {
     {key: 'coalition', label: t('tabCoalition')},
   ];
 
-  const canExportChart = activeTab === 'alluvial' || activeTab === 'turnout' || activeTab === 'parliament';
-
   return (
     <ThemeContext.Provider value={{theme, toggleTheme}}>
-      <LanguageContext.Provider value={{lang, toggleLanguage, t}}>
+      <LanguageContext.Provider value={{lang, t}}>
     <div className="min-h-screen bg-app-bg text-app-text">
       {/* Header */}
       <header className="border-b border-app-border bg-app-header backdrop-blur-sm sticky top-0 z-10">
@@ -365,25 +316,34 @@ export default function App() {
             <div className="relative">
               <button
                 type="button"
-                onClick={handleExportData}
+                onClick={activeTab === 'compare' ? handleExportData : handleExportChart}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover"
-                aria-label={t('export')}
+                aria-label={t(activeTab === 'compare' ? 'exportData' : 'exportChart')}
               >
                 {exportFeedback ? <Check className="w-4 h-4 text-emerald-500"/> : <Download className="w-4 h-4"/>}
-                {exportFeedback ? t('exportDone') : t('export')}
+                {exportFeedback
+                  ? t('exportDone')
+                  : t(activeTab === 'compare' ? 'exportData' : 'exportChart')}
               </button>
             </div>
 
-            {/* Language toggle */}
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover"
-              aria-label="Toggle language"
-            >
+            {/* Language selector */}
+            <label className="flex items-center gap-1.5 px-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text border border-app-border">
               <Languages className="w-4 h-4"/>
-              {lang === 'en' ? 'NL' : 'EN'}
-            </button>
+              <span className="sr-only">{t('language')}</span>
+              <span className="relative">
+                <select
+                  value={lang}
+                  onChange={(event) => setLang(event.target.value as Language)}
+                  className="app-select app-select-compact"
+                  aria-label={t('language')}
+                >
+                  <option value="en">English</option>
+                  <option value="nl">Nederlands</option>
+                </select>
+                <ChevronDown className="app-select-chevron w-3.5 h-3.5"/>
+              </span>
+            </label>
 
             {/* Theme toggle */}
             <button
@@ -498,17 +458,6 @@ export default function App() {
               )}
             </div>
 
-            {canExportChart && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleExportChart}
-                  className="text-xs font-medium text-app-link hover:text-app-link-hover underline decoration-dotted underline-offset-4"
-                >
-                  {t('exportChart')}
-                </button>
-              </div>
-            )}
           </>
         )}
 
@@ -543,11 +492,6 @@ export default function App() {
               <TurnoutDiagram elections={turnoutElections}/>
             </div>
 
-            <div className="mt-4 flex justify-end">
-              <button type="button" onClick={handleExportChart} className="text-xs font-medium text-app-link hover:text-app-link-hover underline decoration-dotted underline-offset-4">
-                {t('exportChart')}
-              </button>
-            </div>
           </>
         )}
 
@@ -563,11 +507,6 @@ export default function App() {
               <ParliamentDiagram coalitions={coalitions} parties={parties}/>
             </div>
 
-            <div className="mt-4 flex justify-end">
-              <button type="button" onClick={handleExportChart} className="text-xs font-medium text-app-link hover:text-app-link-hover underline decoration-dotted underline-offset-4">
-                {t('exportChart')}
-              </button>
-            </div>
           </>
         )}
 
@@ -581,7 +520,7 @@ export default function App() {
 
             <div className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
               <ElectionCompare
-                elections={allElections}
+                elections={allElectionsForTurnout}
                 coalitions={coalitions}
                 parties={parties}
                 yearA={compareYearA}
@@ -601,7 +540,7 @@ export default function App() {
               <p className="text-app-muted max-w-2xl">{t('coalitionExplDescription')}</p>
             </div>
 
-            <div className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
+            <div ref={chartContainerRef} className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
               <CoalitionExplorer coalitions={coalitions} parties={parties}/>
             </div>
           </>
@@ -610,25 +549,37 @@ export default function App() {
 
       <footer className="border-t border-app-border mt-12 py-8">
         <div className="max-w-[1600px] mx-auto px-6">
-          <div className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted">
+          <button
+            type="button"
+            onClick={() => setAreSourcesOpen((open) => !open)}
+            aria-expanded={areSourcesOpen}
+            aria-controls="all-data-sources"
+            className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted hover:text-app-text"
+          >
             {t('sources')}
-          </div>
-          <ul className="space-y-3 text-sm text-app-subtle">
-            {filteredDataSources.map((source) => (
-              <li key={`${source.year}-${source.kind}-${source.name}`}
-                  className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                <span className="text-app-text font-medium min-w-[170px]">{getSourceLabel(source)}</span>
-                {source.url ? (
-                  <a href={source.url} target="_blank" rel="noreferrer"
-                     className="text-app-link underline decoration-dotted underline-offset-4 hover:text-app-link-hover">
-                    {source.name}
-                  </a>
-                ) : (
-                  <span>{source.name}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+            <span className="normal-case tracking-normal">
+              — {areSourcesOpen ? t('sourcesHide') : t('sourcesShow')}
+            </span>
+            {areSourcesOpen ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+          </button>
+          {areSourcesOpen && (
+            <ul id="all-data-sources" className="mt-4 space-y-3 text-sm text-app-subtle">
+              {dataSources.map((source) => (
+                <li key={`${source.year}-${source.kind}-${source.name}`}
+                    className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                  <span className="text-app-text font-medium min-w-[170px]">{getSourceLabel(source)}</span>
+                  {source.url ? (
+                    <a href={source.url} target="_blank" rel="noreferrer"
+                       className="text-app-link underline decoration-dotted underline-offset-4 hover:text-app-link-hover">
+                      {source.name}
+                    </a>
+                  ) : (
+                    <span>{source.name}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </footer>
     </div>

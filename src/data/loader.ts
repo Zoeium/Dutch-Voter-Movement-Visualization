@@ -223,8 +223,7 @@ export type DataSourceEntry = {
 /** Load and deduplicate citations for election totals and movements. */
 export function loadDataSources(): DataSourceEntry[] {
   const sources: DataSourceEntry[] = [];
-  const electionYears = getVisibleElectionYears();
-  const visibleYearSet = new Set(electionYears);
+  const electionYears = getSortedElectionYears(totalsModules, movementModules);
   const previousYearByYear = new Map<string, string | undefined>();
 
   electionYears.forEach((year, index) => {
@@ -258,7 +257,7 @@ export function loadDataSources(): DataSourceEntry[] {
 
   for (const [path, raw] of Object.entries(movementSourceModules)) {
     const year = extractYear(path);
-    if (!year || !visibleYearSet.has(year)) continue;
+    if (!year) continue;
 
     const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
     const source = normalizeDataSource(doc?.source);
@@ -649,4 +648,19 @@ export function loadCoalitions(): CoalitionData[] {
     support: entry.support,
     seats: entry.seats,
   }));
+}
+
+/**
+ * Coalition seat snapshots are labeled by cabinet inauguration year, which can
+ * be after the election year that determined those seats.
+ */
+export function getElectionSeats(
+  electionYear: string,
+  coalitions: CoalitionData[]
+): Record<string, number> | null {
+  const matching = coalitions.find((coalition) => coalition.year === electionYear)
+    ?? coalitions
+      .filter((coalition) => coalition.year > electionYear)
+      .sort((a, b) => a.year.localeCompare(b.year))[0];
+  return matching?.seats ?? null;
 }

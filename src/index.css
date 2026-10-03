@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
   --c-bg: #f8fafc;
   --c-bg-card: #ffffff;
   --c-bg-header: rgba(255, 255, 255, 0.85);
@@ -30,6 +31,7 @@
 }
 
 :root.dark {
+  color-scheme: dark;
   --c-bg: #030712;
   --c-bg-card: #111827;
   --c-bg-header: rgba(17, 24, 39, 0.5);
@@ -54,6 +56,63 @@
   --c-scrollbar-thumb: #059669;
   --c-link: #34d399;
   --c-link-hover: #6ee7b7;
+}
+
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+}
+
+.app-select {
+  appearance: none;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 0.5rem;
+  background-color: var(--c-bg-card);
+  color: var(--c-text);
+  padding: 0.55rem 2.25rem 0.55rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.app-select:hover {
+  border-color: var(--c-border-strong);
+  background-color: var(--c-btn-inactive);
+}
+
+.app-select:focus-visible {
+  outline: 2px solid var(--c-link);
+  outline-offset: 2px;
+  border-color: var(--c-link);
+}
+
+.app-select option {
+  background-color: var(--c-bg-card);
+  color: var(--c-text);
+}
+
+.app-select-compact {
+  border-color: transparent;
+  background-color: transparent;
+  padding: 0.5rem 1.8rem 0.5rem 0.5rem;
+  box-shadow: none;
+}
+
+.app-select-compact:hover {
+  background-color: transparent;
+}
+
+.app-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 0.7rem;
+  color: var(--c-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .year-range-thumb {

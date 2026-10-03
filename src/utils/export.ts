@@ -44,7 +44,44 @@ export async function copyShareUrl(state: Record<string, string | number | boole
 /** Download an SVG element as a .svg file. */
 export function exportSvg(svgElement: SVGSVGElement, filename: string): void {
   const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(svgElement);
+  const exportElement = svgElement.cloneNode(true) as SVGSVGElement;
+  const rootStyles = getComputedStyle(document.documentElement);
+  for (let index = 0; index < rootStyles.length; index++) {
+    const property = rootStyles.item(index);
+    if (property.startsWith('--c-')) {
+      exportElement.style.setProperty(property, rootStyles.getPropertyValue(property));
+    }
+  }
+  const viewBox = exportElement.viewBox.baseVal;
+  if (viewBox.width > 0 && viewBox.height > 0) {
+    exportElement.setAttribute('width', `${viewBox.width}px`);
+    exportElement.setAttribute('height', `${viewBox.height}px`);
+  }
+  const visualProperties = [
+    'fill',
+    'fill-opacity',
+    'stroke',
+    'stroke-width',
+    'stroke-opacity',
+    'opacity',
+    'font-family',
+    'font-size',
+    'font-weight',
+    'font-style',
+    'text-anchor',
+    'dominant-baseline',
+    'letter-spacing',
+  ];
+  const originalElements: SVGElement[] = [svgElement, ...svgElement.querySelectorAll<SVGElement>('*')];
+  const clonedElements: SVGElement[] = [exportElement, ...exportElement.querySelectorAll<SVGElement>('*')];
+  originalElements.forEach((element, index) => {
+    const styles = getComputedStyle(element);
+    for (const property of visualProperties) {
+      const value = styles.getPropertyValue(property);
+      if (value) clonedElements[index].style.setProperty(property, value);
+    }
+  });
+  const svgString = serializer.serializeToString(exportElement);
   const blob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
   downloadBlob(blob, filename);
 }

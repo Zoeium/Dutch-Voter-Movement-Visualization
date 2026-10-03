@@ -1,7 +1,7 @@
-import {useMemo} from 'react';
-import {ArrowUp, ArrowDown, Minus} from 'lucide-react';
+import {useMemo, useState} from 'react';
+import {ArrowUp, ArrowDown, ArrowDownUp, ChevronDown, Minus} from 'lucide-react';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
-import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
+import {getElectionSeats, getPartyColor, getPartyDisplayName} from '@/data/loader';
 import {useI18n} from '@/theme';
 
 interface ElectionCompareProps {
@@ -29,11 +29,7 @@ interface PartyRow {
   seatChange: number | null;
 }
 
-function getSeatsForYear(year: string, coalitions: CoalitionData[]): Record<string, number> | null {
-  const matching = coalitions.find((c) => c.year === year);
-  if (!matching) return null;
-  return matching.seats;
-}
+type SortKey = 'label' | 'votesA' | 'votesB' | 'voteChange' | 'shareA' | 'shareB' | 'shareChange' | 'seatsA' | 'seatsB' | 'seatChange';
 
 function formatSigned(n: number): string {
   const sign = n > 0 ? '+' : '';
@@ -45,7 +41,7 @@ function formatSignedPP(n: number): string {
   return `${sign}${n.toFixed(1)}pp`;
 }
 
-function ChangeIcon({value}: {value: number}) {
+function ChangeIcon({value}: Readonly<{ value: number }>) {
   if (value > 0) return <ArrowUp className="w-3.5 h-3.5 text-emerald-500"/>;
   if (value < 0) return <ArrowDown className="w-3.5 h-3.5 text-red-500"/>;
   return <Minus className="w-3.5 h-3.5 text-app-subtle"/>;
@@ -53,6 +49,8 @@ function ChangeIcon({value}: {value: number}) {
 
 export default function ElectionCompare({elections, coalitions, parties, yearA, yearB, onYearAChange, onYearBChange}: Readonly<ElectionCompareProps>) {
   const {t} = useI18n();
+  const [sortKey, setSortKey] = useState<SortKey>('voteChange');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const years = elections.map((e) => e.year);
 
   const rows: PartyRow[] = useMemo(() => {
@@ -65,8 +63,8 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
     const totalValidA = elA.voteTotals.valid_votes || 1;
     const totalValidB = elB.voteTotals.valid_votes || 1;
 
-    const seatsA = getSeatsForYear(yearA, coalitions);
-    const seatsB = getSeatsForYear(yearB, coalitions);
+    const seatsA = getElectionSeats(yearA, coalitions);
+    const seatsB = getElectionSeats(yearB, coalitions);
 
     const allPartyIds = new Set<string>([...Object.keys(votesA), ...Object.keys(votesB)]);
 
@@ -83,10 +81,8 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
       const shareA = (vA / totalValidA) * 100;
       const shareB = (vB / totalValidB) * 100;
 
-      const canonical = resolvePartyName(partyId, parties);
-
       rowsArr.push({
-        partyId: canonical,
+        partyId,
         label: getPartyDisplayName(partyId, parties),
         color: getPartyColor(partyId, parties),
         votesA: vA,
@@ -101,7 +97,6 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
       });
     }
 
-    rowsArr.sort((a, b) => Math.abs(b.voteChange) - Math.abs(a.voteChange));
     return rowsArr;
   }, [elections, coalitions, parties, yearA, yearB]);
 
@@ -112,24 +107,65 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
 
   const biggestGainers = useMemo(() => [...rows].sort((a, b) => b.shareChange - a.shareChange).slice(0, 3), [rows]);
   const biggestLosers = useMemo(() => [...rows].sort((a, b) => a.shareChange - b.shareChange).slice(0, 3), [rows]);
+  const sortedRows = useMemo(() => [...rows].sort((a, b) => {
+    const left = a[sortKey];
+    const right = b[sortKey];
+    if (left === null || right === null) {
+      if (left !== right) return left === null ? 1 : -1;
+    }
+    const comparison = typeof left === 'string' && typeof right === 'string'
+      ? left.localeCompare(right)
+      : Number(left) - Number(right);
+    const direction = sortDirection === 'asc' ? 1 : -1;
+    return comparison === 0
+      ? a.partyId.localeCompare(b.partyId) * direction
+      : comparison * direction;
+  }), [rows, sortKey, sortDirection]);
 
-  const selectClass = 'px-3 py-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text hover:bg-app-btn-hover border border-app-border transition-all cursor-pointer';
+  const requestSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((direction) => direction === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    setSortKey(key);
+    setSortDirection('desc');
+  };
+
+  const selectClass = 'app-select';
+  const headers: {key: SortKey; label: string; align: 'left' | 'right'}[] = [
+    {key: 'label', label: t('compareParty'), align: 'left'},
+    {key: 'votesA', label: `${t('compareVotes')} (${yearA})`, align: 'right'},
+    {key: 'votesB', label: `${t('compareVotes')} (${yearB})`, align: 'right'},
+    {key: 'voteChange', label: t('compareVoteChange'), align: 'right'},
+    {key: 'shareA', label: `${t('compareVoteShare')} (${yearA})`, align: 'right'},
+    {key: 'shareB', label: `${t('compareVoteShare')} (${yearB})`, align: 'right'},
+    {key: 'shareChange', label: t('compareShareChange'), align: 'right'},
+    {key: 'seatsA', label: `${t('compareSeats')} (${yearA})`, align: 'right'},
+    {key: 'seatsB', label: `${t('compareSeats')} (${yearB})`, align: 'right'},
+    {key: 'seatChange', label: t('compareSeatChange'), align: 'right'},
+  ];
 
   return (
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionA')}</label>
-          <select value={yearA} onChange={(e) => onYearAChange(e.target.value)} className={selectClass}>
-            {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
+          <span className="relative">
+            <select value={yearA} onChange={(e) => onYearAChange(e.target.value)} className={selectClass}>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <ChevronDown className="app-select-chevron w-4 h-4"/>
+          </span>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionB')}</label>
-          <select value={yearB} onChange={(e) => onYearBChange(e.target.value)} className={selectClass}>
-            {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
+          <span className="relative">
+            <select value={yearB} onChange={(e) => onYearBChange(e.target.value)} className={selectClass}>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <ChevronDown className="app-select-chevron w-4 h-4"/>
+          </span>
         </div>
       </div>
 
@@ -184,16 +220,24 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-app-border">
-                  <th className="text-left py-3 px-3 font-semibold text-app-heading">{t('compareParty')}</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareVotesA')} ({yearA})</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareVotesB')} ({yearB})</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareVoteChange')}</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareVoteShareA')}</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareVoteShareB')}</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareShareChange')}</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareSeatsA')}</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareSeatsB')}</th>
-                  <th className="text-right py-3 px-3 font-semibold text-app-heading">{t('compareSeatChange')}</th>
+                  {headers.map(({key, label, align}) => (
+                    <th
+                      key={key}
+                      className={`py-3 px-3 font-semibold text-app-heading ${align === 'left' ? 'text-left' : 'text-right'}`}
+                      aria-sort={sortKey === key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => requestSort(key)}
+                        className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}
+                      >
+                        {label}
+                        {sortKey === key
+                          ? sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5"/> : <ArrowDown className="w-3.5 h-3.5"/>
+                          : <ArrowDownUp className="w-3.5 h-3.5 opacity-40"/>}
+                      </button>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -209,7 +253,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                   <td className="text-right py-2 px-3">{rows.reduce((s, r) => s + (r.seatsB ?? 0), 0) || '—'}</td>
                   <td className="text-right py-2 px-3">—</td>
                 </tr>
-                {rows.map((row) => (
+                {sortedRows.map((row) => (
                   <tr key={row.partyId} className="border-b border-app-border hover:bg-app-btn transition-colors">
                     <td className="py-2 px-3">
                       <div className="flex items-center gap-2">
