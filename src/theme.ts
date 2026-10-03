@@ -34,8 +34,7 @@ export function useI18n(): LanguageContextValue {
 export const translations = {
   en: {
     // Header
-    appTitle: 'Voter Flow',
-    appSubtitle: 'Dutch election voter movement analysis',
+    appTitle: 'Election Results Statistics',
 
     // Tabs
     tabAlluvial: 'Voter Movements',
@@ -156,8 +155,7 @@ export const translations = {
   },
 
   nl: {
-    appTitle: 'Kiezersstroom',
-    appSubtitle: 'Analyse van kiezersmigratie bij Nederlandse verkiezingen',
+    appTitle: 'Verkiezingsuitslagen Statistieken',
 
     tabAlluvial: 'Kiezersmigratie',
     tabTurnout: 'Opkomstoverzicht',

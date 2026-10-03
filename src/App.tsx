@@ -296,7 +296,6 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight text-app-heading">{t('appTitle')}</h1>
-              <p className="text-xs text-app-muted">{t('appSubtitle')}</p>
             </div>
           </div>
 
