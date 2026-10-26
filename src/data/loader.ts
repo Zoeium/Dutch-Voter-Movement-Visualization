@@ -75,6 +75,18 @@ for (const [path, raw] of Object.entries(movementModules)) {
   movementFilesByYear.set(year, files);
 }
 
+// Totals are read by the election loaders, the citation list and the coalition
+// date lookup; parse each file once and share the result.
+const parsedTotalsByPath = new Map<string, VoteTotals | null>();
+
+/** Parse (once) the vote totals resource at `path`. */
+function getParsedTotals(path: string): VoteTotals | null {
+  if (!parsedTotalsByPath.has(path)) {
+    parsedTotalsByPath.set(path, yaml.load(totalsModules[path]) as VoteTotals | null);
+  }
+  return parsedTotalsByPath.get(path) ?? null;
+}
+
 /** Collect unique election years from module groups in chronological order. */
 function getSortedElectionYears(...moduleGroups: Record<string, string>[]): string[] {
   return Array.from(
@@ -159,7 +171,7 @@ function buildElections(years: string[]): ElectionYear[] {
       // would silently drop every flow - surface the broken year instead.
       console.warn(`[loader] Missing vote_totals.yaml for election year ${year}`);
     }
-    const totals = totalsPath ? (yaml.load(totalsModules[totalsPath]) as VoteTotals) : getDefaultTotals();
+    const totals = (totalsPath ? getParsedTotals(totalsPath) : null) ?? getDefaultTotals();
 
     const movements = (movementFilesByYear.get(year) ?? [])
       .map((raw) => yaml.load(raw) as VoterMovement | null | undefined)
@@ -287,12 +299,11 @@ export function loadDataSources(): DataSourceEntry[] {
   }
 
   // Load totals for all years (not just visible years)
-  for (const [path, raw] of Object.entries(totalsModules)) {
+  for (const path of Object.keys(totalsModules)) {
     const year = extractYear(path);
     if (!year) continue;
 
-    const doc = yaml.load(raw) as { source?: unknown } | null;
-    const source = normalizeDataSource(doc?.source);
+    const source = normalizeDataSource(getParsedTotals(path)?.source);
     if (!source) {
       console.warn(`[loader] Skipping totals source with no resolvable source block: ${path}`);
       continue;
@@ -619,10 +630,10 @@ export function buildMultiElectionFlows(
 
 /** Election dates (YYYY-MM-DD) in chronological order, read from the totals resources. */
 function getElectionDates(): {year: string; date: string}[] {
-  return Object.entries(totalsModules)
-    .map(([path, raw]) => {
-      const doc = yaml.load(raw) as { date?: unknown } | null;
-      return {year: extractYear(path), date: typeof doc?.date === 'string' ? doc.date : ''};
+  return Object.keys(totalsModules)
+    .map((path) => {
+      const date: unknown = getParsedTotals(path)?.date;
+      return {year: extractYear(path), date: typeof date === 'string' ? date : ''};
     })
     .filter((entry) => entry.year && entry.date)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -747,8 +758,10 @@ export function buildComparisonRows(
     const vB = votesB[partyId] ?? 0;
     if (vA === 0 && vB === 0) continue;
 
-    const sA = seatsA?.[partyId] ?? null;
-    const sB = seatsB?.[partyId] ?? null;
+    // Seat maps only list parties that won seats: missing means 0, unless the
+    // election has no seat data at all.
+    const sA = seatsA ? (seatsA[partyId] ?? 0) : null;
+    const sB = seatsB ? (seatsB[partyId] ?? 0) : null;
     const shareA = (vA / totalValidA) * 100;
     const shareB = (vB / totalValidB) * 100;
 

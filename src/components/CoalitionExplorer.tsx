@@ -3,6 +3,7 @@ import {Check, ChevronDown, X, Users} from 'lucide-react';
 import type {CoalitionData, PartyInfo} from '@/types';
 import {getCoalitionForElection, getPartyColor, getPartyDisplayName} from '@/data/loader';
 import {useI18n} from '@/theme';
+import {partyButtonClass} from '@/components/diagramUtils';
 
 interface CoalitionExplorerProps {
   coalitions: CoalitionData[];
@@ -175,9 +176,6 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
     setSelectedParties(set);
   };
 
-  const partyButtonClass = (selected: boolean): string =>
-    `${selected ? 'ring-2 ring-offset-2 ring-offset-app-card' : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
-
   const selectClass = 'app-select';
 
   if (yearsWithSeats.length === 0) {
@@ -237,7 +235,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
                 stroke={seat.selected ? seat.color : 'var(--c-border-strong)'}
                 strokeWidth="1"
               >
-              <title>{`${seat.label}${seat.selected ? ' (selected)' : ''}`}</title>
+              <title>{`${seat.label}${seat.selected ? ` (${t('coalitionSeatSelected')})` : ''}`}</title>
             </circle>
           ))}
           <text x="300" y="250" textAnchor="middle" fill="var(--c-text-heading)" fontSize="30" fontWeight="700">
@@ -315,7 +313,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
                 type="button"
                 key={p.partyId}
                 onClick={() => toggleParty(p.partyId)}
-                className={partyButtonClass(isSelected)}
+                className={partyButtonClass(isSelected, 'ring-offset-app-card')}
                 style={
                   isSelected
                     ? {
@@ -347,7 +345,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
               onClick={() => setSelectedParties(new Set())}
               className="text-xs font-medium text-app-muted hover:text-app-text transition-colors"
             >
-              Clear
+              {t('coalitionClear')}
             </button>
           </div>
           <div className="space-y-2">
