@@ -1,8 +1,9 @@
 name: Test site cleanup
 
-# Keeps the test site (published by the CI workflow at /test/) temporary: it is removed
-# when the branch it shows is deleted, and the daily cleanup removes it once nothing has
-# been deployed to it for TEST_SITE_DAYS days. GitHub runs these triggers from main only.
+# Keeps the test sites (published by the CI workflow at /test/<branch>/) temporary: a
+# branch's test site is removed when the branch is deleted, and the daily cleanup removes
+# test sites nothing was deployed to for TEST_SITE_DAYS days. GitHub runs these triggers
+# from main only.
 on:
   delete:
   schedule:
@@ -33,7 +34,7 @@ jobs:
         run: bash scripts/pages.sh remove-test "$BRANCH"
 
   prune:
-    name: Remove expired test site
+    name: Remove expired test sites
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:

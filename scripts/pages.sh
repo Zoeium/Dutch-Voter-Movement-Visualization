@@ -1,19 +1,25 @@
 #!/usr/bin/env bash
 # Manage the gh-pages branch that GitHub Pages serves:
-#   /        the main site: the latest release
-#   /test/   the test site: the most recently pushed branch, with .deployed-at (Unix time)
-#            and .deployed-branch files; removed after a period without deployments
+#   /                 the main site: the latest release
+#   /test/<branch>/   a test site per branch, with .deployed-at (Unix time) and
+#                     .deployed-branch files; removed after a period without deployments
 #
 # Usage (from a checkout of the repository, in CI):
-#   scripts/pages.sh release <build dir>          publish a release at the root, keeping the test site
-#   scripts/pages.sh test <branch> <build dir>    publish a branch as the test site
-#   scripts/pages.sh remove-test <branch>         remove the test site if it shows <branch>
-#   scripts/pages.sh prune <days>                 remove the test site if not deployed for <days> days
+#   scripts/pages.sh release <build dir>          publish a release at the root, keeping test sites
+#   scripts/pages.sh test <branch> <build dir>    publish or replace the test site of a branch
+#   scripts/pages.sh remove-test <branch>         remove the test site of a branch
+#   scripts/pages.sh prune <days>                 remove test sites not deployed for <days> days
+#   scripts/pages.sh slug <branch>                print the folder name used for a branch
 set -euo pipefail
 
 BRANCH=gh-pages
 SITE_DIR=.pages-site
 TEST_DIR=test
+
+slug() {
+  # Lowercase, every run of other characters becomes one dash: feature/Phone_UI -> feature-phone-ui
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//'
+}
 
 checkout_site() {
   git config user.name 'github-actions[bot]'
@@ -28,9 +34,12 @@ checkout_site() {
     git worktree add --detach "$SITE_DIR"
     (cd "$SITE_DIR" && git checkout --orphan "$BRANCH" && git rm -rf --quiet .)
   fi
-  # Earlier versions published one preview per branch; the test site replaces them.
+  # Earlier layouts: /preview/<branch>/, and a single shared site directly in /test/.
   rm -rf "$SITE_DIR/preview"
-  # Serve files as they are (no Jekyll), and keep search engines away from the test site.
+  if [ -f "$SITE_DIR/$TEST_DIR/.deployed-branch" ]; then
+    rm -rf "${SITE_DIR:?}/$TEST_DIR"
+  fi
+  # Serve files as they are (no Jekyll), and keep search engines away from test sites.
   touch "$SITE_DIR/.nojekyll"
   printf 'User-agent: *\nDisallow: /%s/\n' "$TEST_DIR" > "$SITE_DIR/robots.txt"
 }
@@ -59,37 +68,40 @@ case "${1:-}" in
     ;;
   test)
     branch=$2 build_dir=$3
+    target="$SITE_DIR/$TEST_DIR/$(slug "$branch")"
     checkout_site
-    rm -rf "${SITE_DIR:?}/$TEST_DIR"
-    mkdir -p "$SITE_DIR/$TEST_DIR"
-    cp -R "$build_dir"/. "$SITE_DIR/$TEST_DIR"/
-    date +%s > "$SITE_DIR/$TEST_DIR/.deployed-at"
-    printf '%s\n' "$branch" > "$SITE_DIR/$TEST_DIR/.deployed-branch"
+    rm -rf "$target"
+    mkdir -p "$target"
+    cp -R "$build_dir"/. "$target"/
+    date +%s > "$target/.deployed-at"
+    printf '%s\n' "$branch" > "$target/.deployed-branch"
     commit_and_push "Test site: $branch"
     ;;
   remove-test)
     branch=$2
     checkout_site
-    if [ "$(cat "$SITE_DIR/$TEST_DIR/.deployed-branch" 2>/dev/null || true)" = "$branch" ]; then
-      echo "The test site shows deleted branch $branch: removing it."
-      rm -rf "${SITE_DIR:?}/$TEST_DIR"
-    else
-      echo "The test site does not show $branch: keeping it."
-    fi
+    rm -rf "${SITE_DIR:?}/$TEST_DIR/$(slug "$branch")"
     commit_and_push "Remove test site of deleted branch $branch"
     ;;
   prune)
     days=$2
     checkout_site
-    deployed=$(cat "$SITE_DIR/$TEST_DIR/.deployed-at" 2>/dev/null || echo 0)
-    if [ -d "$SITE_DIR/$TEST_DIR" ] && [ $(( $(date +%s) - deployed )) -gt $(( days * 86400 )) ]; then
-      echo "The test site was not deployed for more than $days days: removing it."
-      rm -rf "${SITE_DIR:?}/$TEST_DIR"
-    fi
-    commit_and_push "Remove test site after $days days without deployments"
+    now=$(date +%s)
+    for dir in "$SITE_DIR/$TEST_DIR"/*/; do
+      [ -d "$dir" ] || continue
+      deployed=$(cat "$dir/.deployed-at" 2>/dev/null || echo 0)
+      if [ $(( now - deployed )) -gt $(( days * 86400 )) ]; then
+        echo "Removing test site $(basename "$dir"): not deployed for more than $days days."
+        rm -rf "$dir"
+      fi
+    done
+    commit_and_push "Remove test sites not deployed for $days days"
+    ;;
+  slug)
+    slug "$2"
     ;;
   *)
-    sed -n '2,13p' "$0"
+    sed -n '2,14p' "$0"
     exit 1
     ;;
 esac

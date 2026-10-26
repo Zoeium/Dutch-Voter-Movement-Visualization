@@ -14,8 +14,8 @@ All notable changes to this project are documented here. The format follows
 
 - The app is usable on phones: a compact header, charts that scroll sideways instead of shrinking, and a comparison
   table that keeps the party names in view.
-- A test site at `/test/` next to the main site, showing the most recently pushed branch. It is removed when that
-  branch is deleted or after 14 days without a new deployment.
+- A test site per branch at `/test/<branch>/`, next to the main site. It is removed when the branch is deleted or after
+  14 days without a new deployment.
 
 ### Fixed
 
