@@ -100,7 +100,7 @@ function movementYearFlags(
   return years.map((year, index) => {
     if (hasOwnMovementData(year)) return true;
     const nextYear = years[index + 1];
-    return !nextYear || hasOwnMovementData(nextYear);
+    return nextYear !== undefined && hasOwnMovementData(nextYear);
   });
 }
 
@@ -617,8 +617,26 @@ export function buildMultiElectionFlows(
   return {nodes: mergeNodeMap(allNodes), links: allLinks};
 }
 
+/** Election dates (YYYY-MM-DD) in chronological order, read from the totals resources. */
+function getElectionDates(): {year: string; date: string}[] {
+  return Object.entries(totalsModules)
+    .map(([path, raw]) => {
+      const doc = yaml.load(raw) as { date?: unknown } | null;
+      return {year: extractYear(path), date: typeof doc?.date === 'string' ? doc.date : ''};
+    })
+    .filter((entry) => entry.year && entry.date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 /** Parse coalition resources and return them in inauguration order. */
 export function loadCoalitions(): CoalitionData[] {
+  const electionDates = getElectionDates();
+  // The election that produced a cabinet's seats is the latest one held before its inauguration.
+  const findElectionYear = (inaugurationDate: string): string | undefined => {
+    const preceding = electionDates.filter((election) => election.date <= inaugurationDate);
+    return preceding[preceding.length - 1]?.year;
+  };
+
   type CoalitionEntry = {
     sortKey: string;
     name: string;
@@ -660,6 +678,7 @@ export function loadCoalitions(): CoalitionData[] {
   return sortedEntries.map((entry) => ({
     name: entry.name,
     year: entry.year,
+    electionYear: findElectionYear(entry.sortKey),
     coalition: entry.coalition,
     support: entry.support,
     seats: entry.seats,
@@ -667,16 +686,87 @@ export function loadCoalitions(): CoalitionData[] {
 }
 
 /**
- * Coalition seat snapshots are labeled by cabinet inauguration year, which can
- * be after the election year that determined those seats.
+ * The first cabinet formed after an election. Its seat snapshot is that
+ * election's result; later cabinets in the same term can reflect mid-term splits.
  */
+export function getCoalitionForElection(
+  electionYear: string,
+  coalitions: CoalitionData[]
+): CoalitionData | undefined {
+  return coalitions.find((coalition) => coalition.electionYear === electionYear);
+}
+
+/** Seats produced by an election, taken from the first cabinet formed after it. */
 export function getElectionSeats(
   electionYear: string,
   coalitions: CoalitionData[]
 ): Record<string, number> | null {
-  const matching = coalitions.find((coalition) => coalition.year === electionYear)
-    ?? coalitions
-      .filter((coalition) => coalition.year > electionYear)
-      .sort((a, b) => a.year.localeCompare(b.year))[0];
-  return matching?.seats ?? null;
+  return getCoalitionForElection(electionYear, coalitions)?.seats ?? null;
+}
+
+export interface ComparisonRow {
+  partyId: string;
+  label: string;
+  color: string;
+  votesA: number;
+  votesB: number;
+  voteChange: number;
+  shareA: number;
+  shareB: number;
+  shareChange: number;
+  seatsA: number | null;
+  seatsB: number | null;
+  seatChange: number | null;
+}
+
+/**
+ * Per-party vote, share and seat changes between two elections. Shared by the
+ * compare table and its CSV export so both always show the same numbers.
+ */
+export function buildComparisonRows(
+  elections: ElectionYear[],
+  yearA: string,
+  yearB: string,
+  coalitions: CoalitionData[],
+  parties: PartyInfo[]
+): ComparisonRow[] {
+  const elA = elections.find((e) => e.year === yearA);
+  const elB = elections.find((e) => e.year === yearB);
+  if (!elA || !elB || yearA === yearB) return [];
+
+  const votesA = elA.voteTotals.parties_votes ?? {};
+  const votesB = elB.voteTotals.parties_votes ?? {};
+  const totalValidA = elA.voteTotals.valid_votes || 1;
+  const totalValidB = elB.voteTotals.valid_votes || 1;
+  const seatsA = getElectionSeats(yearA, coalitions);
+  const seatsB = getElectionSeats(yearB, coalitions);
+
+  const rows: ComparisonRow[] = [];
+  for (const partyId of new Set([...Object.keys(votesA), ...Object.keys(votesB)])) {
+    const vA = votesA[partyId] ?? 0;
+    const vB = votesB[partyId] ?? 0;
+    if (vA === 0 && vB === 0) continue;
+
+    const sA = seatsA?.[partyId] ?? null;
+    const sB = seatsB?.[partyId] ?? null;
+    const shareA = (vA / totalValidA) * 100;
+    const shareB = (vB / totalValidB) * 100;
+
+    rows.push({
+      partyId,
+      label: getPartyDisplayName(partyId, parties),
+      color: getPartyColor(partyId, parties),
+      votesA: vA,
+      votesB: vB,
+      voteChange: vB - vA,
+      shareA,
+      shareB,
+      shareChange: shareB - shareA,
+      seatsA: sA,
+      seatsB: sB,
+      seatChange: sA !== null && sB !== null ? sB - sA : null,
+    });
+  }
+
+  return rows;
 }

@@ -628,6 +628,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           squashing a long selection down to illegible slivers. */}
       <div className="parliament-scroll overflow-x-auto">
         <svg
+          data-export-chart
           width="100%"
           height={svgHeight}
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}

@@ -76,7 +76,7 @@ function buildTurnoutBars(elections: ElectionYear[]): TurnoutBar[] {
       let nonValidVotes = t.non_valid_votes || 0;
       let isCombined = false;
 
-      if (t.non_valid_votes_and_blanco_votes !== undefined) {
+      if (typeof t.non_valid_votes_and_blanco_votes === 'number') {
         blancoVotes = Math.round(t.non_valid_votes_and_blanco_votes);
         nonValidVotes = 0;
         isCombined = true;
@@ -378,7 +378,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
       </div>
 
       <div className="w-full">
-        <svg ref={svgRef} width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="block" preserveAspectRatio="xMidYMid meet">
+        <svg ref={svgRef} data-export-chart width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="block" preserveAspectRatio="xMidYMid meet">
           {/* Y-axis label */}
           <text
             x={10}

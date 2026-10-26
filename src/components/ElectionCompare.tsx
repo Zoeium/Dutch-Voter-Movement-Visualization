@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {ArrowUp, ArrowDown, ArrowDownUp, ChevronDown, Minus} from 'lucide-react';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
-import {getElectionSeats, getPartyColor, getPartyDisplayName} from '@/data/loader';
+import {buildComparisonRows} from '@/data/loader';
 import {useI18n} from '@/theme';
 
 interface ElectionCompareProps {
@@ -12,21 +12,6 @@ interface ElectionCompareProps {
   yearB: string;
   onYearAChange: (year: string) => void;
   onYearBChange: (year: string) => void;
-}
-
-interface PartyRow {
-  partyId: string;
-  label: string;
-  color: string;
-  votesA: number;
-  votesB: number;
-  voteChange: number;
-  shareA: number;
-  shareB: number;
-  shareChange: number;
-  seatsA: number | null;
-  seatsB: number | null;
-  seatChange: number | null;
 }
 
 type SortKey = 'label' | 'votesA' | 'votesB' | 'voteChange' | 'shareA' | 'shareB' | 'shareChange' | 'seatsA' | 'seatsB' | 'seatChange';
@@ -53,60 +38,24 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const years = elections.map((e) => e.year);
 
-  const rows: PartyRow[] = useMemo(() => {
-    const elA = elections.find((e) => e.year === yearA);
-    const elB = elections.find((e) => e.year === yearB);
-    if (!elA || !elB) return [];
-
-    const votesA = elA.voteTotals.parties_votes ?? {};
-    const votesB = elB.voteTotals.parties_votes ?? {};
-    const totalValidA = elA.voteTotals.valid_votes || 1;
-    const totalValidB = elB.voteTotals.valid_votes || 1;
-
-    const seatsA = getElectionSeats(yearA, coalitions);
-    const seatsB = getElectionSeats(yearB, coalitions);
-
-    const allPartyIds = new Set<string>([...Object.keys(votesA), ...Object.keys(votesB)]);
-
-    const rowsArr: PartyRow[] = [];
-
-    for (const partyId of allPartyIds) {
-      const vA = votesA[partyId] ?? 0;
-      const vB = votesB[partyId] ?? 0;
-      if (vA === 0 && vB === 0) continue;
-
-      const sA = seatsA?.[partyId] ?? null;
-      const sB = seatsB?.[partyId] ?? null;
-
-      const shareA = (vA / totalValidA) * 100;
-      const shareB = (vB / totalValidB) * 100;
-
-      rowsArr.push({
-        partyId,
-        label: getPartyDisplayName(partyId, parties),
-        color: getPartyColor(partyId, parties),
-        votesA: vA,
-        votesB: vB,
-        voteChange: vB - vA,
-        shareA,
-        shareB,
-        shareChange: shareB - shareA,
-        seatsA: sA,
-        seatsB: sB,
-        seatChange: sA !== null && sB !== null ? sB - sA : null,
-      });
-    }
-
-    return rowsArr;
-  }, [elections, coalitions, parties, yearA, yearB]);
+  const rows = useMemo(
+    () => buildComparisonRows(elections, yearA, yearB, coalitions, parties),
+    [elections, coalitions, parties, yearA, yearB]
+  );
 
   const isSameYear = yearA === yearB;
 
   const totalValidA = elections.find((e) => e.year === yearA)?.voteTotals.valid_votes ?? 0;
   const totalValidB = elections.find((e) => e.year === yearB)?.voteTotals.valid_votes ?? 0;
 
-  const biggestGainers = useMemo(() => [...rows].sort((a, b) => b.shareChange - a.shareChange).slice(0, 3), [rows]);
-  const biggestLosers = useMemo(() => [...rows].sort((a, b) => a.shareChange - b.shareChange).slice(0, 3), [rows]);
+  const biggestGainers = useMemo(
+    () => rows.filter((r) => r.shareChange > 0).sort((a, b) => b.shareChange - a.shareChange).slice(0, 3),
+    [rows]
+  );
+  const biggestLosers = useMemo(
+    () => rows.filter((r) => r.shareChange < 0).sort((a, b) => a.shareChange - b.shareChange).slice(0, 3),
+    [rows]
+  );
   const sortedRows = useMemo(() => [...rows].sort((a, b) => {
     const left = a[sortKey];
     const right = b[sortKey];

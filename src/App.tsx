@@ -13,7 +13,7 @@ import {
   loadDataSources,
   loadCoalitions,
   buildMultiElectionFlows,
-  getElectionSeats,
+  buildComparisonRows,
   type DataSourceEntry,
 } from '@/data/loader';
 import {DualRangeSlider} from '@/components/shared';
@@ -174,9 +174,18 @@ export default function App() {
   const electionLabels = elections.map((e) => e.year);
   const hasSelectableYears = electionYears.length > 0;
 
+  const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
+
+  // A party from the URL, or one with no movements in the current range, has no filter
+  // button, so it must not silently filter the diagram. The selection is kept so it
+  // applies again once the range includes the party.
+  const activeParty = selectedParty && availableParties.some((p) => p.party === selectedParty)
+    ? selectedParty
+    : null;
+
   const {nodes, links} = useMemo(() => {
-    return buildMultiElectionFlows(elections, parties, selectedParty);
-  }, [elections, parties, selectedParty]);
+    return buildMultiElectionFlows(elections, parties, activeParty);
+  }, [elections, parties, activeParty]);
 
   const deferredTurnoutYearStart = useDeferredValue(turnoutYearStart);
   const deferredTurnoutYearEnd = useDeferredValue(turnoutYearEnd);
@@ -185,8 +194,6 @@ export default function App() {
     () => sliceByIndexRange(allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd),
     [allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd]
   );
-
-  const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
 
   const getSourceLabel = (source: DataSourceEntry) =>
     source.kind === 'totals'
@@ -202,7 +209,7 @@ export default function App() {
     if (activeTab === 'alluvial') {
       state.ys = yearStart;
       state.ye = yearEnd;
-      state.party = selectedParty;
+      state.party = activeParty;
       state.sort = sortMode;
     } else if (activeTab === 'turnout') {
       state.tys = turnoutYearStart;
@@ -212,7 +219,7 @@ export default function App() {
       state.cmpB = compareYearB;
     }
     return state;
-  }, [activeTab, yearStart, yearEnd, selectedParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
+  }, [activeTab, yearStart, yearEnd, activeParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
 
   useEffect(() => {
     updateUrl(urlState);
@@ -233,46 +240,27 @@ export default function App() {
   }, [urlState]);
 
   const handleExportChart = useCallback(() => {
-    const svg = chartContainerRef.current?.querySelector('svg');
+    const svg = chartContainerRef.current?.querySelector<SVGSVGElement>('svg[data-export-chart]');
     if (!svg) return;
     const filename = `voterflow-${activeTab}-${Date.now()}.svg`;
-    exportSvg(svg as SVGSVGElement, filename);
+    exportSvg(svg, filename);
     setExportFeedback(true);
     setTimeout(() => setExportFeedback(false), 2000);
   }, [activeTab]);
 
   const handleExportData = useCallback(() => {
     const headers = ['Party', `Votes ${compareYearA}`, `Votes ${compareYearB}`, 'Vote change', `Share ${compareYearA}`, `Share ${compareYearB}`, 'Share change pp', `Seats ${compareYearA}`, `Seats ${compareYearB}`, 'Seat change'];
-    const rows: (string | number)[][] = [];
-    const elA = allElectionsForTurnout.find((e) => e.year === compareYearA);
-    const elB = allElectionsForTurnout.find((e) => e.year === compareYearB);
-    if (elA && elB && compareYearA !== compareYearB) {
-      const votesA = elA.voteTotals.parties_votes ?? {};
-      const votesB = elB.voteTotals.parties_votes ?? {};
-      const totalA = elA.voteTotals.valid_votes || 1;
-      const totalB = elB.voteTotals.valid_votes || 1;
-      const seatsA = getElectionSeats(compareYearA, coalitions) ?? {};
-      const seatsB = getElectionSeats(compareYearB, coalitions) ?? {};
-      const allIds = new Set([...Object.keys(votesA), ...Object.keys(votesB)]);
-      for (const pid of allIds) {
-        const vA = votesA[pid] ?? 0;
-        const vB = votesB[pid] ?? 0;
-        if (vA === 0 && vB === 0) continue;
-        rows.push([
-          pid, vA, vB, vB - vA,
-          ((vA / totalA) * 100).toFixed(1),
-          ((vB / totalB) * 100).toFixed(1),
-          (((vB / totalB) * 100) - ((vA / totalA) * 100)).toFixed(1),
-          seatsA[pid] ?? 0,
-          seatsB[pid] ?? 0,
-          (seatsB[pid] ?? 0) - (seatsA[pid] ?? 0),
-        ]);
-      }
-    }
+    const comparisonRows = buildComparisonRows(allElectionsForTurnout, compareYearA, compareYearB, coalitions, parties);
+    if (comparisonRows.length === 0) return;
+    const rows = comparisonRows.map((row) => [
+      row.label, row.votesA, row.votesB, row.voteChange,
+      row.shareA.toFixed(1), row.shareB.toFixed(1), row.shareChange.toFixed(1),
+      row.seatsA ?? '', row.seatsB ?? '', row.seatChange ?? '',
+    ]);
     exportCsv(headers, rows, `voterflow-compare-${Date.now()}.csv`);
     setExportFeedback(true);
     setTimeout(() => setExportFeedback(false), 2000);
-  }, [allElectionsForTurnout, coalitions, compareYearA, compareYearB]);
+  }, [allElectionsForTurnout, coalitions, parties, compareYearA, compareYearB]);
 
   const tabs: {key: TabKey; label: string}[] = [
     {key: 'alluvial', label: t('tabAlluvial')},
@@ -387,12 +375,12 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setSelectedParty(null)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(selectedParty === null)}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeParty === null)}`}
                 >
                   {t('allParties')}
                 </button>
                 {availableParties.map((p) => {
-                  const isSelected = selectedParty === p.party;
+                  const isSelected = activeParty === p.party;
                   return (
                     <button
                       type="button"
@@ -451,7 +439,7 @@ export default function App() {
                   links={links}
                   numColumns={elections.length}
                   electionLabels={electionLabels}
-                  selectedParty={selectedParty}
+                  selectedParty={activeParty}
                   sortMode={sortMode}
                 />
               )}
