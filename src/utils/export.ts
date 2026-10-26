@@ -26,7 +26,13 @@ export function searchParamsToState(): Record<string, string> {
 export function updateUrl(state: Record<string, string | number | boolean | null>): void {
   const qs = stateToSearchParams(state);
   const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
-  window.history.replaceState({}, '', newUrl);
+  if (newUrl === `${window.location.pathname}${window.location.search}`) return;
+  try {
+    window.history.replaceState({}, '', newUrl);
+  } catch (error) {
+    // Browsers rate-limit the History API; a stale URL is better than a crashed app.
+    console.warn('[url] Could not update the URL', error);
+  }
 }
 
 /** Copy a URL to the clipboard. Returns true on success. */
@@ -81,6 +87,17 @@ export function exportSvg(svgElement: SVGSVGElement, filename: string): void {
       if (value) clonedElements[index].style.setProperty(property, value);
     }
   });
+  // On screen the card behind the chart paints the background; without it the export is
+  // transparent and dark-theme labels become invisible on a white page.
+  if (viewBox.width > 0 && viewBox.height > 0) {
+    const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    background.setAttribute('x', String(viewBox.x));
+    background.setAttribute('y', String(viewBox.y));
+    background.setAttribute('width', String(viewBox.width));
+    background.setAttribute('height', String(viewBox.height));
+    background.setAttribute('fill', rootStyles.getPropertyValue('--c-bg-card').trim() || '#ffffff');
+    exportElement.insertBefore(background, exportElement.firstChild);
+  }
   const svgString = serializer.serializeToString(exportElement);
   const blob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
   downloadBlob(blob, filename);

@@ -17,7 +17,7 @@ import {
   type DataSourceEntry,
 } from '@/data/loader';
 import {DualRangeSlider} from '@/components/shared';
-import {sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
+import {partyButtonClass, sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
 import {
   ThemeContext,
   LanguageContext,
@@ -52,9 +52,6 @@ function loadAppData(): AppData {
     throw new Error(`Failed to load election data: ${message}`);
   }
 }
-
-const partyButtonClass = (selected: boolean): string =>
-  `${selected ? 'ring-2 ring-offset-2 ring-offset-app-bg' : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 
 function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): PartyInfo[] {
   const partySet = new Set<string>();
@@ -221,8 +218,11 @@ export default function App() {
     return state;
   }, [activeTab, yearStart, yearEnd, activeParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
 
+  // Debounced: dragging a slider changes urlState on every step, and Safari/Firefox
+  // throw once replaceState is called more than ~100-200 times in 10 seconds.
   useEffect(() => {
-    updateUrl(urlState);
+    const timeout = setTimeout(() => updateUrl(urlState), 300);
+    return () => clearTimeout(timeout);
   }, [urlState]);
 
   // Share & export state
@@ -386,7 +386,7 @@ export default function App() {
                       type="button"
                       key={p.party}
                       onClick={() => setSelectedParty(isSelected ? null : p.party)}
-                      className={partyButtonClass(isSelected)}
+                      className={partyButtonClass(isSelected, 'ring-offset-app-bg')}
                       style={isSelected ? {backgroundColor: p.color, color: '#fff', boxShadow: `0 0 0 2px ${p.color}`} : undefined}
                     >
                       <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
