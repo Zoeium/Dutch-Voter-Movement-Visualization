@@ -2,20 +2,20 @@ date: 1948-07-07
 source:
   name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1948'
   url: https://data.overheid.nl/dataset/3590-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1948
-electorate: 5433633
-not_voted: 344051
-total_votes: 5089582
+electorate: 5413204
+not_voted: 325065
+total_votes: 5088139
 non_valid_votes_and_blanco_votes: 156625
-valid_votes: 4932959
+valid_votes: 4931514
 parties_votes:
-  kvp: 1531154
-  pvda: 1263058
-  arp: 651612
-  chu: 453226
-  vvd: 391925
-  cpn: 382001
-  sgp: 116937
-  knp: 62376
+  kvp: 1530794
+  pvda: 1262888
+  arp: 651080
+  chu: 453136
+  vvd: 391861
+  cpn: 381863
+  sgp: 116864
+  knp: 62358
   middenstandspartij: 40949
   onafhankelijke_nationale_groep: 22175
   pvw_sdap: 15322

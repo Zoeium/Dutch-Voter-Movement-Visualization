@@ -1,7 +1,7 @@
 import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {Info} from 'lucide-react';
 import type {ElectionYear} from '@/types';
-import {buildStripeId, toggleButtonClass} from '@/components/diagramUtils';
+import {buildStripeId, formatElectionLabel, toggleButtonClass} from '@/components/diagramUtils';
 import {useI18n, type TranslationKey} from '@/theme';
 
 interface TurnoutDiagramProps {
@@ -558,7 +558,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
                   textAnchor="middle"
                   className="fill-app-muted text-sm font-semibold"
                 >
-                  {bar.year}
+                  {formatElectionLabel(bar.year)}
                 </text>
 
                 {/* Electorate count */}
@@ -579,7 +579,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
       {/* Tooltip */}
       {hoveredBar && tooltipPosition && (
         <Tooltip x={tooltipPosition.x} y={tooltipPosition.y} visible={true}>
-          <div className="font-semibold mb-1" style={{color: 'var(--c-tooltip-text)'}}>{hoveredBar.year} {t('election')}</div>
+          <div className="font-semibold mb-1" style={{color: 'var(--c-tooltip-text)'}}>{formatElectionLabel(hoveredBar.year)} {t('election')}</div>
           <div style={{color: 'var(--c-text-muted)'}}>{t('electorate')}: {formatNumber(hoveredBar.electorate)}</div>
           <div style={{color: 'var(--c-text-muted)'}}>{t('turnoutLabel')}: {formatNumber(hoveredBar.validVotes + hoveredBar.blancoVotes + hoveredBar.nonValidVotes)} ({formatPct(hoveredBar.turnoutPct)})</div>
           {hoveredSegment ? (

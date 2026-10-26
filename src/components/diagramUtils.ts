@@ -16,6 +16,18 @@ export const toggleButtonClass = (active: boolean): string =>
 export const partyButtonClass = (selected: boolean, ringOffsetClass: string): string =>
   `${selected ? `ring-2 ring-offset-2 ${ringOffsetClass}` : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 
+const MONTH_ABBREVIATIONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Display label for an election id. Ids are years, or YYYY-MM when a country held
+ * two elections in one year (UK 1974): '1974-02' becomes 'Feb 1974'.
+ */
+export function formatElectionLabel(id: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(id);
+  const month = match ? MONTH_ABBREVIATIONS[Number(match[2]) - 1] : undefined;
+  return match && month ? `${month} ${match[1]}` : id;
+}
+
 /** Filter an array by an inclusive index range. */
 export function sliceByIndexRange<T>(items: T[], start: number, end: number): T[] {
   return items.filter((_, index) => index >= start && index <= end);

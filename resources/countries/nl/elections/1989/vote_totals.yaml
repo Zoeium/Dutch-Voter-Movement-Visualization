@@ -1,0 +1,35 @@
+date: 1989-09-06
+source:
+  name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1989'
+  url: https://data.overheid.nl/dataset/3569-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1989
+electorate: 11091070
+not_voted: 2188167
+total_votes: 8902903
+non_valid_votes_and_blanco_votes: 26389
+valid_votes: 8876514
+parties_votes:
+  cda: 3135056
+  pvda: 2832739
+  vvd: 1290427
+  d66: 700538
+  groenlinks: 361324
+  sgp: 165918
+  gpv: 109458
+  rpf: 85081
+  cd: 81337
+  sp: 38829
+  dg: 30698
+  vp: 12018
+  bc: 7840
+  vcn: 7361
+  rn: 6032
+  sap: 4283
+  awp: 2166
+  ppvo: 2149
+  vmp: 1939
+  pds: 452
+  smp: 328
+  hp: 318
+  mdp: 138
+  gap: 54
+  sf: 31

@@ -5,8 +5,10 @@ import TurnoutDiagram from '@/components/TurnoutDiagram';
 import ParliamentDiagram from '@/components/ParliamentDiagram';
 import ElectionCompare from '@/components/ElectionCompare';
 import CoalitionExplorer from '@/components/CoalitionExplorer';
+import CountrySelect from '@/components/CountrySelect';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {
+  loadCountries,
   loadParties,
   loadElections,
   loadAllElections,
@@ -14,14 +16,17 @@ import {
   loadCoalitions,
   buildMultiElectionFlows,
   buildComparisonRows,
+  type CountryInfo,
   type DataSourceEntry,
 } from '@/data/loader';
 import {DualRangeSlider} from '@/components/shared';
-import {partyButtonClass, sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
+import {formatElectionLabel, partyButtonClass, sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
 import {
   ThemeContext,
   LanguageContext,
   translations,
+  useI18n,
+  useTheme,
   type Theme,
   type Language,
   type TranslationKey,
@@ -38,14 +43,14 @@ interface AppData {
   coalitions: CoalitionData[];
 }
 
-function loadAppData(): AppData {
+function loadAppData(country: string): AppData {
   try {
     return {
-      parties: loadParties(),
-      allElections: loadElections(),
-      allElectionsForTurnout: loadAllElections(),
-      dataSources: loadDataSources(),
-      coalitions: loadCoalitions(),
+      parties: loadParties(country),
+      allElections: loadElections(country),
+      allElectionsForTurnout: loadAllElections(country),
+      dataSources: loadDataSources(country),
+      coalitions: loadCoalitions(country),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -67,18 +72,38 @@ function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): P
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
 
-/** Parse initial state from URL search params. */
-function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElections: ElectionYear[]) {
+const DEFAULT_COUNTRY = 'nl';
+
+/** Parse the state that survives a country switch from the URL. */
+function getInitialAppStateFromUrl(countries: CountryInfo[]) {
   const params = new URLSearchParams(window.location.search);
+  const countryIds = countries.map((c) => c.id);
+  const country = params.get('country') ?? '';
+  const tab = (params.get('tab') as TabKey) || 'alluvial';
+  const validTabs: TabKey[] = ['alluvial', 'turnout', 'parliament', 'compare', 'coalition'];
+  const theme = (params.get('theme') as Theme) || 'dark';
+  const lang = (params.get('lang') as Language) || 'en';
+
+  return {
+    country: countryIds.includes(country)
+      ? country
+      : countryIds.includes(DEFAULT_COUNTRY) ? DEFAULT_COUNTRY : countryIds[0] ?? '',
+    tab: validTabs.includes(tab) ? tab : 'alluvial' as TabKey,
+    theme: (theme === 'light' || theme === 'dark') ? theme : 'dark' as Theme,
+    lang: (lang === 'en' || lang === 'nl') ? lang : 'en' as Language,
+  };
+}
+
+/**
+ * Parse a country's initial diagram state from the URL. After a country switch the
+ * URL still describes the previous country, so `readUrl` is false and defaults apply.
+ */
+function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElections: ElectionYear[], readUrl: boolean) {
+  const params = new URLSearchParams(readUrl ? window.location.search : '');
   const electionYears = allElections.map((e) => e.year);
   const comparisonYears = comparisonElections.map((e) => e.year);
 
-  const tab = (params.get('tab') as TabKey) || 'alluvial';
-  const validTabs: TabKey[] = ['alluvial', 'turnout', 'parliament', 'compare', 'coalition'];
-
   const party = params.get('party');
-  const theme = (params.get('theme') as Theme) || 'dark';
-  const lang = (params.get('lang') as Language) || 'en';
 
   const readIndex = (key: string, fallback: number, max: number): number => {
     if (!params.has(key)) return fallback;
@@ -99,10 +124,7 @@ function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElection
   const requestedCompareYearB = params.get('cmpB');
 
   return {
-    tab: validTabs.includes(tab) ? tab : 'alluvial' as TabKey,
     party: party || null,
-    theme: (theme === 'light' || theme === 'dark') ? theme : 'dark' as Theme,
-    lang: (lang === 'en' || lang === 'nl') ? lang : 'en' as Language,
     yearStart,
     yearEnd,
     turnoutYearStart,
@@ -118,15 +140,14 @@ function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElection
 }
 
 export default function App() {
-  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(loadAppData, []);
+  const countries = useMemo(loadCountries, []);
+  const initialAppState = useMemo(() => getInitialAppStateFromUrl(countries), [countries]);
 
-  const initialState = useMemo(
-    () => getInitialStateFromUrl(allElections, allElectionsForTurnout),
-    [allElections, allElectionsForTurnout]
-  );
-
-  const [theme, setTheme] = useState<Theme>(initialState.theme);
-  const [lang, setLang] = useState<Language>(initialState.lang);
+  const [country, setCountry] = useState<string>(initialAppState.country);
+  const [readUrl, setReadUrl] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>(initialAppState.tab);
+  const [theme, setTheme] = useState<Theme>(initialAppState.theme);
+  const [lang, setLang] = useState<Language>(initialAppState.lang);
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -142,11 +163,71 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
+  const changeCountry = useCallback((id: string) => {
+    setReadUrl(false);
+    setCountry(id);
+  }, []);
+
   const t = useCallback((key: TranslationKey) => translations[lang][key], [lang]);
+
+  return (
+    <ThemeContext.Provider value={{theme, toggleTheme}}>
+      <LanguageContext.Provider value={{lang, t}}>
+        {/* Keyed by country: every country starts with its own fresh diagram state. */}
+        <Dashboard
+          key={country}
+          country={country}
+          countries={countries}
+          onCountryChange={changeCountry}
+          readUrl={readUrl}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onLangChange={setLang}
+        />
+      </LanguageContext.Provider>
+    </ThemeContext.Provider>
+  );
+}
+
+interface DashboardProps {
+  country: string;
+  countries: CountryInfo[];
+  onCountryChange: (country: string) => void;
+  readUrl: boolean;
+  activeTab: TabKey;
+  onTabChange: (tab: TabKey) => void;
+  onLangChange: (lang: Language) => void;
+}
+
+function Dashboard({
+  country,
+  countries,
+  onCountryChange,
+  readUrl,
+  activeTab: requestedTab,
+  onTabChange,
+  onLangChange,
+}: Readonly<DashboardProps>) {
+  const {theme, toggleTheme} = useTheme();
+  const {lang, t} = useI18n();
+  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(
+    () => loadAppData(country),
+    [country]
+  );
+
+  const initialState = useMemo(
+    () => getInitialStateFromUrl(allElections, allElectionsForTurnout, readUrl),
+    [allElections, allElectionsForTurnout, readUrl]
+  );
+
+  // A country without any known voter movements has no flow diagram at all.
+  const hasMovements = allElections.length >= 2;
+  const activeTab: TabKey = requestedTab === 'alluvial' && !hasMovements ? 'turnout' : requestedTab;
+  const setActiveTab = onTabChange;
+  const setLang = onLangChange;
 
   const electionYears = useMemo(() => allElections.map((e) => e.year), [allElections]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>(initialState.tab);
   const [selectedParty, setSelectedParty] = useState<string | null>(initialState.party);
   const [sortMode, setSortMode] = useState<SortMode>(initialState.sortMode);
   const [yearStart, setYearStart] = useState<number>(initialState.yearStart);
@@ -168,7 +249,7 @@ export default function App() {
     [allElections, deferredYearStart, deferredYearEnd]
   );
 
-  const electionLabels = elections.map((e) => e.year);
+  const electionLabels = elections.map((e) => formatElectionLabel(e.year));
   const hasSelectableYears = electionYears.length > 0;
 
   const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
@@ -194,11 +275,12 @@ export default function App() {
 
   const getSourceLabel = (source: DataSourceEntry) =>
     source.kind === 'totals'
-      ? `${t('totals')} (${source.year})`
-      : `${t('movements')} (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
+      ? `${t('totals')} (${formatElectionLabel(source.year)})`
+      : `${t('movements')} (${formatElectionLabel(source.fromYear ?? source.year)} → ${formatElectionLabel(source.toYear ?? source.year)})`;
 
   const urlState = useMemo(() => {
     const state: Record<string, string | number | boolean | null> = {
+      country,
       tab: activeTab,
       theme,
       lang,
@@ -216,7 +298,7 @@ export default function App() {
       state.cmpB = compareYearB;
     }
     return state;
-  }, [activeTab, yearStart, yearEnd, activeParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
+  }, [country, activeTab, yearStart, yearEnd, activeParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
 
   // Debounced: dragging a slider changes urlState on every step, and Safari/Firefox
   // throw once replaceState is called more than ~100-200 times in 10 seconds.
@@ -263,7 +345,7 @@ export default function App() {
   }, [allElectionsForTurnout, coalitions, parties, compareYearA, compareYearB]);
 
   const tabs: {key: TabKey; label: string}[] = [
-    {key: 'alluvial', label: t('tabAlluvial')},
+    ...(hasMovements ? [{key: 'alluvial' as TabKey, label: t('tabAlluvial')}] : []),
     {key: 'turnout', label: t('tabTurnout')},
     {key: 'parliament', label: t('tabParliament')},
     {key: 'compare', label: t('tabCompare')},
@@ -271,8 +353,6 @@ export default function App() {
   ];
 
   return (
-    <ThemeContext.Provider value={{theme, toggleTheme}}>
-      <LanguageContext.Provider value={{lang, t}}>
     <div className="min-h-screen bg-app-bg text-app-text">
       {/* Header */}
       <header className="border-b border-app-border bg-app-header backdrop-blur-sm sticky top-0 z-10">
@@ -285,6 +365,14 @@ export default function App() {
             <div>
               <h1 className="text-lg font-bold tracking-tight text-app-heading">{t('appTitle')}</h1>
             </div>
+
+            {/* Data selector: whose elections are shown. Kept apart from the display
+                settings on the right so it does not read as a language choice. */}
+            {countries.length > 1 && (
+              <div className="ml-4 pl-4 border-l border-app-border">
+                <CountrySelect countries={countries} value={country} onChange={onCountryChange}/>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -315,7 +403,10 @@ export default function App() {
             </div>
 
             {/* Language selector */}
-            <label className="flex items-center gap-1.5 px-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text border border-app-border">
+            <label
+              title={t('languageHint')}
+              className="flex items-center gap-1.5 px-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text border border-app-border"
+            >
               <Languages className="w-4 h-4"/>
               <span className="sr-only">{t('language')}</span>
               <span className="relative">
@@ -401,7 +492,7 @@ export default function App() {
               <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
                 <CalendarRange className="w-4 h-4 text-app-muted"/>
                 <span className="text-sm font-medium text-app-muted whitespace-nowrap">
-                  {hasSelectableYears ? `${t('years')}: ${electionYears[yearStart]}–${electionYears[yearEnd]}` : t('yearsNone')}
+                  {hasSelectableYears ? `${t('years')}: ${formatElectionLabel(electionYears[yearStart])}–${formatElectionLabel(electionYears[yearEnd])}` : t('yearsNone')}
                 </span>
                 {hasSelectableYears && (
                   <DualRangeSlider
@@ -459,7 +550,7 @@ export default function App() {
             <div className="mb-6 flex items-center gap-3 flex-wrap">
               <CalendarRange className="w-4 h-4 text-app-muted"/>
               <span className="text-sm font-medium text-app-muted whitespace-nowrap">
-                {turnoutYears.length > 0 ? `${t('years')}: ${turnoutYears[turnoutYearStart]}–${turnoutYears[turnoutYearEnd]}` : t('yearsNone')}
+                {turnoutYears.length > 0 ? `${t('years')}: ${formatElectionLabel(turnoutYears[turnoutYearStart])}–${formatElectionLabel(turnoutYears[turnoutYearEnd])}` : t('yearsNone')}
               </span>
               {turnoutYears.length > 0 && (
                 <DualRangeSlider
@@ -570,7 +661,5 @@ export default function App() {
         </div>
       </footer>
     </div>
-      </LanguageContext.Provider>
-    </ThemeContext.Provider>
   );
 }

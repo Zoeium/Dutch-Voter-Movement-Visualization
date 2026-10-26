@@ -2,22 +2,22 @@ date: 1952-06-25
 source:
   name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1952'
   url: https://data.overheid.nl/dataset/3589-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1952
-electorate: 5792679
-not_voted: 290953
-total_votes: 5501726
+electorate: 5781140
+not_voted: 279702
+total_votes: 5501438
 non_valid_votes_and_blanco_votes: 165981
-valid_votes: 5335745
+valid_votes: 5335457
 parties_votes:
-  pvda: 1545867
-  kvp: 1529508
-  arp: 603329
-  chu: 476195
-  vvd: 471040
-  cpn: 328621
-  knp: 144520
-  sgp: 129081
-  gpv: 35497
-  middenstandspartij: 25128
-  partij_voor_recht_vrijheid_en_welvaart: 18990
+  pvda: 1545844
+  kvp: 1529434
+  arp: 603170
+  chu: 476188
+  vvd: 471038
+  cpn: 328612
+  knp: 144519
+  sgp: 129073
+  gpv: 35494
+  middenstandspartij: 25127
+  partij_voor_recht_vrijheid_en_welvaart: 18989
   socialistische_unie: 18010
   jong_conservatief_verbond: 9959
