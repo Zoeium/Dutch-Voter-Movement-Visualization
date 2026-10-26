@@ -4,84 +4,11 @@ import type {CoalitionData, PartyInfo} from '@/types';
 import {getCoalitionForElection, getPartyColor, getPartyDisplayName} from '@/data/loader';
 import {useI18n} from '@/theme';
 import {formatElectionLabel, partyButtonClass} from '@/components/diagramUtils';
+import {createChamberLayout, type PartySeat} from '@/components/chamberLayout';
 
 interface CoalitionExplorerProps {
   coalitions: CoalitionData[];
   parties: PartyInfo[];
-}
-
-interface PartySeat {
-  partyId: string;
-  label: string;
-  color: string;
-  seats: number;
-}
-
-interface ChamberSeat {
-  partyId: string;
-  label: string;
-  color: string;
-  selected: boolean;
-  x: number;
-  y: number;
-  row: number;
-}
-
-interface ChamberLayout {
-  seats: ChamberSeat[];
-  borderRadius: number;
-}
-
-function createChamberLayout(parties: PartySeat[], selectedParties: Set<string>): ChamberLayout {
-  const rowCapacities: number[] = [];
-  for (let capacity = 10; capacity <= 26; capacity += 2) {
-    rowCapacities.push(capacity);
-  }
-
-  const positions: {x: number; y: number; row: number}[] = [];
-  const selectedSeats = parties.filter((party) => selectedParties.has(party.partyId)).flatMap((party) =>
-    Array.from({length: party.seats}, () => ({
-      partyId: party.partyId,
-      label: party.label,
-      color: party.color,
-      selected: true,
-    }))
-  );
-  const emptySeats = parties.filter((party) => !selectedParties.has(party.partyId)).flatMap((party) =>
-    Array.from({length: party.seats}, () => ({
-      partyId: party.partyId,
-      label: party.label,
-      color: party.color,
-      selected: false,
-    }))
-  );
-  const partySeats = [...selectedSeats, ...emptySeats];
-  let positionIndex = 0;
-  let outerRadius = 0;
-
-  for (let row = 0; row < rowCapacities.length && positionIndex < partySeats.length; row++) {
-    const rowCount = Math.min(rowCapacities[row], partySeats.length - positionIndex);
-    const radius = 76 + row * 21;
-    outerRadius = radius;
-    for (let position = 0; position < rowCount; position++) {
-      const angle = Math.PI - (Math.PI * position) / Math.max(rowCount - 1, 1);
-      positions.push({
-        x: 300 + radius * Math.cos(angle),
-        y: 294 - radius * Math.sin(angle),
-        row,
-      });
-      positionIndex++;
-    }
-  }
-
-  // Assign selected seats by horizontal position, so the chamber fills left to right.
-  positions.sort((a, b) => a.x - b.x || b.y - a.y || a.row - b.row);
-  const seats = positions.map((position, index) => ({
-    ...partySeats[index],
-    ...position,
-  }));
-
-  return {seats, borderRadius: Math.min(255, outerRadius + 32)};
 }
 
 export default function CoalitionExplorer({coalitions, parties}: Readonly<CoalitionExplorerProps>) {
@@ -230,7 +157,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
                 key={`${seat.partyId}-${index}`}
                 cx={seat.x}
                 cy={seat.y}
-                r="5"
+                r={chamberLayout.seatRadius}
                 fill={seat.selected ? seat.color : 'var(--c-bg-card)'}
                 stroke={seat.selected ? seat.color : 'var(--c-border-strong)'}
                 strokeWidth="1"
