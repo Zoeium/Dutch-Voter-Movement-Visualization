@@ -540,7 +540,9 @@ export default function AlluvialDiagram({
   );
 
   return (
-    <div ref={containerRef} className="w-full">
+    // On narrow screens the drawing keeps its minimum readable width and scrolls sideways
+    // inside its card, instead of being shrunk until the labels are unreadable.
+    <div ref={containerRef} className="w-full overflow-x-auto">
       <svg
         data-export-chart
         width="100%"
@@ -548,6 +550,7 @@ export default function AlluvialDiagram({
         viewBox={`0 0 ${svgWidth} ${contentHeight}`}
         preserveAspectRatio="xMidYMid meet"
         className="block"
+        style={{minWidth: svgWidth}}
       >
         {electionLabels.map((label, index) => {
           const x = LABEL_SPACE + index * getColumnSpacing(numColumns, svgWidth) + NODE_WIDTH / 2;

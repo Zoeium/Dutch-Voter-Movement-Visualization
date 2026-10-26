@@ -12,7 +12,8 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
+    // Preview deployments append their branch and commit (see .github/workflows/preview.yml).
+    __APP_VERSION__: JSON.stringify(pkg.version + (process.env.APP_VERSION_SUFFIX ?? '')),
   },
   resolve: {
     alias: {

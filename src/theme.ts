@@ -77,7 +77,7 @@ export const translations = {
     validOfCast: 'of cast',
     blancoInvalid: 'Blanco + Invalid',
     blancoInvalidCombined: 'Blanco + Invalid (combined)',
-    blancoBeforeNote: '* Before 2010, blanco and invalid votes were reported as a combined total',
+    blancoBeforeNote: '* Striped bars: blank and invalid votes are only reported as one combined total',
     numberVotes: 'Number of votes',
     pctOfElectorate: 'Percentage of electorate',
 
@@ -201,7 +201,7 @@ export const translations = {
     validOfCast: 'van uitgebrachte stemmen',
     blancoInvalid: 'Blanco + Ongeldig',
     blancoInvalidCombined: 'Blanco + Ongeldig (gecombineerd)',
-    blancoBeforeNote: '* Voor 2010 werden blanco en ongeldige stemmen als een gecombineerd totaal gerapporteerd',
+    blancoBeforeNote: '* Gestreepte balken: blanco en ongeldige stemmen zijn alleen als één gecombineerd totaal bekend',
     numberVotes: 'Aantal stemmen',
     pctOfElectorate: 'Percentage van kiesgerechtigden',
 

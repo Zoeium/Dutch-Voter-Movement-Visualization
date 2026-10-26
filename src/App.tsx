@@ -198,13 +198,13 @@ export default function App() {
 }
 
 const HEADER_BUTTON_CLASS = 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
-const CARD_CLASS = 'bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl';
+const CARD_CLASS = 'bg-app-card rounded-2xl p-3 sm:p-6 border border-app-border shadow-2xl';
 
 /** Title and introduction shown above every tab. */
 function TabHeading({title, description}: Readonly<{ title: string; description: string }>) {
   return (
-    <div className="mb-8">
-      <h2 className="text-3xl font-bold mb-2 text-app-heading">{title}</h2>
+    <div className="mb-6 sm:mb-8">
+      <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-app-heading">{title}</h2>
       <p className="text-app-muted max-w-2xl">{description}</p>
     </div>
   );
@@ -219,9 +219,10 @@ function FeedbackButton({done, icon, label, doneLabel, onClick}: Readonly<{
   onClick: () => void;
 }>) {
   return (
-    <button type="button" onClick={onClick} className={HEADER_BUTTON_CLASS} aria-label={label}>
+    <button type="button" onClick={onClick} className={HEADER_BUTTON_CLASS} aria-label={label} title={label}>
       {done ? <Check className="w-4 h-4 text-emerald-500"/> : icon}
-      {done ? doneLabel : label}
+      {/* Phones show the icon only; the label stays available through aria-label. */}
+      <span className="hidden sm:inline">{done ? doneLabel : label}</span>
     </button>
   );
 }
@@ -507,48 +508,30 @@ function Dashboard({
 
   return (
     <div className="min-h-screen bg-app-bg text-app-text">
-      {/* Header */}
-      <header className="border-b border-app-border bg-app-header backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      {/* Header. Phones: brand and action icons on the first row, data and language on the
+          second, scrolling away with the page. Wider screens: one sticky row. */}
+      <header className="border-b border-app-border bg-app-header backdrop-blur-sm sm:sticky top-0 z-10">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1 lg:flex-none">
             <div
-              className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <Users className="w-5 h-5 text-white"/>
             </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-app-heading">{t('appTitle')}</h1>
-            </div>
+            <h1 className="text-base sm:text-lg font-bold leading-tight tracking-tight text-app-heading">{t('appTitle')}</h1>
+          </div>
 
-            {/* Data selector: whose elections are shown. Kept apart from the display
-                settings on the right so it does not read as a language choice. */}
+          {/* Data and language: their own full-width row on phones. The data selector stays at
+              the start and the language at the end, so the two never read as one choice. */}
+          <div className="order-3 lg:order-2 w-full lg:w-auto lg:flex-1 flex items-end lg:items-center justify-between gap-3">
             {countries.length > 1 && (
-              <div className="ml-4 pl-4 border-l border-app-border">
+              <div className="lg:pl-4 lg:border-l border-app-border">
                 <CountrySelect countries={countries} value={country} onChange={onCountryChange}/>
               </div>
             )}
-          </div>
 
-          <div className="flex items-center gap-2">
-            <FeedbackButton
-              done={shareFeedback}
-              icon={<Share2 className="w-4 h-4"/>}
-              label={t('share')}
-              doneLabel={t('shareCopied')}
-              onClick={handleShare}
-            />
-            {/* The compare tab exports its table as CSV; every other tab its chart as SVG. */}
-            <FeedbackButton
-              done={exportFeedback}
-              icon={<Download className="w-4 h-4"/>}
-              label={isCompareTab ? t('exportData') : t('exportChart')}
-              doneLabel={t('exportDone')}
-              onClick={isCompareTab ? handleExportData : handleExportChart}
-            />
-
-            {/* Language selector */}
             <label
               title={t('languageHint')}
-              className="flex items-center gap-1.5 px-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text border border-app-border"
+              className="ml-auto flex items-center gap-1.5 px-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text border border-app-border"
             >
               <Languages className="w-4 h-4"/>
               <span className="sr-only">{t('language')}</span>
@@ -565,30 +548,48 @@ function Dashboard({
                 <ChevronDown className="app-select-chevron w-3.5 h-3.5"/>
               </span>
             </label>
+          </div>
+
+          <div className="order-2 lg:order-3 flex items-center gap-2">
+            <FeedbackButton
+              done={shareFeedback}
+              icon={<Share2 className="w-4 h-4"/>}
+              label={t('share')}
+              doneLabel={t('shareCopied')}
+              onClick={handleShare}
+            />
+            {/* The compare tab exports its table as CSV; every other tab its chart as SVG. */}
+            <FeedbackButton
+              done={exportFeedback}
+              icon={<Download className="w-4 h-4"/>}
+              label={isCompareTab ? t('exportData') : t('exportChart')}
+              doneLabel={t('exportDone')}
+              onClick={isCompareTab ? handleExportData : handleExportChart}
+            />
 
             {/* Theme toggle */}
             <button
               type="button"
               onClick={toggleTheme}
               className={HEADER_BUTTON_CLASS}
-              aria-label="Toggle theme"
+              aria-label={theme === 'dark' ? t('lightMode') : t('darkMode')}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
-              {theme === 'dark' ? t('lightMode') : t('darkMode')}
+              <span className="hidden sm:inline">{theme === 'dark' ? t('lightMode') : t('darkMode')}</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Tabs */}
-        <div className="mb-8 flex gap-2 flex-wrap">
+        <div className="mb-6 sm:mb-8 flex gap-2 flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === tab.key)}`}
+              className={`px-3 py-2 sm:px-6 sm:py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === tab.key)}`}
             >
               {tab.label}
             </button>

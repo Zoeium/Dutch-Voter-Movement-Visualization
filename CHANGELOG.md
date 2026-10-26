@@ -10,6 +10,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The app is usable on phones: a compact header, charts that scroll sideways instead of shrinking, and a comparison
+  table that keeps the party names in view.
+- Temporary preview deployments of branches for testing, removed when the branch is deleted or after 14 days without
+  a new push.
+
+### Fixed
+
+- The coalition explorer draws every seat of large parliaments (United Kingdom, Germany, Sweden).
+- The note about combined blank and invalid votes only appears for elections where they are combined.
+
 ## [1.0.0] - 2026-10-26
 
 Initial release

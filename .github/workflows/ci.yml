@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    # gh-pages only holds the published site (see scripts/pages.sh).
+    branches: ['**', '!gh-pages']
   pull_request:
     branches: [main]
   # The release workflow runs the same checks before it publishes anything.

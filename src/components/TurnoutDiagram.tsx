@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {Info} from 'lucide-react';
 import type {ElectionYear} from '@/types';
 import {buildStripeId, formatElectionLabel, toggleButtonClass} from '@/components/diagramUtils';
@@ -9,6 +9,9 @@ interface TurnoutDiagramProps {
 }
 
 type ScaleMode = 'absolute' | 'percentage';
+
+// Smallest scale the chart is drawn at; below this it scrolls sideways instead.
+const MIN_CHART_SCALE = 0.5;
 type SegmentKind = 'valid' | 'blanco' | 'invalid' | 'notVoted';
 
 interface HoveredSegment {
@@ -224,14 +227,6 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
   const {t} = useI18n();
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const rectsRef = useRef<{
-    svgWidth: number;
-    svgHeight: number;
-    svgLeft: number;
-    svgTop: number;
-    containerLeft: number;
-    containerTop: number;
-  } | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<HoveredSegment | null>(null);
   const [scaleMode, setScaleMode] = useState<ScaleMode>('absolute');
@@ -246,29 +241,6 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
     () => bars.map((bar) => getSegmentValues(bar, scaleMode)),
     [bars, scaleMode]
   );
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      const svgEl = svgRef.current;
-      const containerEl = containerRef.current;
-      if (!svgEl || !containerEl) return;
-
-      const svgRect = svgEl.getBoundingClientRect();
-      const containerRect = containerEl.getBoundingClientRect();
-      rectsRef.current = {
-        svgWidth: svgRect.width,
-        svgHeight: svgRect.height,
-        svgLeft: svgRect.left,
-        svgTop: svgRect.top,
-        containerLeft: containerRect.left,
-        containerTop: containerRect.top,
-      };
-    };
-
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [bars]);
 
   const barHeight = 220;
   const barWidth = Math.max(40, Math.min(64, 1200 / bars.length));
@@ -286,17 +258,19 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
     const vx = labelSpace + gap + barIndex * (barWidth + gap) + barWidth / 2;
     const vy = 40;
 
-    let x = vx;
-    let y = vy;
-    const rects = rectsRef.current;
-    if (rects) {
-      const scaleX = svgWidth > 0 ? rects.svgWidth / svgWidth : 1;
-      const scaleY = svgHeight > 0 ? rects.svgHeight / svgHeight : 1;
-      x = rects.svgLeft - rects.containerLeft + vx * scaleX;
-      y = rects.svgTop - rects.containerTop + vy * scaleY;
-    }
-
-    return {x, y};
+    // Measured when the bar is hovered, not on resize: the chart can scroll sideways on
+    // narrow screens, which moves it without any resize.
+    const svgEl = svgRef.current;
+    const containerEl = containerRef.current;
+    if (!svgEl || !containerEl) return {x: vx, y: vy};
+    const svgRect = svgEl.getBoundingClientRect();
+    const containerRect = containerEl.getBoundingClientRect();
+    const scaleX = svgWidth > 0 ? svgRect.width / svgWidth : 1;
+    const scaleY = svgHeight > 0 ? svgRect.height / svgHeight : 1;
+    return {
+      x: svgRect.left - containerRect.left + vx * scaleX,
+      y: svgRect.top - containerRect.top + vy * scaleY,
+    };
   }, [bars, barWidth, gap, hoveredBar, labelSpace, svgHeight, svgWidth]);
 
   if (bars.length === 0) {
@@ -372,13 +346,24 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
             </button>
           ))}
         </div>
-        <p className="text-xs text-app-subtle italic">
-          {t('blancoBeforeNote')}
-        </p>
+        {bars.some((bar) => bar.isCombined) && (
+          <p className="text-xs text-app-subtle italic">
+            {t('blancoBeforeNote')}
+          </p>
+        )}
       </div>
 
-      <div className="w-full">
-        <svg ref={svgRef} data-export-chart width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="block" preserveAspectRatio="xMidYMid meet">
+      {/* Scales with the card, but never below half size: narrower screens scroll the chart
+          sideways instead of shrinking it until the labels are unreadable. */}
+      <div className="w-full overflow-x-auto">
+        <svg
+          ref={svgRef}
+          data-export-chart
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          className="block mx-auto"
+          preserveAspectRatio="xMidYMid meet"
+          style={{width: '100%', height: 'auto', maxWidth: svgWidth, minWidth: svgWidth * MIN_CHART_SCALE}}
+        >
           {/* Y-axis label */}
           <text
             x={10}

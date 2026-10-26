@@ -80,8 +80,8 @@ export default function CountrySelect({countries, value, onChange}: Readonly<Cou
   if (!selected) return null;
 
   return (
-    <div ref={rootRef} className="relative flex items-center gap-2">
-      <span id={labelId} className="text-sm font-medium text-app-muted whitespace-nowrap">{t('countryData')}</span>
+    <div ref={rootRef} className="relative flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+      <span id={labelId} className="text-xs sm:text-sm font-medium text-app-muted whitespace-nowrap">{t('countryData')}</span>
       <button
         type="button"
         onClick={() => (open ? setOpen(false) : openList())}

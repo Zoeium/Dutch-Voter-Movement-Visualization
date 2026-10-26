@@ -5,12 +5,33 @@ Every release is a [semantic version](https://semver.org/) (`MAJOR.MINOR.PATCH`)
 
 1. runs the same checks as CI: lint, type check, code tests, data consistency tests and a build;
 2. checks that the tag matches the `version` in `package.json`;
-3. publishes the built site to GitHub Pages;
+3. publishes the built site at the root of the `gh-pages` branch, which GitHub Pages serves;
 4. creates the GitHub release, with the notes from `CHANGELOG.md` and the site as a zip file.
+
+## Preview deployments
+
+Every branch, `main` included, gets a temporary test version at
+`https://zoeium.github.io/Dutch-Voter-Movement-Visualization/preview/<branch>/` (for example `preview/main/` or
+`preview/feature-phone-usable/` for `feature/phone-usable`). The footer shows the branch and commit next to the
+version number.
+
+- A preview is updated after every push whose checks pass.
+- It is removed when its branch is deleted, for example when a pull request is merged.
+- A daily cleanup removes previews that have not been updated for 14 days (`PREVIEW_DAYS` in
+  `.github/workflows/preview.yml`). The cleanup can also be started by hand from the Actions tab.
+
+Previews never touch the released site at the root. Search engines are asked to skip them (`robots.txt`).
 
 ## One-time setup
 
-In the repository on GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+1. Let the `gh-pages` branch be created: merge to `main`, or push any branch. When its checks pass, the preview
+   workflow publishes the first preview and creates the branch.
+2. In **Settings → Pages**, set **Source** to **Deploy from a branch**, with branch `gh-pages` and folder `/ (root)`.
+3. In **Settings → Environments → github-pages → Deployment branches and tags**, add the branch `gh-pages`. GitHub
+   publishes the site from that branch, and the environment rules decide which branches may do so.
+
+The workflow definitions are read from `main`, so changes to the preview or release workflows only take effect once
+they are merged.
 
 ## Making a release
 
