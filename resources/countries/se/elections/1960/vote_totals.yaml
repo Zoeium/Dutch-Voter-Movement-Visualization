@@ -1,0 +1,16 @@
+date: 1960-09-18
+source:
+  name: 'Wikipedia: 1960 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1960_Swedish_general_election
+electorate: 4972177
+not_voted: 700567
+total_votes: 4271610
+non_valid_votes_and_blanco_votes: 17496
+valid_votes: 4254114
+parties_votes:
+  s: 2033016
+  l: 744142
+  m: 704365
+  c: 579007
+  v: 190560
+  other: 3024

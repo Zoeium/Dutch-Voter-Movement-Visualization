@@ -1,0 +1,13 @@
+# Kohl III government, seats from the 1987 election
+name: Kohl III
+inauguration: 1987-03-12
+coalition:
+  - cdu
+  - csu
+  - fdp
+seats:
+  spd: 186
+  cdu: 174
+  csu: 49
+  fdp: 46
+  gruene: 42

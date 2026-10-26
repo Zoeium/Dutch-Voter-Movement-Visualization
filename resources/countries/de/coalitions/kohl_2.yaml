@@ -1,0 +1,13 @@
+# Kohl II government, seats from the 1983 election
+name: Kohl II
+inauguration: 1983-03-30
+coalition:
+  - cdu
+  - csu
+  - fdp
+seats:
+  spd: 193
+  cdu: 191
+  csu: 53
+  fdp: 34
+  gruene: 27

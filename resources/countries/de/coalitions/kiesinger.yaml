@@ -1,0 +1,12 @@
+# Kiesinger government, seats from the 1965 election
+name: Kiesinger
+inauguration: 1966-12-01
+coalition:
+  - cdu
+  - csu
+  - spd
+seats:
+  spd: 202
+  cdu: 196
+  csu: 49
+  fdp: 49

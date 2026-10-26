@@ -1,0 +1,14 @@
+# Merkel I government, seats from the 2005 election
+name: Merkel I
+inauguration: 2005-11-22
+coalition:
+  - cdu
+  - csu
+  - spd
+seats:
+  spd: 222
+  cdu: 180
+  fdp: 61
+  linke: 54
+  gruene: 51
+  csu: 46

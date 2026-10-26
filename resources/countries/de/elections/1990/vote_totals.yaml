@@ -1,0 +1,21 @@
+date: 1990-12-02
+source:
+  name: 'Wikipedia: 1990 German federal election'
+  url: https://en.wikipedia.org/wiki/1990_German_federal_election
+electorate: 60436560
+not_voted: 13440645
+total_votes: 46995915
+non_valid_votes_and_blanco_votes: 540143
+valid_votes: 46455772
+parties_votes:
+  cdu: 17055116
+  spd: 15545366
+  fdp: 5123233
+  csu: 3302980
+  gruene: 1788200
+  pds: 1129578
+  rep: 987269
+  other: 787732
+  buendnis90: 559207
+  npd: 145776
+  bp: 31315

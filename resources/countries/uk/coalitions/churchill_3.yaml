@@ -1,0 +1,12 @@
+# Churchill III government, seats from the 1951 general election
+name: Churchill III
+inauguration: 1951-10-26
+coalition:
+  - conservative
+  - national_liberal
+seats:
+  conservative: 302
+  labour: 295
+  national_liberal: 19
+  liberal: 6
+  other: 3

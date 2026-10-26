@@ -1,0 +1,16 @@
+date: 1958-06-01
+source:
+  name: 'Wikipedia: 1958 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1958_Swedish_general_election
+electorate: 4992421
+not_voted: 1127458
+total_votes: 3864963
+non_valid_votes_and_blanco_votes: 20711
+valid_votes: 3844252
+parties_votes:
+  s: 1776667
+  m: 750332
+  l: 700019
+  c: 486760
+  v: 129319
+  other: 1155

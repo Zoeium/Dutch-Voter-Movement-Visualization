@@ -1,0 +1,17 @@
+date: 1979-09-16
+source:
+  name: 'Wikipedia: 1979 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1979_Swedish_general_election
+electorate: 6040461
+not_voted: 560335
+total_votes: 5480126
+non_valid_votes_and_blanco_votes: 31488
+valid_votes: 5448638
+parties_votes:
+  s: 2356234
+  m: 1108406
+  c: 984589
+  l: 577063
+  v: 305420
+  kd: 75993
+  other: 40933

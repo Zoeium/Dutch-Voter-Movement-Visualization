@@ -1,0 +1,16 @@
+# Persson government, seats from the 1998 election
+name: Persson
+inauguration: 1998-09-21
+coalition:
+  - s
+support:
+  - v
+  - mp
+seats:
+  s: 131
+  m: 82
+  v: 43
+  kd: 42
+  c: 18
+  l: 17
+  mp: 16

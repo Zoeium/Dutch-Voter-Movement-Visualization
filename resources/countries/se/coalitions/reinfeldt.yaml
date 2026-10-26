@@ -1,0 +1,16 @@
+# Reinfeldt government, seats from the 2006 election
+name: Reinfeldt
+inauguration: 2006-10-06
+coalition:
+  - m
+  - c
+  - l
+  - kd
+seats:
+  s: 130
+  m: 97
+  c: 29
+  l: 28
+  kd: 24
+  v: 22
+  mp: 19

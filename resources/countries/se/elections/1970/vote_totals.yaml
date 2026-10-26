@@ -1,0 +1,17 @@
+date: 1970-09-20
+source:
+  name: 'Wikipedia: 1970 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1970_Swedish_general_election
+electorate: 5645804
+not_voted: 661597
+total_votes: 4984207
+non_valid_votes_and_blanco_votes: 8011
+valid_votes: 4976196
+parties_votes:
+  s: 2256369
+  c: 991208
+  l: 806667
+  m: 573812
+  v: 236659
+  kd: 88770
+  other: 22711

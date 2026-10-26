@@ -1,0 +1,22 @@
+date: 1987-06-11
+source:
+  name: 'Wikipedia: 1987 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1987_United_Kingdom_general_election'
+electorate: 43181321
+not_voted: 10651743
+total_votes: 32529578
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 32529578
+parties_votes:
+  conservative: 13760583
+  labour: 10029807
+  alliance: 7341633
+  snp: 416473
+  uup: 276230
+  other: 167277
+  sdlp: 154087
+  plaid_cymru: 123599
+  green: 90858
+  dup: 85642
+  sinn_fein: 83389

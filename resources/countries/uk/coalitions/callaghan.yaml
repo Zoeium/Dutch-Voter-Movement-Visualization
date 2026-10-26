@@ -1,0 +1,15 @@
+# Callaghan government, seats from the 1974-10 general election
+name: Callaghan
+inauguration: 1976-04-05
+coalition:
+  - labour
+seats:
+  labour: 319
+  conservative: 277
+  liberal: 13
+  snp: 11
+  uup: 6
+  other: 4
+  plaid_cymru: 3
+  sdlp: 1
+  dup: 1

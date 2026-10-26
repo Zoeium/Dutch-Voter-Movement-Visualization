@@ -1,0 +1,16 @@
+date: 1965-09-19
+source:
+  name: 'Wikipedia: 1965 West German federal election'
+  url: https://en.wikipedia.org/wiki/1965_West_German_federal_election
+electorate: 38510395
+not_voted: 5094188
+total_votes: 33416207
+non_valid_votes_and_blanco_votes: 795765
+valid_votes: 32620442
+parties_votes:
+  spd: 12813186
+  cdu: 12387562
+  csu: 3136506
+  fdp: 3096739
+  npd: 664193
+  other: 522256

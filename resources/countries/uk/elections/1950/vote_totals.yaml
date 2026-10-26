@@ -1,0 +1,19 @@
+date: 1950-02-23
+source:
+  name: 'Wikipedia: 1950 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1950_United_Kingdom_general_election'
+electorate: 34412266
+not_voted: 5641142
+total_votes: 28771124
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 28771124
+parties_votes:
+  labour: 13266176
+  conservative: 11507061
+  liberal: 2621487
+  national_liberal: 985343
+  other: 340407
+  sinn_fein: 23362
+  plaid_cymru: 17580
+  snp: 9708

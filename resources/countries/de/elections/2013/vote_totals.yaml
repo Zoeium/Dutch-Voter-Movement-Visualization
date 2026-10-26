@@ -1,0 +1,24 @@
+date: 2013-09-22
+source:
+  name: 'Wikipedia: 2013 German federal election'
+  url: https://en.wikipedia.org/wiki/2013_German_federal_election
+electorate: 61946900
+not_voted: 17636975
+total_votes: 44309925
+non_valid_votes_and_blanco_votes: 583069
+valid_votes: 43726856
+parties_votes:
+  cdu: 14921877
+  spd: 11252215
+  linke: 3755699
+  gruene: 3694057
+  csu: 3243569
+  fdp: 2083533
+  afd: 2056985
+  piraten: 959177
+  npd: 560828
+  other: 485985
+  fw: 423977
+  tierschutz: 140366
+  rep: 91193
+  bp: 57395

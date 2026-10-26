@@ -1,0 +1,20 @@
+date: 2022-09-11
+source:
+  name: 'Wikipedia: 2022 Swedish general election'
+  url: https://en.wikipedia.org/wiki/2022_Swedish_general_election
+electorate: 7775390
+not_voted: 1294740
+total_votes: 6480650
+non_valid_votes_and_blanco_votes: 6998
+valid_votes: 6473652
+parties_votes:
+  s: 1964474
+  sd: 1330325
+  m: 1237428
+  v: 437050
+  c: 434945
+  kd: 345712
+  mp: 329242
+  l: 298542
+  other: 92777
+  fi: 3157

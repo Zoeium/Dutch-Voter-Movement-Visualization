@@ -1,0 +1,17 @@
+date: 1973-09-16
+source:
+  name: 'Wikipedia: 1973 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1973_Swedish_general_election
+electorate: 5690333
+not_voted: 521337
+total_votes: 5168996
+non_valid_votes_and_blanco_votes: 8850
+valid_votes: 5160146
+parties_votes:
+  s: 2247727
+  c: 1295246
+  m: 737584
+  l: 486028
+  v: 274929
+  kd: 90388
+  other: 28244

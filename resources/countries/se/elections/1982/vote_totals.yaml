@@ -1,0 +1,18 @@
+date: 1982-09-19
+source:
+  name: 'Wikipedia: 1982 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1982_Swedish_general_election
+electorate: 6130993
+not_voted: 524390
+total_votes: 5606603
+non_valid_votes_and_blanco_votes: 52001
+valid_votes: 5554602
+parties_votes:
+  s: 2533250
+  m: 1313337
+  c: 859618
+  l: 327770
+  v: 308899
+  kd: 103820
+  mp: 91787
+  other: 16121

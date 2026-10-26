@@ -1,0 +1,11 @@
+# Schmidt III government, seats from the 1980 election
+name: Schmidt III
+inauguration: 1980-11-05
+coalition:
+  - spd
+  - fdp
+seats:
+  spd: 218
+  cdu: 174
+  fdp: 53
+  csu: 52

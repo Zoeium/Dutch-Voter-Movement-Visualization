@@ -1,0 +1,20 @@
+date: 2018-09-09
+source:
+  name: 'Wikipedia: 2018 Swedish general election'
+  url: https://en.wikipedia.org/wiki/2018_Swedish_general_election
+electorate: 7495936
+not_voted: 960665
+total_votes: 6535271
+non_valid_votes_and_blanco_votes: 58546
+valid_votes: 6476725
+parties_votes:
+  s: 1830386
+  m: 1284698
+  sd: 1135627
+  c: 557500
+  v: 518454
+  kd: 409478
+  l: 355546
+  mp: 285899
+  other: 69472
+  fi: 29665

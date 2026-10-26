@@ -1,0 +1,21 @@
+# Adenauer I government, seats from the 1949 election
+name: Adenauer I
+inauguration: 1949-09-20
+coalition:
+  - cdu
+  - csu
+  - fdp
+  - dp
+seats:
+  spd: 131
+  cdu: 115
+  fdp: 52
+  csu: 24
+  bp: 17
+  dp: 17
+  kpd: 15
+  wav: 12
+  zentrum: 10
+  drp: 5
+  other: 3
+  ssw: 1

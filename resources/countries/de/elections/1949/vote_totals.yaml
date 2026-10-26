@@ -1,0 +1,22 @@
+date: 1949-08-14
+source:
+  name: 'Wikipedia: 1949 West German federal election'
+  url: https://en.wikipedia.org/wiki/1949_West_German_federal_election
+electorate: 31207620
+not_voted: 6712006
+total_votes: 24495614
+non_valid_votes_and_blanco_votes: 763216
+valid_votes: 23732398
+parties_votes:
+  spd: 6934975
+  cdu: 5978636
+  fdp: 2829920
+  other: 1406489
+  csu: 1380448
+  kpd: 1361706
+  bp: 986478
+  dp: 939934
+  zentrum: 727505
+  wav: 681888
+  drp: 429031
+  ssw: 75388

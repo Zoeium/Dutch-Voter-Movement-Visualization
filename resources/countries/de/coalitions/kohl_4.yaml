@@ -1,0 +1,14 @@
+# Kohl IV government, seats from the 1990 election
+name: Kohl IV
+inauguration: 1991-01-18
+coalition:
+  - cdu
+  - csu
+  - fdp
+seats:
+  cdu: 268
+  spd: 239
+  fdp: 79
+  csu: 51
+  pds: 17
+  buendnis90: 8

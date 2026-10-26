@@ -1,0 +1,21 @@
+date: 1979-05-03
+source:
+  name: 'Wikipedia: 1979 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1979_United_Kingdom_general_election'
+electorate: 41093264
+not_voted: 9871902
+total_votes: 31221362
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 31221362
+parties_votes:
+  conservative: 13697923
+  labour: 11532218
+  liberal: 4313804
+  other: 505844
+  snp: 504259
+  uup: 254578
+  plaid_cymru: 132544
+  sdlp: 126325
+  alliance_ni: 82892
+  dup: 70975

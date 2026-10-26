@@ -1,0 +1,21 @@
+date: 1994-10-16
+source:
+  name: 'Wikipedia: 1994 German federal election'
+  url: https://en.wikipedia.org/wiki/1994_German_federal_election
+electorate: 60452009
+not_voted: 12714010
+total_votes: 47737999
+non_valid_votes_and_blanco_votes: 632825
+valid_votes: 47105174
+parties_votes:
+  spd: 17140354
+  cdu: 16089960
+  csu: 3427196
+  gruene: 3424315
+  fdp: 3258407
+  pds: 2066176
+  rep: 875239
+  other: 705636
+  tierschutz: 71643
+  bp: 42491
+  zentrum: 3757

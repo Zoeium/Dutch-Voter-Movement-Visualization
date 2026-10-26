@@ -1,0 +1,11 @@
+# Palme I government, seats from the 1968 election
+name: Palme I
+inauguration: 1969-10-14
+coalition:
+  - s
+seats:
+  s: 125
+  c: 39
+  l: 34
+  m: 32
+  v: 3

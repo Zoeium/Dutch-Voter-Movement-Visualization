@@ -1,0 +1,17 @@
+date: 1961-09-17
+source:
+  name: 'Wikipedia: 1961 West German federal election'
+  url: https://en.wikipedia.org/wiki/1961_West_German_federal_election
+electorate: 37440715
+not_voted: 4591091
+total_votes: 32849624
+non_valid_votes_and_blanco_votes: 1298723
+valid_votes: 31550901
+parties_votes:
+  spd: 11427355
+  cdu: 11283901
+  fdp: 4028766
+  csu: 3014471
+  other: 1507982
+  drp: 262977
+  ssw: 25449

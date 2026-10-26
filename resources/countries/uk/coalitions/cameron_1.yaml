@@ -1,0 +1,18 @@
+# Cameron–Clegg government, seats from the 2010 general election
+name: Cameron–Clegg
+inauguration: 2010-05-11
+coalition:
+  - conservative
+  - lib_dem
+seats:
+  conservative: 306
+  labour: 258
+  lib_dem: 57
+  dup: 8
+  snp: 6
+  sinn_fein: 5
+  plaid_cymru: 3
+  sdlp: 3
+  other: 2
+  green: 1
+  alliance_ni: 1

@@ -1,0 +1,12 @@
+# Kohl I government, seats from the 1980 election
+name: Kohl I
+inauguration: 1982-10-04
+coalition:
+  - cdu
+  - csu
+  - fdp
+seats:
+  spd: 218
+  cdu: 174
+  fdp: 53
+  csu: 52

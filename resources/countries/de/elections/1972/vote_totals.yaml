@@ -1,0 +1,16 @@
+date: 1972-11-19
+source:
+  name: 'Wikipedia: 1972 West German federal election'
+  url: https://en.wikipedia.org/wiki/1972_West_German_federal_election
+electorate: 41446302
+not_voted: 3684713
+total_votes: 37761589
+non_valid_votes_and_blanco_votes: 301839
+valid_votes: 37459750
+parties_votes:
+  spd: 17175169
+  cdu: 13190837
+  csu: 3615183
+  fdp: 3129982
+  npd: 207465
+  other: 141114

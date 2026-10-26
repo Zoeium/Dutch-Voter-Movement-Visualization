@@ -1,0 +1,15 @@
+# Merkel IV government, seats from the 2017 election
+name: Merkel IV
+inauguration: 2018-03-14
+coalition:
+  - cdu
+  - csu
+  - spd
+seats:
+  cdu: 200
+  spd: 153
+  afd: 94
+  fdp: 80
+  linke: 69
+  gruene: 67
+  csu: 46

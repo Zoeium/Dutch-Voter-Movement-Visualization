@@ -1,0 +1,12 @@
+# Eden II government, seats from the 1955 general election
+name: Eden II
+inauguration: 1955-05-27
+coalition:
+  - conservative
+  - national_liberal
+seats:
+  conservative: 324
+  labour: 277
+  national_liberal: 21
+  liberal: 6
+  sinn_fein: 2

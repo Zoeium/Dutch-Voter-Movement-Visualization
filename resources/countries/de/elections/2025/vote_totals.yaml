@@ -1,0 +1,24 @@
+date: 2025-02-23
+source:
+  name: 'Wikipedia: 2025 German federal election'
+  url: https://en.wikipedia.org/wiki/2025_German_federal_election
+electorate: 60510631
+not_voted: 10581978
+total_votes: 49928653
+non_valid_votes_and_blanco_votes: 279141
+valid_votes: 49649512
+parties_votes:
+  cdu: 11196374
+  afd: 10328780
+  spd: 8149124
+  gruene: 5762380
+  linke: 4356532
+  csu: 2964028
+  bsw: 2472947
+  fdp: 2148757
+  other: 916894
+  fw: 769279
+  tierschutz: 482201
+  ssw: 76138
+  piraten: 13800
+  bp: 12278

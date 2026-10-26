@@ -1,0 +1,15 @@
+# Löfven I government, seats from the 2014 election
+name: Löfven I
+inauguration: 2014-10-03
+coalition:
+  - s
+  - mp
+seats:
+  s: 113
+  m: 84
+  sd: 49
+  mp: 25
+  c: 22
+  v: 21
+  l: 19
+  kd: 16

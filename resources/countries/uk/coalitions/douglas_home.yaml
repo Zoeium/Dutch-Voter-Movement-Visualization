@@ -1,0 +1,12 @@
+# Douglas-Home government, seats from the 1959 general election
+name: Douglas-Home
+inauguration: 1963-10-19
+coalition:
+  - conservative
+  - national_liberal
+seats:
+  conservative: 345
+  labour: 258
+  national_liberal: 20
+  liberal: 6
+  other: 1

@@ -1,0 +1,13 @@
+# Fälldin II government, seats from the 1979 election
+name: Fälldin II
+inauguration: 1979-10-12
+coalition:
+  - c
+  - m
+  - l
+seats:
+  s: 154
+  m: 73
+  c: 64
+  l: 38
+  v: 20

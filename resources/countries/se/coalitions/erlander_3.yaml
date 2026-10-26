@@ -1,0 +1,11 @@
+# Erlander III government, seats from the 1956 election
+name: Erlander III
+inauguration: 1957-10-31
+coalition:
+  - s
+seats:
+  s: 106
+  l: 58
+  m: 42
+  c: 19
+  v: 6

@@ -1,0 +1,11 @@
+# Palme I government, seats from the 1973 election
+name: Palme I
+inauguration: 1973-09-17
+coalition:
+  - s
+seats:
+  s: 156
+  c: 90
+  m: 51
+  l: 34
+  v: 19

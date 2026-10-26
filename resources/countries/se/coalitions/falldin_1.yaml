@@ -1,0 +1,13 @@
+# Fälldin I government, seats from the 1976 election
+name: Fälldin I
+inauguration: 1976-10-08
+coalition:
+  - c
+  - m
+  - l
+seats:
+  s: 152
+  c: 86
+  m: 55
+  l: 39
+  v: 17

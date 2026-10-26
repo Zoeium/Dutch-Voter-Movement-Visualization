@@ -1,0 +1,15 @@
+# Thatcher I government, seats from the 1979 general election
+name: Thatcher I
+inauguration: 1979-05-04
+coalition:
+  - conservative
+seats:
+  conservative: 339
+  labour: 269
+  liberal: 11
+  uup: 5
+  other: 3
+  dup: 3
+  snp: 2
+  plaid_cymru: 2
+  sdlp: 1

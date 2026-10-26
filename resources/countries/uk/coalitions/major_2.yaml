@@ -1,0 +1,15 @@
+# Major II government, seats from the 1992 general election
+name: Major II
+inauguration: 1992-04-10
+coalition:
+  - conservative
+seats:
+  conservative: 336
+  labour: 271
+  lib_dem: 20
+  uup: 9
+  sdlp: 4
+  plaid_cymru: 4
+  snp: 3
+  dup: 3
+  other: 1

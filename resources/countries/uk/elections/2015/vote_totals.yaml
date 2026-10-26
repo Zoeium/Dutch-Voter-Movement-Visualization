@@ -1,0 +1,24 @@
+date: 2015-05-07
+source:
+  name: 'Wikipedia: 2015 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/2015_United_Kingdom_general_election'
+electorate: 46354197
+not_voted: 15656672
+total_votes: 30697525
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 30697525
+parties_votes:
+  conservative: 11299609
+  labour: 9347273
+  ukip: 3881099
+  lib_dem: 2415916
+  snp: 1454436
+  green: 1111603
+  other: 369093
+  dup: 184260
+  plaid_cymru: 181704
+  sinn_fein: 176232
+  uup: 114935
+  sdlp: 99809
+  alliance_ni: 61556

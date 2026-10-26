@@ -1,0 +1,20 @@
+date: 2006-09-17
+source:
+  name: 'Wikipedia: 2006 Swedish general election'
+  url: https://en.wikipedia.org/wiki/2006_Swedish_general_election
+electorate: 6892009
+not_voted: 1241593
+total_votes: 5650416
+non_valid_votes_and_blanco_votes: 99138
+valid_votes: 5551278
+parties_votes:
+  s: 1942625
+  m: 1456014
+  c: 437389
+  l: 418395
+  kd: 365998
+  v: 324722
+  mp: 291121
+  sd: 162463
+  other: 114597
+  fi: 37954

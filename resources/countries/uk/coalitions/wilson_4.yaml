@@ -1,0 +1,15 @@
+# Wilson IV government, seats from the 1974-10 general election
+name: Wilson IV
+inauguration: 1974-10-11
+coalition:
+  - labour
+seats:
+  labour: 319
+  conservative: 277
+  liberal: 13
+  snp: 11
+  uup: 6
+  other: 4
+  plaid_cymru: 3
+  sdlp: 1
+  dup: 1

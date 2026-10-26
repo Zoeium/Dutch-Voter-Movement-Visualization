@@ -1,0 +1,23 @@
+date: 1997-05-01
+source:
+  name: 'Wikipedia: 1997 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1997_United_Kingdom_general_election'
+electorate: 43846152
+not_voted: 12559868
+total_votes: 31286284
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 31286284
+parties_votes:
+  labour: 13518167
+  conservative: 9591085
+  lib_dem: 5242947
+  other: 1295289
+  snp: 622270
+  uup: 258349
+  sdlp: 190814
+  plaid_cymru: 161030
+  sinn_fein: 131816
+  ukip: 108298
+  dup: 102457
+  green: 63762

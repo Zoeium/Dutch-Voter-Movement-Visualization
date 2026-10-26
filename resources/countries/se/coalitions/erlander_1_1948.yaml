@@ -1,0 +1,11 @@
+# Erlander I government, seats from the 1948 election
+name: Erlander I
+inauguration: 1948-09-20
+coalition:
+  - s
+seats:
+  s: 112
+  l: 57
+  c: 30
+  m: 23
+  v: 8

@@ -1,0 +1,20 @@
+date: 1991-09-15
+source:
+  name: 'Wikipedia: 1991 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1991_Swedish_general_election
+electorate: 6413407
+not_voted: 850487
+total_votes: 5562920
+non_valid_votes_and_blanco_votes: 92159
+valid_votes: 5470761
+parties_votes:
+  s: 2062761
+  m: 1199394
+  l: 499356
+  c: 465175
+  kd: 390351
+  nyd: 368281
+  v: 246905
+  mp: 185051
+  other: 48610
+  sd: 4877
