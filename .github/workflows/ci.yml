@@ -6,36 +6,50 @@ on:
     branches: ['**', '!gh-pages']
   pull_request:
     branches: [main]
-  # The release workflow runs the same checks before it publishes anything.
-  workflow_call:
 
 permissions:
   contents: read
 
 jobs:
-  code:
-    name: Code (lint, types, unit tests, build)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:unit
-      - run: npm run build
+  checks:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
 
-  data:
-    name: Data consistency
+  # Temporary test deployment of the pushed branch (main included) at
+  #   https://<owner>.github.io/<repository>/preview/<branch>/
+  # Runs only when the checks pass. Removal of old previews: see preview-cleanup.yml.
+  preview:
+    name: Deploy preview
+    needs: checks
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Shared with the release and cleanup workflows: one writer to gh-pages at a time.
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
+      - name: Preview name
+        id: preview
+        run: |
+          slug="$(bash scripts/pages.sh slug "$GITHUB_REF_NAME")"
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          # Shown next to the version number, so testers know this is not a release.
+          echo "suffix= (preview $GITHUB_REF_NAME, ${GITHUB_SHA::7})" >> "$GITHUB_OUTPUT"
       - run: npm ci
-      - run: npm run test:data
+      - run: npm run build
+        env:
+          APP_VERSION_SUFFIX: ${{ steps.preview.outputs.suffix }}
+      - name: Publish
+        run: bash scripts/pages.sh preview "${{ steps.preview.outputs.slug }}" dist
+      - name: Summary
+        run: |
+          url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/preview/${{ steps.preview.outputs.slug }}/"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Removed when the branch is deleted, or after the number of days set in preview-cleanup.yml without a new push." >> "$GITHUB_STEP_SUMMARY"

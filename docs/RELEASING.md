@@ -18,20 +18,21 @@ version number.
 - A preview is updated after every push whose checks pass.
 - It is removed when its branch is deleted, for example when a pull request is merged.
 - A daily cleanup removes previews that have not been updated for 14 days (`PREVIEW_DAYS` in
-  `.github/workflows/preview.yml`). The cleanup can also be started by hand from the Actions tab.
+  `.github/workflows/preview-cleanup.yml`). The cleanup can also be started by hand from the Actions tab.
 
 Previews never touch the released site at the root. Search engines are asked to skip them (`robots.txt`).
 
 ## One-time setup
 
-1. Let the `gh-pages` branch be created: merge to `main`, or push any branch. When its checks pass, the preview
-   workflow publishes the first preview and creates the branch.
+1. Let the `gh-pages` branch be created: push any branch. When its checks pass, the CI workflow publishes the
+   first preview and creates the branch.
 2. In **Settings → Pages**, set **Source** to **Deploy from a branch**, with branch `gh-pages` and folder `/ (root)`.
 3. In **Settings → Environments → github-pages → Deployment branches and tags**, add the branch `gh-pages`. GitHub
    publishes the site from that branch, and the environment rules decide which branches may do so.
 
-The workflow definitions are read from `main`, so changes to the preview or release workflows only take effect once
-they are merged.
+Previews are deployed by the branch's own CI run, so they work before anything is merged. Removing previews of deleted
+branches and the daily cleanup only run once `preview-cleanup.yml` is on `main`: GitHub runs those triggers from the
+default branch.
 
 ## Making a release
 

@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
 
-# Shared with the preview workflow: only one job writes to gh-pages at a time.
+# Shared with the CI preview job and the cleanup: only one job writes to gh-pages at a time.
 concurrency:
   group: gh-pages
   cancel-in-progress: false
@@ -17,7 +17,7 @@ concurrency:
 jobs:
   checks:
     name: Checks
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/checks.yml
 
   build:
     name: Build site
