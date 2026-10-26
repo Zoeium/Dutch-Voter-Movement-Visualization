@@ -1,0 +1,11 @@
+# Schmidt II government, seats from the 1976 election
+name: Schmidt II
+inauguration: 1976-12-16
+coalition:
+  - spd
+  - fdp
+seats:
+  spd: 214
+  cdu: 190
+  csu: 53
+  fdp: 39

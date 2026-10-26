@@ -1,0 +1,13 @@
+# Schröder II government, seats from the 2002 election
+name: Schröder II
+inauguration: 2002-10-22
+coalition:
+  - spd
+  - gruene
+seats:
+  spd: 251
+  cdu: 190
+  csu: 58
+  gruene: 55
+  fdp: 47
+  pds: 2

@@ -1,0 +1,11 @@
+# Erlander III government, seats from the 1968 election
+name: Erlander III
+inauguration: 1968-09-16
+coalition:
+  - s
+seats:
+  s: 125
+  c: 39
+  l: 34
+  m: 32
+  v: 3

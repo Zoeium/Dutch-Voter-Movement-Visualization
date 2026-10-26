@@ -1,0 +1,18 @@
+date: 1988-09-18
+source:
+  name: 'Wikipedia: 1988 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1988_Swedish_general_election
+electorate: 6330023
+not_voted: 888973
+total_votes: 5441050
+non_valid_votes_and_blanco_votes: 67331
+valid_votes: 5373719
+parties_votes:
+  s: 2321826
+  m: 983226
+  l: 655720
+  c: 607240
+  v: 314031
+  mp: 296935
+  kd: 158182
+  other: 36559

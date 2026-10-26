@@ -1,0 +1,17 @@
+# May II government, seats from the 2017 general election
+name: May II
+inauguration: 2017-06-09
+coalition:
+  - conservative
+support:
+  - dup
+seats:
+  conservative: 317
+  labour: 262
+  snp: 35
+  lib_dem: 12
+  dup: 10
+  sinn_fein: 7
+  plaid_cymru: 4
+  other: 2
+  green: 1

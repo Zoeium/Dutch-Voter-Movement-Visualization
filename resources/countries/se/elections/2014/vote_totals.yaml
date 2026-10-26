@@ -1,0 +1,20 @@
+date: 2014-09-14
+source:
+  name: 'Wikipedia: 2014 Swedish general election'
+  url: https://en.wikipedia.org/wiki/2014_Swedish_general_election
+electorate: 7330432
+not_voted: 1043590
+total_votes: 6286842
+non_valid_votes_and_blanco_votes: 58443
+valid_votes: 6228399
+parties_votes:
+  s: 1932711
+  m: 1453517
+  sd: 801178
+  mp: 429275
+  c: 380937
+  v: 356331
+  l: 337773
+  kd: 284806
+  fi: 194719
+  other: 57152

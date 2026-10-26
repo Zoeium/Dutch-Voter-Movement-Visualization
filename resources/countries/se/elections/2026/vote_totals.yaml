@@ -1,0 +1,20 @@
+date: 2026-09-13
+source:
+  name: 'Wikipedia: 2026 Swedish general election (election-night count)'
+  url: https://en.wikipedia.org/wiki/2026_Swedish_general_election
+electorate: 8051355
+not_voted: 1280969
+total_votes: 6770386
+non_valid_votes_and_blanco_votes: 7427
+valid_votes: 6762959
+parties_votes:
+  s: 1895989
+  m: 1343448
+  sd: 1183248
+  v: 568781
+  c: 475780
+  kd: 417490
+  mp: 414307
+  l: 361187
+  other: 101443
+  fi: 1286

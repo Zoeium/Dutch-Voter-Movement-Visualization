@@ -1,0 +1,19 @@
+date: 1957-09-15
+source:
+  name: 'Wikipedia: 1957 West German federal election'
+  url: https://en.wikipedia.org/wiki/1957_West_German_federal_election
+electorate: 35400923
+not_voted: 4328029
+total_votes: 31072894
+non_valid_votes_and_blanco_votes: 1167466
+valid_votes: 29905428
+parties_votes:
+  cdu: 11875339
+  spd: 9495571
+  csu: 3133060
+  fdp: 2307135
+  gb_bhe: 1374066
+  dp: 1007282
+  other: 372149
+  drp: 308564
+  ssw: 32262

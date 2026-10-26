@@ -1,0 +1,11 @@
+# Brandt II government, seats from the 1972 election
+name: Brandt II
+inauguration: 1972-12-15
+coalition:
+  - spd
+  - fdp
+seats:
+  spd: 230
+  cdu: 177
+  csu: 48
+  fdp: 41

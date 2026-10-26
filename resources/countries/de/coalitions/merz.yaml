@@ -1,0 +1,15 @@
+# Merz government, seats from the 2025 election
+name: Merz
+inauguration: 2025-05-06
+coalition:
+  - cdu
+  - csu
+  - spd
+seats:
+  cdu: 164
+  afd: 152
+  spd: 120
+  gruene: 85
+  linke: 64
+  csu: 44
+  ssw: 1

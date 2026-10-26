@@ -1,20 +1,39 @@
-import {useDeferredValue, useMemo, useState} from 'react';
-import {Users, Info, ArrowDownUp, CalendarRange} from 'lucide-react';
+import {useDeferredValue, useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef, type ReactNode} from 'react';
+import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check, ChevronDown, ChevronUp} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
 import ParliamentDiagram from '@/components/ParliamentDiagram';
+import ElectionCompare from '@/components/ElectionCompare';
+import CoalitionExplorer from '@/components/CoalitionExplorer';
+import CountrySelect from '@/components/CountrySelect';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {
+  loadCountries,
   loadParties,
   loadElections,
   loadAllElections,
   loadDataSources,
   loadCoalitions,
   buildMultiElectionFlows,
+  buildComparisonRows,
+  type CountryInfo,
   type DataSourceEntry,
 } from '@/data/loader';
 import {DualRangeSlider} from '@/components/shared';
-import {sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
+import {formatElectionLabel, partyButtonClass, sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
+import {
+  ThemeContext,
+  LanguageContext,
+  translations,
+  useI18n,
+  useTheme,
+  type Theme,
+  type Language,
+  type TranslationKey,
+} from '@/theme';
+import {updateUrl, copyShareUrl, exportSvg, exportCsv, type UrlState} from '@/utils/export';
+
+type TabKey = 'alluvial' | 'turnout' | 'parliament' | 'compare' | 'coalition';
 
 interface AppData {
   parties: PartyInfo[];
@@ -24,18 +43,14 @@ interface AppData {
   coalitions: CoalitionData[];
 }
 
-/**
- * Load the static dataset once per component instance so a malformed resource
- * still surfaces as a render-time error without keeping module-scoped state.
- */
-function loadAppData(): AppData {
+function loadAppData(country: string): AppData {
   try {
     return {
-      parties: loadParties(),
-      allElections: loadElections(),
-      allElectionsForTurnout: loadAllElections(),
-      dataSources: loadDataSources(),
-      coalitions: loadCoalitions(),
+      parties: loadParties(country),
+      allElections: loadElections(country),
+      allElectionsForTurnout: loadAllElections(country),
+      dataSources: loadDataSources(country),
+      coalitions: loadCoalitions(country),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -43,17 +58,6 @@ function loadAppData(): AppData {
   }
 }
 
-/** Build the visual state classes for a party-filter button. */
-const partyButtonClass = (selected: boolean): string =>
-  `${selected ? 'ring-2 ring-offset-2 ring-offset-gray-950' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
-
-/** Format a data-source entry for the citations footer. */
-const getSourceLabel = (source: DataSourceEntry) =>
-  source.kind === 'totals'
-    ? `Totals (${source.year})`
-    : `Movements (${source.fromYear ?? source.year} → ${source.toYear ?? source.year})`;
-
-/** Gather the parties present in the selected election slice. */
 function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): PartyInfo[] {
   const partySet = new Set<string>();
 
@@ -68,322 +72,265 @@ function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): P
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
 
-/** Filter citations for the active view while keeping the logic outside the component tree. */
-function getFilteredDataSources(
-  activeTab: 'alluvial' | 'turnout' | 'parliament',
-  elections: ElectionYear[],
-  turnoutElections: ElectionYear[],
-  dataSources: DataSourceEntry[]
-): DataSourceEntry[] {
-  if (activeTab === 'alluvial') {
-    const yearSet = new Set(elections.map((election) => election.year));
-    return dataSources.filter((source) => yearSet.has(source.year));
-  }
+const DEFAULT_COUNTRY = 'nl';
 
-  if (activeTab === 'parliament') {
-    return [];
-  }
-
-  const yearSet = new Set(turnoutElections.map((election) => election.year));
-  return dataSources.filter((source) => source.kind === 'totals' && yearSet.has(source.year));
+/** The requested country when it has data, else the default country, else the first one. */
+function pickCountry(countryIds: string[], requested: string): string {
+  if (countryIds.includes(requested)) return requested;
+  if (countryIds.includes(DEFAULT_COUNTRY)) return DEFAULT_COUNTRY;
+  return countryIds[0] ?? '';
 }
 
-/** Render the voter movement, turnout, and parliament views. */
+/** Parse the state that survives a country switch from the URL. */
+function getInitialAppStateFromUrl(countries: CountryInfo[]) {
+  const params = new URLSearchParams(window.location.search);
+  const countryIds = countries.map((c) => c.id);
+  const country = params.get('country') ?? '';
+  const tab = (params.get('tab') as TabKey) || 'alluvial';
+  const validTabs: TabKey[] = ['alluvial', 'turnout', 'parliament', 'compare', 'coalition'];
+  const theme = (params.get('theme') as Theme) || 'dark';
+  const lang = (params.get('lang') as Language) || 'en';
+
+  return {
+    country: pickCountry(countryIds, country),
+    tab: validTabs.includes(tab) ? tab : 'alluvial' as TabKey,
+    theme: (theme === 'light' || theme === 'dark') ? theme : 'dark' as Theme,
+    lang: (lang === 'en' || lang === 'nl') ? lang : 'en' as Language,
+  };
+}
+
+/**
+ * Parse a country's initial diagram state from the URL. After a country switch the
+ * URL still describes the previous country, so `readUrl` is false and defaults apply.
+ */
+function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElections: ElectionYear[], readUrl: boolean) {
+  const params = new URLSearchParams(readUrl ? window.location.search : '');
+  const electionYears = allElections.map((e) => e.year);
+  const comparisonYears = comparisonElections.map((e) => e.year);
+
+  const party = params.get('party');
+
+  const readIndex = (key: string, fallback: number, max: number): number => {
+    if (!params.has(key)) return fallback;
+    const value = Number(params.get(key));
+    return Number.isInteger(value) ? Math.max(0, Math.min(max, value)) : fallback;
+  };
+  const maxElectionIndex = Math.max(0, electionYears.length - 1);
+  const maxComparisonIndex = Math.max(0, comparisonYears.length - 1);
+  const yearStart = readIndex('ys', 0, maxElectionIndex);
+  const yearEnd = Math.max(yearStart, readIndex('ye', maxElectionIndex, maxElectionIndex));
+  const turnoutYearStart = readIndex('tys', 0, maxComparisonIndex);
+  const turnoutYearEnd = Math.max(turnoutYearStart, readIndex('tye', maxComparisonIndex, maxComparisonIndex));
+
+  const sort = (params.get('sort') as SortMode) || 'votes';
+  const defaultCompareYearA = comparisonYears[Math.max(0, comparisonYears.length - 2)] ?? '';
+  const defaultCompareYearB = comparisonYears[comparisonYears.length - 1] ?? '';
+  const requestedCompareYearA = params.get('cmpA');
+  const requestedCompareYearB = params.get('cmpB');
+
+  return {
+    party: party || null,
+    yearStart,
+    yearEnd,
+    turnoutYearStart,
+    turnoutYearEnd,
+    sortMode: (sort === 'alphabetical' || sort === 'votes') ? sort : 'votes' as SortMode,
+    compareYearA: requestedCompareYearA && comparisonYears.includes(requestedCompareYearA)
+      ? requestedCompareYearA
+      : defaultCompareYearA,
+    compareYearB: requestedCompareYearB && comparisonYears.includes(requestedCompareYearB)
+      ? requestedCompareYearB
+      : defaultCompareYearB,
+  };
+}
+
 export default function App() {
-  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(loadAppData, []);
+  const countries = useMemo(loadCountries, []);
+  const initialAppState = useMemo(() => getInitialAppStateFromUrl(countries), [countries]);
 
-  const electionYears = useMemo(() => allElections.map((e) => e.year), [allElections]);
-  const defaultYearEnd = Math.max(0, electionYears.length - 1);
+  const [country, setCountry] = useState<string>(initialAppState.country);
+  const [readUrl, setReadUrl] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>(initialAppState.tab);
+  const [theme, setTheme] = useState<Theme>(initialAppState.theme);
+  const [lang, setLang] = useState<Language>(initialAppState.lang);
 
-  const [activeTab, setActiveTab] = useState<'alluvial' | 'turnout' | 'parliament'>('alluvial');
-  const [selectedParty, setSelectedParty] = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>('votes');
-  const [yearStart, setYearStart] = useState<number>(0);
-  const [yearEnd, setYearEnd] = useState<number>(defaultYearEnd);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+  }, [theme]);
 
-  // Separate year range for turnout diagram
-  const turnoutYears = useMemo(() => allElectionsForTurnout.map((e) => e.year), [allElectionsForTurnout]);
-  const defaultTurnoutYearEnd = Math.max(0, turnoutYears.length - 1);
-  const [turnoutYearStart, setTurnoutYearStart] = useState<number>(0);
-  const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(defaultTurnoutYearEnd);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
-  // Dragging the range slider fires onChange continuously; defer the expensive
-  // dataset rebuild so pointer movement stays responsive.
-  const deferredYearStart = useDeferredValue(yearStart);
-  const deferredYearEnd = useDeferredValue(yearEnd);
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
 
-  const elections = useMemo(
-    () => sliceByIndexRange(allElections, deferredYearStart, deferredYearEnd),
-    [allElections, deferredYearStart, deferredYearEnd]
-  );
+  const changeCountry = useCallback((id: string) => {
+    setReadUrl(false);
+    setCountry(id);
+  }, []);
 
-  const electionLabels = elections.map((e) => e.year);
-  const hasSelectableYears = electionYears.length > 0;
-
-  const {nodes, links} = useMemo(() => {
-    return buildMultiElectionFlows(elections, parties, selectedParty);
-  }, [elections, parties, selectedParty]);
-
-  // For turnout, filter by turnout year range
-  const deferredTurnoutYearStart = useDeferredValue(turnoutYearStart);
-  const deferredTurnoutYearEnd = useDeferredValue(turnoutYearEnd);
-
-  const turnoutElections = useMemo(
-    () => sliceByIndexRange(allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd),
-    [allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd]
-  );
-
-  // Build party list for selector (only parties that appear in movement data).
-  // If some parties are not present in movement data, collapse them into a single "other" block.
-  const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
-
-  const filteredDataSources = useMemo(
-    () => getFilteredDataSources(activeTab, elections, turnoutElections, dataSources),
-    [activeTab, elections, turnoutElections, dataSources]
-  );
+  const t = useCallback((key: TranslationKey) => translations[lang][key], [lang]);
+  // Stable context values: a new object every render would re-render every consumer.
+  const themeContext = useMemo(() => ({theme, toggleTheme}), [theme, toggleTheme]);
+  const languageContext = useMemo(() => ({lang, t}), [lang, t]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white"/>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Voter Flow</h1>
-              <p className="text-xs text-gray-400">Dutch election voter movement analysis</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <ThemeContext.Provider value={themeContext}>
+      <LanguageContext.Provider value={languageContext}>
+        {/* Keyed by country: every country starts with its own fresh diagram state. */}
+        <Dashboard
+          key={country}
+          country={country}
+          countries={countries}
+          onCountryChange={changeCountry}
+          readUrl={readUrl}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onLangChange={setLang}
+        />
+      </LanguageContext.Provider>
+    </ThemeContext.Provider>
+  );
+}
 
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
-        {/* Tabs */}
-        <div className="mb-8 flex gap-2">
+const HEADER_BUTTON_CLASS = 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
+const CARD_CLASS = 'bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl';
+
+/** Title and introduction shown above every tab. */
+function TabHeading({title, description}: Readonly<{ title: string; description: string }>) {
+  return (
+    <div className="mb-8">
+      <h2 className="text-3xl font-bold mb-2 text-app-heading">{title}</h2>
+      <p className="text-app-muted max-w-2xl">{description}</p>
+    </div>
+  );
+}
+
+/** Header button that briefly shows a check mark and `doneLabel` after it was used. */
+function FeedbackButton({done, icon, label, doneLabel, onClick}: Readonly<{
+  done: boolean;
+  icon: ReactNode;
+  label: string;
+  doneLabel: string;
+  onClick: () => void;
+}>) {
+  return (
+    <button type="button" onClick={onClick} className={HEADER_BUTTON_CLASS} aria-label={label}>
+      {done ? <Check className="w-4 h-4 text-emerald-500"/> : icon}
+      {done ? doneLabel : label}
+    </button>
+  );
+}
+
+interface YearRangeControlProps {
+  years: string[];
+  start: number;
+  end: number;
+  onStartChange: (index: number) => void;
+  onEndChange: (index: number) => void;
+  ariaLabelPrefix: string;
+}
+
+/** "Years: A–B" label with the range slider, or a note when there are no years. */
+function YearRangeControl({years, start, end, onStartChange, onEndChange, ariaLabelPrefix}: Readonly<YearRangeControlProps>) {
+  const {t} = useI18n();
+  if (years.length === 0) {
+    return <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('yearsNone')}</span>;
+  }
+  return (
+    <>
+      <span className="text-sm font-medium text-app-muted whitespace-nowrap">
+        {`${t('years')}: ${formatElectionLabel(years[start])}–${formatElectionLabel(years[end])}`}
+      </span>
+      <DualRangeSlider
+        min={0}
+        max={years.length - 1}
+        start={start}
+        end={end}
+        onStartChange={onStartChange}
+        onEndChange={onEndChange}
+        startAriaLabel={`${ariaLabelPrefix} start`}
+        endAriaLabel={`${ariaLabelPrefix} end`}
+      />
+    </>
+  );
+}
+
+/** "All parties" plus one toggle per party with voter movement data. */
+function PartyFilter({parties, activeParty, onSelect}: Readonly<{
+  parties: PartyInfo[];
+  activeParty: string | null;
+  onSelect: (party: string | null) => void;
+}>) {
+  const {t} = useI18n();
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('partyFilter')}</span>
+      <button
+        type="button"
+        onClick={() => onSelect(null)}
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeParty === null)}`}
+      >
+        {t('allParties')}
+      </button>
+      {parties.map((p) => {
+        const isSelected = activeParty === p.party;
+        return (
           <button
             type="button"
-            onClick={() => setActiveTab('alluvial')}
-            className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'alluvial')}`}
+            key={p.party}
+            onClick={() => onSelect(isSelected ? null : p.party)}
+            className={partyButtonClass(isSelected, 'ring-offset-app-bg')}
+            style={isSelected ? {backgroundColor: p.color, color: '#fff', boxShadow: `0 0 0 2px ${p.color}`} : undefined}
           >
-            Voter Movements
+            <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
+            {p.display_name}
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('turnout')}
-            className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'turnout')}`}
-          >
-            Turnout Overview
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('parliament')}
-            className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === 'parliament')}`}
-          >
-            Parliament Composition
-          </button>
-        </div>
+        );
+      })}
+    </div>
+  );
+}
 
-        {/* Alluvial Tab */}
-        {activeTab === 'alluvial' && (
-          <>
-            {/* Intro */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Voter movements between parties</h2>
-              <p className="text-gray-400 max-w-2xl">
-                Visualizes voter migration across Dutch parliamentary elections. Each flow shows
-                where a party's voters came from — or where they went. Hover over a party block
-                to highlight its flows, or filter to a single party.
-              </p>
-            </div>
+/** Collapsible list of every data source of the selected country. */
+function SourcesFooter({dataSources}: Readonly<{ dataSources: DataSourceEntry[] }>) {
+  const {t} = useI18n();
+  const [isOpen, setIsOpen] = useState(false);
 
-            {/* Controls */}
-        <div className="mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-          {/* Party filter */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Party filter:</span>
-            <button
-              type="button"
-              onClick={() => setSelectedParty(null)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(selectedParty === null)}`}
-            >
-              All parties
-            </button>
-            {availableParties.map((p) => {
-              const isSelected = selectedParty === p.party;
+  const getSourceLabel = (source: DataSourceEntry) =>
+    source.kind === 'totals'
+      ? `${t('totals')} (${formatElectionLabel(source.year)})`
+      : `${t('movements')} (${formatElectionLabel(source.fromYear ?? source.year)} → ${formatElectionLabel(source.toYear ?? source.year)})`;
 
-              return (
-                <button
-                  type="button"
-                  key={p.party}
-                  onClick={() => setSelectedParty(isSelected ? null : p.party)}
-                  className={partyButtonClass(isSelected)}
-                  style={
-                    isSelected
-                      ? {
-                        backgroundColor: p.color,
-                        color: '#fff',
-                        boxShadow: `0 0 0 2px ${p.color}`,
-                      }
-                      : undefined
-                  }
-                >
-                  <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
-                  {p.display_name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mb-6 flex items-center gap-4 flex-wrap">
-          {/* Year range slider */}
-          <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
-            <CalendarRange className="w-4 h-4 text-gray-400"/>
-            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
-              {hasSelectableYears
-                ? `Years: ${electionYears[yearStart]}–${electionYears[yearEnd]}`
-                : 'Years: none available'}
-            </span>
-            {hasSelectableYears && (
-              <DualRangeSlider
-                min={0}
-                max={electionYears.length - 1}
-                start={yearStart}
-                end={yearEnd}
-                onStartChange={setYearStart}
-                onEndChange={setYearEnd}
-                startAriaLabel="Range start"
-                endAriaLabel="Range end"
-              />
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 ml-auto">
-            <ArrowDownUp className="w-4 h-4 text-gray-400"/>
-            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Sort:</span>
-            <button
-              type="button"
-              onClick={() => setSortMode('votes')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'votes')}`}
-            >
-              By votes
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode('alphabetical')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'alphabetical')}`}
-            >
-              Alphabetical
-            </button>
-
-          </div>
-        </div>
-
-            {/* Diagram */}
-            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
-              {nodes.length === 0 ? (
-                <div className="flex items-center justify-center h-96 text-gray-500">
-                  <div className="text-center">
-                    <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
-                    <p>No flow data available for the selected filters.</p>
-                  </div>
-                </div>
-              ) : (
-                <AlluvialDiagram
-                  nodes={nodes}
-                  links={links}
-                  numColumns={elections.length}
-                  electionLabels={electionLabels}
-                  selectedParty={selectedParty}
-                  sortMode={sortMode}
-                />
-              )}
-            </div>
-          </>
-        )}
-
-        {/* Turnout Tab */}
-        {activeTab === 'turnout' && (
-          <>
-            {/* Intro */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Turnout & vote breakdown</h2>
-              <p className="text-gray-400 max-w-2xl">
-                Total electorate split into valid votes, blanco, invalid, and those who did not vote.
-                Hover a bar for details.
-              </p>
-            </div>
-
-            {/* Year range selector for turnout */}
-            <div className="mb-6 flex items-center gap-3 flex-wrap">
-              <CalendarRange className="w-4 h-4 text-gray-400"/>
-              <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
-                {turnoutYears.length > 0
-                  ? `Years: ${turnoutYears[turnoutYearStart]}–${turnoutYears[turnoutYearEnd]}`
-                  : 'Years: none available'}
-              </span>
-              {turnoutYears.length > 0 && (
-                <DualRangeSlider
-                  min={0}
-                  max={turnoutYears.length - 1}
-                  start={turnoutYearStart}
-                  end={turnoutYearEnd}
-                  onStartChange={setTurnoutYearStart}
-                  onEndChange={setTurnoutYearEnd}
-                  startAriaLabel="Turnout range start"
-                  endAriaLabel="Turnout range end"
-                />
-              )}
-            </div>
-
-            {/* Turnout Diagram */}
-            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
-              <TurnoutDiagram elections={turnoutElections}/>
-            </div>
-          </>
-        )}
-
-        {/* Parliament Tab */}
-        {activeTab === 'parliament' && (
-          <>
-            {/* Intro */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Parliament composition</h2>
-              <p className="text-gray-400 max-w-2xl">
-                Coalition and opposition parties across elections. Parties are sorted by number of seats,
-                with coalition parties shown above the dashed line and opposition parties below.
-                Lines connect the same party (or successor parties) across elections.
-              </p>
-            </div>
-
-            {/* Parliament Diagram */}
-            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-2xl">
-              <ParliamentDiagram coalitions={coalitions} parties={parties}/>
-            </div>
-          </>
-        )}
-      </main>
-
-      <footer className="border-t border-gray-800 mt-12 py-8">
-        <div className="max-w-[1600px] mx-auto px-6">
-          <div className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-gray-400">
-            Sources
-          </div>
-          <ul className="space-y-3 text-sm text-gray-500">
-            {filteredDataSources.map((source) => (
+  return (
+    <footer className="border-t border-app-border mt-12 py-8">
+      <div className="max-w-[1600px] mx-auto px-6">
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          aria-controls="all-data-sources"
+          className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted hover:text-app-text"
+        >
+          {t('sources')}
+          <span className="normal-case tracking-normal">
+            — {isOpen ? t('sourcesHide') : t('sourcesShow')}
+          </span>
+          {isOpen ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+        </button>
+        {isOpen && (
+          <ul id="all-data-sources" className="mt-4 space-y-3 text-sm text-app-subtle">
+            {dataSources.map((source) => (
               <li key={`${source.year}-${source.kind}-${source.name}`}
                   className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                <span className="text-gray-300 font-medium min-w-[170px]">{getSourceLabel(source)}</span>
+                <span className="text-app-text font-medium min-w-[170px]">{getSourceLabel(source)}</span>
                 {source.url ? (
-                  <a
-                    href={source.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-emerald-400 underline decoration-dotted underline-offset-4 hover:text-emerald-300"
-                  >
+                  <a href={source.url} target="_blank" rel="noreferrer"
+                     className="text-app-link underline decoration-dotted underline-offset-4 hover:text-app-link-hover">
                     {source.name}
                   </a>
                 ) : (
@@ -392,8 +339,380 @@ export default function App() {
               </li>
             ))}
           </ul>
+        )}
+      </div>
+    </footer>
+  );
+}
+
+interface DashboardProps {
+  country: string;
+  countries: CountryInfo[];
+  onCountryChange: (country: string) => void;
+  readUrl: boolean;
+  activeTab: TabKey;
+  onTabChange: (tab: TabKey) => void;
+  onLangChange: (lang: Language) => void;
+}
+
+function Dashboard({
+  country,
+  countries,
+  onCountryChange,
+  readUrl,
+  activeTab: requestedTab,
+  onTabChange,
+  onLangChange,
+}: Readonly<DashboardProps>) {
+  const {theme, toggleTheme} = useTheme();
+  const {lang, t} = useI18n();
+  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(
+    () => loadAppData(country),
+    [country]
+  );
+
+  const initialState = useMemo(
+    () => getInitialStateFromUrl(allElections, allElectionsForTurnout, readUrl),
+    [allElections, allElectionsForTurnout, readUrl]
+  );
+
+  // A country without any known voter movements has no flow diagram at all.
+  const hasMovements = allElections.length >= 2;
+  const activeTab: TabKey = requestedTab === 'alluvial' && !hasMovements ? 'turnout' : requestedTab;
+  const setActiveTab = onTabChange;
+  const setLang = onLangChange;
+
+  const electionYears = useMemo(() => allElections.map((e) => e.year), [allElections]);
+
+  const [selectedParty, setSelectedParty] = useState<string | null>(initialState.party);
+  const [sortMode, setSortMode] = useState<SortMode>(initialState.sortMode);
+  const [yearStart, setYearStart] = useState<number>(initialState.yearStart);
+  const [yearEnd, setYearEnd] = useState<number>(initialState.yearEnd);
+
+  // Compare tab state
+  const [compareYearA, setCompareYearA] = useState<string>(initialState.compareYearA);
+  const [compareYearB, setCompareYearB] = useState<string>(initialState.compareYearB);
+
+  const turnoutYears = useMemo(() => allElectionsForTurnout.map((e) => e.year), [allElectionsForTurnout]);
+  const [turnoutYearStart, setTurnoutYearStart] = useState<number>(initialState.turnoutYearStart);
+  const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(initialState.turnoutYearEnd);
+
+  const deferredYearStart = useDeferredValue(yearStart);
+  const deferredYearEnd = useDeferredValue(yearEnd);
+
+  const elections = useMemo(
+    () => sliceByIndexRange(allElections, deferredYearStart, deferredYearEnd),
+    [allElections, deferredYearStart, deferredYearEnd]
+  );
+
+  const electionLabels = elections.map((e) => formatElectionLabel(e.year));
+
+  const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
+
+  // A party from the URL, or one with no movements in the current range, has no filter
+  // button, so it must not silently filter the diagram. The selection is kept so it
+  // applies again once the range includes the party.
+  const activeParty = selectedParty && availableParties.some((p) => p.party === selectedParty)
+    ? selectedParty
+    : null;
+
+  const {nodes, links} = useMemo(() => {
+    return buildMultiElectionFlows(elections, parties, activeParty);
+  }, [elections, parties, activeParty]);
+
+  const deferredTurnoutYearStart = useDeferredValue(turnoutYearStart);
+  const deferredTurnoutYearEnd = useDeferredValue(turnoutYearEnd);
+
+  const turnoutElections = useMemo(
+    () => sliceByIndexRange(allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd),
+    [allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd]
+  );
+
+  const urlState = useMemo(() => {
+    const state: UrlState = {
+      country,
+      tab: activeTab,
+      theme,
+      lang,
+    };
+    if (activeTab === 'alluvial') {
+      state.ys = yearStart;
+      state.ye = yearEnd;
+      state.party = activeParty;
+      state.sort = sortMode;
+    } else if (activeTab === 'turnout') {
+      state.tys = turnoutYearStart;
+      state.tye = turnoutYearEnd;
+    } else if (activeTab === 'compare') {
+      state.cmpA = compareYearA;
+      state.cmpB = compareYearB;
+    }
+    return state;
+  }, [country, activeTab, yearStart, yearEnd, activeParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
+
+  // Debounced: dragging a slider changes urlState on every step, and Safari/Firefox
+  // throw once replaceState is called more than ~100-200 times in 10 seconds.
+  useEffect(() => {
+    const timeout = setTimeout(() => updateUrl(urlState), 300);
+    return () => clearTimeout(timeout);
+  }, [urlState]);
+
+  // Share & export state
+  const [shareFeedback, setShareFeedback] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState(false);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const isCompareTab = activeTab === 'compare';
+
+  const handleShare = useCallback(async () => {
+    const success = await copyShareUrl(urlState);
+    if (success) {
+      setShareFeedback(true);
+      setTimeout(() => setShareFeedback(false), 2000);
+    }
+  }, [urlState]);
+
+  const handleExportChart = useCallback(() => {
+    const svg = chartContainerRef.current?.querySelector<SVGSVGElement>('svg[data-export-chart]');
+    if (!svg) return;
+    const filename = `voterflow-${activeTab}-${Date.now()}.svg`;
+    exportSvg(svg, filename);
+    setExportFeedback(true);
+    setTimeout(() => setExportFeedback(false), 2000);
+  }, [activeTab]);
+
+  const handleExportData = useCallback(() => {
+    const headers = ['Party', `Votes ${compareYearA}`, `Votes ${compareYearB}`, 'Vote change', `Share ${compareYearA}`, `Share ${compareYearB}`, 'Share change pp', `Seats ${compareYearA}`, `Seats ${compareYearB}`, 'Seat change'];
+    const comparisonRows = buildComparisonRows(allElectionsForTurnout, compareYearA, compareYearB, coalitions, parties);
+    if (comparisonRows.length === 0) return;
+    const rows = comparisonRows.map((row) => [
+      row.label, row.votesA, row.votesB, row.voteChange,
+      row.shareA.toFixed(1), row.shareB.toFixed(1), row.shareChange.toFixed(1),
+      row.seatsA ?? '', row.seatsB ?? '', row.seatChange ?? '',
+    ]);
+    exportCsv(headers, rows, `voterflow-compare-${Date.now()}.csv`);
+    setExportFeedback(true);
+    setTimeout(() => setExportFeedback(false), 2000);
+  }, [allElectionsForTurnout, coalitions, parties, compareYearA, compareYearB]);
+
+  const tabs: {key: TabKey; label: string}[] = [
+    ...(hasMovements ? [{key: 'alluvial' as TabKey, label: t('tabAlluvial')}] : []),
+    {key: 'turnout', label: t('tabTurnout')},
+    {key: 'parliament', label: t('tabParliament')},
+    {key: 'compare', label: t('tabCompare')},
+    {key: 'coalition', label: t('tabCoalition')},
+  ];
+
+  return (
+    <div className="min-h-screen bg-app-bg text-app-text">
+      {/* Header */}
+      <header className="border-b border-app-border bg-app-header backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <Users className="w-5 h-5 text-white"/>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-app-heading">{t('appTitle')}</h1>
+            </div>
+
+            {/* Data selector: whose elections are shown. Kept apart from the display
+                settings on the right so it does not read as a language choice. */}
+            {countries.length > 1 && (
+              <div className="ml-4 pl-4 border-l border-app-border">
+                <CountrySelect countries={countries} value={country} onChange={onCountryChange}/>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <FeedbackButton
+              done={shareFeedback}
+              icon={<Share2 className="w-4 h-4"/>}
+              label={t('share')}
+              doneLabel={t('shareCopied')}
+              onClick={handleShare}
+            />
+            {/* The compare tab exports its table as CSV; every other tab its chart as SVG. */}
+            <FeedbackButton
+              done={exportFeedback}
+              icon={<Download className="w-4 h-4"/>}
+              label={isCompareTab ? t('exportData') : t('exportChart')}
+              doneLabel={t('exportDone')}
+              onClick={isCompareTab ? handleExportData : handleExportChart}
+            />
+
+            {/* Language selector */}
+            <label
+              title={t('languageHint')}
+              className="flex items-center gap-1.5 px-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text border border-app-border"
+            >
+              <Languages className="w-4 h-4"/>
+              <span className="sr-only">{t('language')}</span>
+              <span className="relative">
+                <select
+                  value={lang}
+                  onChange={(event) => setLang(event.target.value as Language)}
+                  className="app-select app-select-compact"
+                  aria-label={t('language')}
+                >
+                  <option value="en">English</option>
+                  <option value="nl">Nederlands</option>
+                </select>
+                <ChevronDown className="app-select-chevron w-3.5 h-3.5"/>
+              </span>
+            </label>
+
+            {/* Theme toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={HEADER_BUTTON_CLASS}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
+              {theme === 'dark' ? t('lightMode') : t('darkMode')}
+            </button>
+          </div>
         </div>
-      </footer>
+      </header>
+
+      <main className="max-w-[1600px] mx-auto px-6 py-8">
+        {/* Tabs */}
+        <div className="mb-8 flex gap-2 flex-wrap">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeTab === tab.key)}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Alluvial Tab */}
+        {activeTab === 'alluvial' && (
+          <>
+            <TabHeading title={t('alluvialTitle')} description={t('alluvialDescription')}/>
+
+            <div className="mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+              <PartyFilter parties={availableParties} activeParty={activeParty} onSelect={setSelectedParty}/>
+            </div>
+
+            <div className="mb-6 flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
+                <CalendarRange className="w-4 h-4 text-app-muted"/>
+                <YearRangeControl
+                  years={electionYears}
+                  start={yearStart}
+                  end={yearEnd}
+                  onStartChange={setYearStart}
+                  onEndChange={setYearEnd}
+                  ariaLabelPrefix="Range"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 ml-auto">
+                <ArrowDownUp className="w-4 h-4 text-app-muted"/>
+                <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('sort')}</span>
+                <button type="button" onClick={() => setSortMode('votes')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'votes')}`}>{t('sortByVotes')}</button>
+                <button type="button" onClick={() => setSortMode('alphabetical')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(sortMode === 'alphabetical')}`}>{t('sortAlphabetical')}</button>
+              </div>
+            </div>
+
+            <div ref={chartContainerRef} className={CARD_CLASS}>
+              {nodes.length === 0 ? (
+                <div className="flex items-center justify-center h-96 text-app-muted">
+                  <div className="text-center">
+                    <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
+                    <p>{t('noFlowData')}</p>
+                  </div>
+                </div>
+              ) : (
+                <AlluvialDiagram
+                  nodes={nodes}
+                  links={links}
+                  numColumns={elections.length}
+                  electionLabels={electionLabels}
+                  selectedParty={activeParty}
+                  sortMode={sortMode}
+                />
+              )}
+            </div>
+
+          </>
+        )}
+
+        {/* Turnout Tab */}
+        {activeTab === 'turnout' && (
+          <>
+            <TabHeading title={t('turnoutTitle')} description={t('turnoutDescription')}/>
+
+            <div className="mb-6 flex items-center gap-3 flex-wrap">
+              <CalendarRange className="w-4 h-4 text-app-muted"/>
+              <YearRangeControl
+                years={turnoutYears}
+                start={turnoutYearStart}
+                end={turnoutYearEnd}
+                onStartChange={setTurnoutYearStart}
+                onEndChange={setTurnoutYearEnd}
+                ariaLabelPrefix="Turnout range"
+              />
+            </div>
+
+            <div ref={chartContainerRef} className={CARD_CLASS}>
+              <TurnoutDiagram elections={turnoutElections}/>
+            </div>
+
+          </>
+        )}
+
+        {/* Parliament Tab */}
+        {activeTab === 'parliament' && (
+          <>
+            <TabHeading title={t('parliamentTitle')} description={t('parliamentDescription')}/>
+
+            <div ref={chartContainerRef} className={CARD_CLASS}>
+              <ParliamentDiagram coalitions={coalitions} parties={parties}/>
+            </div>
+
+          </>
+        )}
+
+        {/* Compare Tab */}
+        {isCompareTab && (
+          <>
+            <TabHeading title={t('compareTitle')} description={t('compareDescription')}/>
+
+            <div className={CARD_CLASS}>
+              <ElectionCompare
+                elections={allElectionsForTurnout}
+                coalitions={coalitions}
+                parties={parties}
+                yearA={compareYearA}
+                yearB={compareYearB}
+                onYearAChange={setCompareYearA}
+                onYearBChange={setCompareYearB}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Coalition Explorer Tab */}
+        {activeTab === 'coalition' && (
+          <>
+            <TabHeading title={t('coalitionExplTitle')} description={t('coalitionExplDescription')}/>
+
+            <div ref={chartContainerRef} className={CARD_CLASS}>
+              <CoalitionExplorer coalitions={coalitions} parties={parties}/>
+            </div>
+          </>
+        )}
+      </main>
+
+      <SourcesFooter dataSources={dataSources}/>
     </div>
   );
 }

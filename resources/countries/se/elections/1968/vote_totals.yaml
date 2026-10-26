@@ -1,0 +1,18 @@
+date: 1968-09-15
+source:
+  name: 'Wikipedia: 1968 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1968_Swedish_general_election
+electorate: 5445333
+not_voted: 583432
+total_votes: 4861901
+non_valid_votes_and_blanco_votes: 32522
+valid_votes: 4829379
+parties_votes:
+  s: 2420277
+  c: 757215
+  l: 688456
+  m: 621031
+  v: 145172
+  medborgerlig_samling: 82082
+  kd: 72377
+  other: 42769

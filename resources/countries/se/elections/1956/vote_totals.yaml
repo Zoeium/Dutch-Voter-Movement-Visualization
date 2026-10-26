@@ -1,0 +1,16 @@
+date: 1956-09-16
+source:
+  name: 'Wikipedia: 1956 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1956_Swedish_general_election
+electorate: 4887325
+not_voted: 985211
+total_votes: 3902114
+non_valid_votes_and_blanco_votes: 22784
+valid_votes: 3879330
+parties_votes:
+  s: 1729463
+  l: 923564
+  m: 663693
+  c: 366612
+  v: 194016
+  other: 1982

@@ -1,0 +1,17 @@
+date: 1970-06-18
+source:
+  name: 'Wikipedia: 1970 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1970_United_Kingdom_general_election'
+electorate: 39342013
+not_voted: 10997215
+total_votes: 28344798
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 28344798
+parties_votes:
+  conservative: 13145123
+  labour: 12208758
+  liberal: 2117035
+  other: 392064
+  snp: 306802
+  plaid_cymru: 175016

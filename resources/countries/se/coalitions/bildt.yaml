@@ -1,0 +1,16 @@
+# Bildt government, seats from the 1991 election
+name: Bildt
+inauguration: 1991-10-04
+coalition:
+  - m
+  - l
+  - c
+  - kd
+seats:
+  s: 138
+  m: 80
+  l: 33
+  c: 31
+  kd: 26
+  nyd: 25
+  v: 16

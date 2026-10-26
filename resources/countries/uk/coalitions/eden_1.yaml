@@ -1,0 +1,12 @@
+# Eden I government, seats from the 1951 general election
+name: Eden I
+inauguration: 1955-04-06
+coalition:
+  - conservative
+  - national_liberal
+seats:
+  conservative: 302
+  labour: 295
+  national_liberal: 19
+  liberal: 6
+  other: 3

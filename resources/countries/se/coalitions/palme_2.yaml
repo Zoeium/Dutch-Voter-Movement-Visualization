@@ -1,0 +1,11 @@
+# Palme II government, seats from the 1982 election
+name: Palme II
+inauguration: 1982-10-08
+coalition:
+  - s
+seats:
+  s: 166
+  m: 86
+  c: 56
+  l: 21
+  v: 20

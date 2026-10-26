@@ -1,0 +1,19 @@
+date: 1955-05-26
+source:
+  name: 'Wikipedia: 1955 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1955_United_Kingdom_general_election'
+electorate: 34862179
+not_voted: 8102450
+total_votes: 26759729
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 26759729
+parties_votes:
+  conservative: 12468778
+  labour: 12405254
+  national_liberal: 842113
+  liberal: 722402
+  sinn_fein: 152310
+  other: 111641
+  plaid_cymru: 45119
+  snp: 12112

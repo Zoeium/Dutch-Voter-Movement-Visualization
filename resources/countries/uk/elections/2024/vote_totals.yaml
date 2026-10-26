@@ -1,0 +1,24 @@
+date: 2024-07-04
+source:
+  name: 'Wikipedia: 2024 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/2024_United_Kingdom_general_election'
+electorate: 48224212
+not_voted: 19414872
+total_votes: 28809340
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 28809340
+parties_votes:
+  labour: 9708716
+  conservative: 6828925
+  reform_uk: 4117610
+  lib_dem: 3519143
+  green: 1841888
+  other: 1191709
+  snp: 724758
+  sinn_fein: 210891
+  plaid_cymru: 194811
+  dup: 172058
+  alliance_ni: 117191
+  uup: 94779
+  sdlp: 86861

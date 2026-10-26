@@ -1,0 +1,273 @@
+import {useMemo, useState} from 'react';
+import {ArrowUp, ArrowDown, ArrowDownUp, ChevronDown, Minus} from 'lucide-react';
+import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
+import {buildComparisonRows} from '@/data/loader';
+import {formatElectionLabel} from '@/components/diagramUtils';
+import {useI18n} from '@/theme';
+
+interface ElectionCompareProps {
+  elections: ElectionYear[];
+  coalitions: CoalitionData[];
+  parties: PartyInfo[];
+  yearA: string;
+  yearB: string;
+  onYearAChange: (year: string) => void;
+  onYearBChange: (year: string) => void;
+}
+
+type SortKey = 'label' | 'votesA' | 'votesB' | 'voteChange' | 'shareA' | 'shareB' | 'shareChange' | 'seatsA' | 'seatsB' | 'seatChange';
+
+function formatSigned(n: number): string {
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${n.toLocaleString('en-US')}`;
+}
+
+function formatSignedPP(n: number): string {
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${n.toFixed(1)}pp`;
+}
+
+function ChangeIcon({value}: Readonly<{ value: number }>) {
+  if (value > 0) return <ArrowUp className="w-3.5 h-3.5 text-emerald-500"/>;
+  if (value < 0) return <ArrowDown className="w-3.5 h-3.5 text-red-500"/>;
+  return <Minus className="w-3.5 h-3.5 text-app-subtle"/>;
+}
+
+/** Text colour for a change: green for a gain, red for a loss, muted for none. */
+function changeClass(value: number): string {
+  if (value > 0) return 'text-emerald-500';
+  if (value < 0) return 'text-red-500';
+  return 'text-app-subtle';
+}
+
+type SortDirection = 'asc' | 'desc';
+
+function ariaSort(isSorted: boolean, direction: SortDirection): 'ascending' | 'descending' | 'none' {
+  if (!isSorted) return 'none';
+  return direction === 'asc' ? 'ascending' : 'descending';
+}
+
+function SortIcon({isSorted, direction}: Readonly<{ isSorted: boolean; direction: SortDirection }>) {
+  if (!isSorted) return <ArrowDownUp className="w-3.5 h-3.5 opacity-40"/>;
+  return direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5"/> : <ArrowDown className="w-3.5 h-3.5"/>;
+}
+
+export default function ElectionCompare({elections, coalitions, parties, yearA, yearB, onYearAChange, onYearBChange}: Readonly<ElectionCompareProps>) {
+  const {t} = useI18n();
+  const [sortKey, setSortKey] = useState<SortKey>('voteChange');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const years = elections.map((e) => e.year);
+
+  const rows = useMemo(
+    () => buildComparisonRows(elections, yearA, yearB, coalitions, parties),
+    [elections, coalitions, parties, yearA, yearB]
+  );
+
+  const isSameYear = yearA === yearB;
+  let emptyMessage: string | null = null;
+  if (isSameYear) emptyMessage = t('compareSameElection');
+  else if (rows.length === 0) emptyMessage = t('compareSelectTwo');
+
+  const totalValidA = elections.find((e) => e.year === yearA)?.voteTotals.valid_votes ?? 0;
+  const totalValidB = elections.find((e) => e.year === yearB)?.voteTotals.valid_votes ?? 0;
+
+  const biggestGainers = useMemo(
+    () => rows.filter((r) => r.shareChange > 0).sort((a, b) => b.shareChange - a.shareChange).slice(0, 3),
+    [rows]
+  );
+  const biggestLosers = useMemo(
+    () => rows.filter((r) => r.shareChange < 0).sort((a, b) => a.shareChange - b.shareChange).slice(0, 3),
+    [rows]
+  );
+  const sortedRows = useMemo(() => [...rows].sort((a, b) => {
+    const left = a[sortKey];
+    const right = b[sortKey];
+    if (left === null || right === null) {
+      if (left !== right) return left === null ? 1 : -1;
+    }
+    const comparison = typeof left === 'string' && typeof right === 'string'
+      ? left.localeCompare(right)
+      : Number(left) - Number(right);
+    const direction = sortDirection === 'asc' ? 1 : -1;
+    return comparison === 0
+      ? a.partyId.localeCompare(b.partyId) * direction
+      : comparison * direction;
+  }), [rows, sortKey, sortDirection]);
+
+  const requestSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((direction) => direction === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    setSortKey(key);
+    setSortDirection('desc');
+  };
+
+  const selectClass = 'app-select';
+  const headers: {key: SortKey; label: string; align: 'left' | 'right'}[] = [
+    {key: 'label', label: t('compareParty'), align: 'left'},
+    {key: 'votesA', label: `${t('compareVotes')} (${formatElectionLabel(yearA)})`, align: 'right'},
+    {key: 'votesB', label: `${t('compareVotes')} (${formatElectionLabel(yearB)})`, align: 'right'},
+    {key: 'voteChange', label: t('compareVoteChange'), align: 'right'},
+    {key: 'shareA', label: `${t('compareVoteShare')} (${formatElectionLabel(yearA)})`, align: 'right'},
+    {key: 'shareB', label: `${t('compareVoteShare')} (${formatElectionLabel(yearB)})`, align: 'right'},
+    {key: 'shareChange', label: t('compareShareChange'), align: 'right'},
+    {key: 'seatsA', label: `${t('compareSeats')} (${formatElectionLabel(yearA)})`, align: 'right'},
+    {key: 'seatsB', label: `${t('compareSeats')} (${formatElectionLabel(yearB)})`, align: 'right'},
+    {key: 'seatChange', label: t('compareSeatChange'), align: 'right'},
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
+          <span className="relative">
+            <select value={yearA} onChange={(e) => onYearAChange(e.target.value)} className={selectClass}>
+              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y)}</option>)}
+            </select>
+            <ChevronDown className="app-select-chevron w-4 h-4"/>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
+          <span className="relative">
+            <select value={yearB} onChange={(e) => onYearBChange(e.target.value)} className={selectClass}>
+              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y)}</option>)}
+            </select>
+            <ChevronDown className="app-select-chevron w-4 h-4"/>
+          </span>
+        </div>
+      </div>
+
+      {emptyMessage ? (
+        <div className="flex items-center justify-center h-48 text-app-muted">
+          <p>{emptyMessage}</p>
+        </div>
+      ) : (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {biggestGainers.length > 0 && (
+              <div className="bg-app-card rounded-xl p-4 border border-app-border">
+                <h4 className="text-sm font-semibold text-app-heading mb-3">{t('compareGainers')}</h4>
+                <div className="space-y-2">
+                  {biggestGainers.map((r) => (
+                    <div key={`g-${r.partyId}`} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{backgroundColor: r.color}}/>
+                        <span className="text-app-text">{r.label}</span>
+                      </div>
+                      <span className="font-semibold text-emerald-500">{formatSignedPP(r.shareChange)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {biggestLosers.length > 0 && (
+              <div className="bg-app-card rounded-xl p-4 border border-app-border">
+                <h4 className="text-sm font-semibold text-app-heading mb-3">{t('compareLosers')}</h4>
+                <div className="space-y-2">
+                  {biggestLosers.map((r) => (
+                    <div key={`l-${r.partyId}`} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{backgroundColor: r.color}}/>
+                        <span className="text-app-text">{r.label}</span>
+                      </div>
+                      <span className="font-semibold text-red-500">{formatSignedPP(r.shareChange)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Comparison table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-app-border">
+                  {headers.map(({key, label, align}) => (
+                    <th
+                      key={key}
+                      className={`py-3 px-3 font-semibold text-app-heading ${align === 'left' ? 'text-left' : 'text-right'}`}
+                      aria-sort={ariaSort(sortKey === key, sortDirection)}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => requestSort(key)}
+                        className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}
+                      >
+                        {label}
+                        <SortIcon isSorted={sortKey === key} direction={sortDirection}/>
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-app-border text-app-muted">
+                  <td className="py-2 px-3 italic">{t('compareTotalVotes')}</td>
+                  <td className="text-right py-2 px-3">{totalValidA.toLocaleString('en-US')}</td>
+                  <td className="text-right py-2 px-3">{totalValidB.toLocaleString('en-US')}</td>
+                  <td className="text-right py-2 px-3">{formatSigned(totalValidB - totalValidA)}</td>
+                  <td className="text-right py-2 px-3">100.0%</td>
+                  <td className="text-right py-2 px-3">100.0%</td>
+                  <td className="text-right py-2 px-3">—</td>
+                  <td className="text-right py-2 px-3">{rows.reduce((s, r) => s + (r.seatsA ?? 0), 0) || '—'}</td>
+                  <td className="text-right py-2 px-3">{rows.reduce((s, r) => s + (r.seatsB ?? 0), 0) || '—'}</td>
+                  <td className="text-right py-2 px-3">—</td>
+                </tr>
+                {sortedRows.map((row) => (
+                  <tr key={row.partyId} className="border-b border-app-border hover:bg-app-btn transition-colors">
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{backgroundColor: row.color}}/>
+                        <span className="text-app-text font-medium">{row.label}</span>
+                      </div>
+                    </td>
+                    <td className="text-right py-2 px-3 text-app-muted">{row.votesA.toLocaleString('en-US')}</td>
+                    <td className="text-right py-2 px-3 text-app-muted">{row.votesB.toLocaleString('en-US')}</td>
+                    <td className="text-right py-2 px-3">
+                      <span className="inline-flex items-center gap-1 font-medium">
+                        <ChangeIcon value={row.voteChange}/>
+                        <span className={changeClass(row.voteChange)}>
+                          {formatSigned(row.voteChange)}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="text-right py-2 px-3 text-app-muted">{row.shareA.toFixed(1)}%</td>
+                    <td className="text-right py-2 px-3 text-app-muted">{row.shareB.toFixed(1)}%</td>
+                    <td className="text-right py-2 px-3">
+                      <span className="inline-flex items-center gap-1 font-medium">
+                        <ChangeIcon value={row.shareChange}/>
+                        <span className={changeClass(row.shareChange)}>
+                          {formatSignedPP(row.shareChange)}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="text-right py-2 px-3 text-app-muted">{row.seatsA ?? '—'}</td>
+                    <td className="text-right py-2 px-3 text-app-muted">{row.seatsB ?? '—'}</td>
+                    <td className="text-right py-2 px-3">
+                      {row.seatChange !== null ? (
+                        <span className="inline-flex items-center gap-1 font-medium">
+                          <ChangeIcon value={row.seatChange}/>
+                          <span className={changeClass(row.seatChange)}>
+                            {formatSigned(row.seatChange)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-app-subtle">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

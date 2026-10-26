@@ -1,4 +1,10 @@
 import {Component, type ErrorInfo, type ReactNode} from 'react';
+import {translations, type Language} from '@/theme';
+
+/** The boundary sits outside the language context, so read the language App set on <html>. */
+function getPageLanguage(): Language {
+  return document.documentElement.lang === 'nl' ? 'nl' : 'en';
+}
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -30,10 +36,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.error) {
       return (
-        <div className="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center p-6">
+        <div className="min-h-screen flex items-center justify-center p-6"
+          style={{backgroundColor: 'var(--c-bg)', color: 'var(--c-text)'}}>
           <div className="max-w-xl text-center">
-            <h1 className="text-xl font-bold mb-2">Something went wrong</h1>
-            <p className="text-sm text-gray-400 break-words">{this.state.error.message}</p>
+            <h1 className="text-xl font-bold mb-2">{translations[getPageLanguage()].somethingWrong}</h1>
+            <p className="text-sm break-words" style={{color: 'var(--c-text-muted)'}}>{this.state.error.message}</p>
           </div>
         </div>
       );

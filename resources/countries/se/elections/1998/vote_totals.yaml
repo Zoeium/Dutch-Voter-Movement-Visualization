@@ -1,0 +1,20 @@
+date: 1998-09-20
+source:
+  name: 'Wikipedia: 1998 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1998_Swedish_general_election
+electorate: 6603129
+not_voted: 1228541
+total_votes: 5374588
+non_valid_votes_and_blanco_votes: 113466
+valid_votes: 5261122
+parties_votes:
+  s: 1914426
+  m: 1204926
+  v: 631011
+  kd: 619046
+  c: 269762
+  l: 248076
+  mp: 236699
+  other: 109255
+  sd: 19624
+  nyd: 8297

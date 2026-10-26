@@ -1,0 +1,12 @@
+# Carlsson I government, seats from the 1985 election
+name: Carlsson I
+inauguration: 1986-03-14
+coalition:
+  - s
+seats:
+  s: 159
+  m: 76
+  l: 51
+  c: 43
+  v: 19
+  c_kds: 1

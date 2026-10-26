@@ -1,0 +1,23 @@
+date: 2005-05-05
+source:
+  name: 'Wikipedia: 2005 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/2005_United_Kingdom_general_election'
+electorate: 44245939
+not_voted: 17097429
+total_votes: 27148510
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 27148510
+parties_votes:
+  labour: 9552376
+  conservative: 8785942
+  lib_dem: 5985704
+  other: 677436
+  ukip: 606370
+  snp: 412267
+  green: 284251
+  dup: 241856
+  plaid_cymru: 174838
+  sinn_fein: 174530
+  uup: 127314
+  sdlp: 125626

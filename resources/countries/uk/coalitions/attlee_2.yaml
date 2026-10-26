@@ -1,0 +1,11 @@
+# Attlee II government, seats from the 1950 general election
+name: Attlee II
+inauguration: 1950-02-24
+coalition:
+  - labour
+seats:
+  labour: 315
+  conservative: 282
+  national_liberal: 16
+  liberal: 9
+  other: 3

@@ -1,0 +1,12 @@
+# Palme II government, seats from the 1985 election
+name: Palme II
+inauguration: 1985-09-16
+coalition:
+  - s
+seats:
+  s: 159
+  m: 76
+  l: 51
+  c: 43
+  v: 19
+  c_kds: 1

@@ -1,0 +1,21 @@
+date: 1974-02-28
+source:
+  name: 'Wikipedia: February 1974 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/February_1974_United_Kingdom_general_election'
+electorate: 39753965
+not_voted: 8413803
+total_votes: 31340162
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 31340162
+parties_votes:
+  conservative: 11872180
+  labour: 11645616
+  liberal: 6059519
+  snp: 633180
+  other: 484437
+  uup: 232103
+  plaid_cymru: 171374
+  sdlp: 160437
+  dup: 58656
+  alliance_ni: 22660

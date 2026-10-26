@@ -1,0 +1,12 @@
+# Erhard II government, seats from the 1965 election
+name: Erhard II
+inauguration: 1965-10-26
+coalition:
+  - cdu
+  - csu
+  - fdp
+seats:
+  spd: 202
+  cdu: 196
+  csu: 49
+  fdp: 49

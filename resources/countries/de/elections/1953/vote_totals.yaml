@@ -1,0 +1,22 @@
+date: 1953-09-06
+source:
+  name: 'Wikipedia: 1953 West German federal election'
+  url: https://en.wikipedia.org/wiki/1953_West_German_federal_election
+electorate: 33120940
+not_voted: 4641390
+total_votes: 28479550
+non_valid_votes_and_blanco_votes: 928278
+valid_votes: 27551272
+parties_votes:
+  cdu: 10016594
+  spd: 7944943
+  fdp: 2629163
+  csu: 2427387
+  gb_bhe: 1616953
+  dp: 896128
+  kpd: 607860
+  bp: 465641
+  other: 389201
+  drp: 295739
+  zentrum: 217078
+  ssw: 44585

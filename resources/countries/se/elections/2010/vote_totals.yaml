@@ -1,0 +1,20 @@
+date: 2010-09-19
+source:
+  name: 'Wikipedia: 2010 Swedish general election'
+  url: https://en.wikipedia.org/wiki/2010_Swedish_general_election
+electorate: 7123651
+not_voted: 1094969
+total_votes: 6028682
+non_valid_votes_and_blanco_votes: 68274
+valid_votes: 5960408
+parties_votes:
+  s: 1827497
+  m: 1791766
+  mp: 437435
+  l: 420524
+  c: 390804
+  sd: 339610
+  v: 334053
+  kd: 333696
+  other: 60884
+  fi: 24139

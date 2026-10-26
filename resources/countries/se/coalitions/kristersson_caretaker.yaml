@@ -1,0 +1,16 @@
+# Kristersson (caretaker) government, seats from the 2026 election
+name: Kristersson (caretaker)
+inauguration: 2026-09-14
+coalition:
+  - m
+  - kd
+  - l
+seats:
+  s: 99
+  m: 70
+  sd: 62
+  v: 30
+  c: 25
+  kd: 22
+  mp: 22
+  l: 19

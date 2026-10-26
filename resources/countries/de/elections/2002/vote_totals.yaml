@@ -1,0 +1,22 @@
+date: 2002-09-22
+source:
+  name: 'Wikipedia: 2002 German federal election'
+  url: https://en.wikipedia.org/wiki/2002_German_federal_election
+electorate: 61432868
+not_voted: 12850107
+total_votes: 48582761
+non_valid_votes_and_blanco_votes: 586281
+valid_votes: 47996480
+parties_votes:
+  spd: 18488668
+  cdu: 14167561
+  csu: 4315080
+  gruene: 4110355
+  fdp: 3538815
+  pds: 1916702
+  other: 791235
+  rep: 280671
+  npd: 215232
+  tierschutz: 159655
+  bp: 9379
+  zentrum: 3127

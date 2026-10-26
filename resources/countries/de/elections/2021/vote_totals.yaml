@@ -1,0 +1,24 @@
+date: 2021-09-26
+source:
+  name: 'Wikipedia: 2021 German federal election'
+  url: https://en.wikipedia.org/wiki/2021_German_federal_election
+electorate: 61172771
+not_voted: 14465457
+total_votes: 46707314
+non_valid_votes_and_blanco_votes: 408976
+valid_votes: 46298338
+parties_votes:
+  spd: 11901556
+  cdu: 8774919
+  gruene: 6814401
+  fdp: 5291010
+  afd: 4809228
+  csu: 2402827
+  linke: 2255860
+  other: 1926883
+  fw: 1125666
+  tierschutz: 673669
+  piraten: 169591
+  npd: 64360
+  ssw: 55578
+  bp: 32790

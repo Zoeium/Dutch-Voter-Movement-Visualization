@@ -10,35 +10,47 @@ import type {
   CoalitionData,
 } from '@/types';
 
-// Auto-discover all party YAML files
-const partyModules = import.meta.glob('@/../resources/parties/*.yaml', {
+// Every country lives in resources/countries/<id>/ with the same layout:
+// country.yaml, parties/*.yaml, coalitions/*.yaml and
+// elections/<election id>/vote_totals.yaml (+ optional voters_movement/*.yaml).
+const countryModules = import.meta.glob('@/../resources/countries/*/country.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
 }) as Record<string, string>;
 
-// Auto-discover all election directories
-// Each election has: vote_totals.yaml + voters_movement/*.yaml
-const totalsModules = import.meta.glob('@/../resources/elections/*/vote_totals.yaml', {
+// Flag images are served as files; only their URLs are bundled.
+const flagUrls = import.meta.glob('@/../resources/countries/*/flag.svg', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+
+const allPartyModules = import.meta.glob('@/../resources/countries/*/parties/*.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
 }) as Record<string, string>;
 
-// Auto-discover coalition data
-const coalitionModules = import.meta.glob('@/../resources/coalitions/*.yaml', {
+const allTotalsModules = import.meta.glob('@/../resources/countries/*/elections/*/vote_totals.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
 }) as Record<string, string>;
 
-const movementModules = import.meta.glob('@/../resources/elections/*/voters_movement/*.yaml', {
+const allCoalitionModules = import.meta.glob('@/../resources/countries/*/coalitions/*.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
 }) as Record<string, string>;
 
-const movementSourceModules = import.meta.glob('@/../resources/elections/*/voters_movement/source.yaml', {
+const allMovementModules = import.meta.glob('@/../resources/countries/*/elections/*/voters_movement/*.yaml', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+const allMovementSourceModules = import.meta.glob('@/../resources/countries/*/elections/*/voters_movement/source.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
@@ -47,10 +59,48 @@ const movementSourceModules = import.meta.glob('@/../resources/elections/*/voter
 const DEFAULT_PARTY_COLOR = '#6b7280';
 const MOVEMENT_SOURCE_PATH_SUFFIX = '/voters_movement/source.yaml';
 
-/** Extract an election year from a resource path. */
-function extractYear(path: string): string {
-  const match = /\/elections\/(\d{4})\//.exec(path);
+/** Extract the country id from a resource path. */
+function extractCountry(path: string): string {
+  const match = /\/countries\/([^/]+)\//.exec(path);
   return match ? match[1] : '';
+}
+
+/**
+ * Extract an election id from a resource path: the election directory name,
+ * usually a year, or YYYY-MM when a country held two elections in one year.
+ */
+function extractYear(path: string): string {
+  const match = /\/elections\/([^/]+)\//.exec(path);
+  return match ? match[1] : '';
+}
+
+/** The subset of a module group that belongs to one country. */
+function modulesForCountry(modules: Record<string, string>, country: string): Record<string, string> {
+  return Object.fromEntries(Object.entries(modules).filter(([path]) => extractCountry(path) === country));
+}
+
+export interface CountryInfo {
+  id: string;
+  name: Record<'en' | 'nl', string>;
+  /** URL of the country's flag.svg, when it has one. */
+  flagUrl?: string;
+}
+
+/** List every country that has data, sorted by id. */
+export function loadCountries(): CountryInfo[] {
+  const flagByCountry = new Map(Object.entries(flagUrls).map(([path, url]) => [extractCountry(path), url]));
+  return Object.entries(countryModules)
+    .map(([path, raw]) => {
+      const id = extractCountry(path);
+      const doc = yaml.load(raw) as { name?: Partial<Record<'en' | 'nl', string>> } | null;
+      return {
+        id,
+        name: {en: doc?.name?.en ?? id, nl: doc?.name?.nl ?? doc?.name?.en ?? id},
+        flagUrl: flagByCountry.get(id),
+      };
+    })
+    .filter((country) => country.id)
+    .sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /**
@@ -62,17 +112,33 @@ function isMovementDataFile(path: string): boolean {
   return !path.endsWith(MOVEMENT_SOURCE_PATH_SUFFIX);
 }
 
-// Bucket the movement modules by election year once, so per-year lookups are O(1)
-// instead of re-running the year regex over every module on each call.
-const movementFilesByYear = new Map<string, string[]>();
-for (const [path, raw] of Object.entries(movementModules)) {
+/** Key for per-country, per-election lookups. */
+const electionKey = (country: string, year: string): string => `${country}/${year}`;
+
+// Bucket the movement modules by country and election once, so per-election
+// lookups are O(1) instead of re-running the regexes over every module on each call.
+const movementFilesByElection = new Map<string, string[]>();
+for (const [path, raw] of Object.entries(allMovementModules)) {
   if (!isMovementDataFile(path)) continue;
   const year = extractYear(path);
   if (!year || !raw) continue;
 
-  const files = movementFilesByYear.get(year) ?? [];
+  const key = electionKey(extractCountry(path), year);
+  const files = movementFilesByElection.get(key) ?? [];
   files.push(raw);
-  movementFilesByYear.set(year, files);
+  movementFilesByElection.set(key, files);
+}
+
+// Totals are read by the election loaders, the citation list and the coalition
+// date lookup; parse each file once and share the result.
+const parsedTotalsByPath = new Map<string, VoteTotals | null>();
+
+/** Parse (once) the vote totals resource at `path`. */
+function getParsedTotals(path: string): VoteTotals | null {
+  if (!parsedTotalsByPath.has(path)) {
+    parsedTotalsByPath.set(path, yaml.load(allTotalsModules[path]) as VoteTotals | null);
+  }
+  return parsedTotalsByPath.get(path) ?? null;
 }
 
 /** Collect unique election years from module groups in chronological order. */
@@ -100,19 +166,22 @@ function movementYearFlags(
   return years.map((year, index) => {
     if (hasOwnMovementData(year)) return true;
     const nextYear = years[index + 1];
-    return !nextYear || hasOwnMovementData(nextYear);
+    return nextYear !== undefined && hasOwnMovementData(nextYear);
   });
 }
 
-/** Report whether an election year has at least one movement data file. */
-function hasMovementDataForYear(year: string): boolean {
-  return (movementFilesByYear.get(year)?.length ?? 0) > 0;
+/** Report whether an election has at least one movement data file. */
+function hasMovementDataForYear(country: string, year: string): boolean {
+  return (movementFilesByElection.get(electionKey(country, year))?.length ?? 0) > 0;
 }
 
-/** Return the election years that can participate in the flow diagram. */
-function getVisibleElectionYears(): string[] {
-  const years = getSortedElectionYears(totalsModules, movementModules);
-  const flags = movementYearFlags(years, hasMovementDataForYear);
+/** Return the election years of a country that can participate in the flow diagram. */
+function getVisibleElectionYears(country: string): string[] {
+  const years = getSortedElectionYears(
+    modulesForCountry(allTotalsModules, country),
+    modulesForCountry(allMovementModules, country)
+  );
+  const flags = movementYearFlags(years, (year) => hasMovementDataForYear(country, year));
   return years.filter((_, index) => flags[index]);
 }
 
@@ -131,9 +200,9 @@ function getDefaultTotals(): VoteTotals {
   };
 }
 
-/** Parse all valid party metadata resources. */
-export function loadParties(): PartyInfo[] {
-  return Object.values(partyModules)
+/** Parse all valid party metadata resources of a country. */
+export function loadParties(country: string): PartyInfo[] {
+  return Object.values(modulesForCountry(allPartyModules, country))
     .map((raw) => yaml.load(raw) as PartyInfo | null | undefined)
     .filter((party): party is PartyInfo => Boolean(party && typeof party.party === 'string'));
 }
@@ -143,9 +212,9 @@ export function loadParties(): PartyInfo[] {
  * `loadElections` and `loadAllElections` cannot drift and each resource is only
  * parsed a single time.
  */
-function buildElections(years: string[]): ElectionYear[] {
+function buildElections(country: string, years: string[]): ElectionYear[] {
   const totalsPathByYear = new Map<string, string>();
-  for (const path of Object.keys(totalsModules)) {
+  for (const path of Object.keys(modulesForCountry(allTotalsModules, country))) {
     const year = extractYear(path);
     if (year && !totalsPathByYear.has(year)) {
       totalsPathByYear.set(year, path);
@@ -159,9 +228,9 @@ function buildElections(years: string[]): ElectionYear[] {
       // would silently drop every flow - surface the broken year instead.
       console.warn(`[loader] Missing vote_totals.yaml for election year ${year}`);
     }
-    const totals = totalsPath ? (yaml.load(totalsModules[totalsPath]) as VoteTotals) : getDefaultTotals();
+    const totals = (totalsPath ? getParsedTotals(totalsPath) : null) ?? getDefaultTotals();
 
-    const movements = (movementFilesByYear.get(year) ?? [])
+    const movements = (movementFilesByElection.get(electionKey(country, year)) ?? [])
       .map((raw) => yaml.load(raw) as VoterMovement | null | undefined)
       .filter((movement): movement is VoterMovement => Boolean(movement && typeof movement.party === 'string'));
 
@@ -169,14 +238,17 @@ function buildElections(years: string[]): ElectionYear[] {
   });
 }
 
-/** Load elections that have enough movement data for the flow diagram. */
-export function loadElections(): ElectionYear[] {
-  return buildElections(getVisibleElectionYears());
+/**
+ * Load a country's elections that have enough movement data for the flow
+ * diagram. Empty when no voter movements are known for the country.
+ */
+export function loadElections(country: string): ElectionYear[] {
+  return buildElections(country, getVisibleElectionYears(country));
 }
 
-/** Load every election with vote totals for the turnout diagram. */
-export function loadAllElections(): ElectionYear[] {
-  return buildElections(getSortedElectionYears(totalsModules));
+/** Load every election of a country with vote totals for the turnout diagram. */
+export function loadAllElections(country: string): ElectionYear[] {
+  return buildElections(country, getSortedElectionYears(modulesForCountry(allTotalsModules, country)));
 }
 
 /**
@@ -211,6 +283,20 @@ function normalizeDataSource(source: unknown): {name: string; url: string} | nul
   };
 }
 
+// Cache so repeated lookups with the same party array reuse one index.
+let cachedParties: PartyInfo[] | null = null;
+let cachedIndex: PartyIndex | null = null;
+
+/** Return a party index, rebuilding it only when the party list actually changes. */
+function getPartyIndex(parties: PartyInfo[]): PartyIndex {
+  if (cachedParties === parties && cachedIndex) {
+    return cachedIndex;
+  }
+  cachedParties = parties;
+  cachedIndex = createPartyIndex(parties);
+  return cachedIndex;
+}
+
 export type DataSourceEntry = {
   year: string;
   fromYear?: string;
@@ -220,10 +306,10 @@ export type DataSourceEntry = {
   kind: 'totals' | 'movement';
 };
 
-/** Load and deduplicate citations for election totals and movements. */
-export function loadDataSources(): DataSourceEntry[] {
+/** Load and deduplicate a country's citations for election totals and movements. */
+export function loadDataSources(country: string): DataSourceEntry[] {
   const sources: DataSourceEntry[] = [];
-  const electionYears = getVisibleElectionYears();
+  const electionYears = getVisibleElectionYears(country);
   const visibleYearSet = new Set(electionYears);
   const previousYearByYear = new Map<string, string | undefined>();
 
@@ -256,7 +342,7 @@ export function loadDataSources(): DataSourceEntry[] {
     });
   };
 
-  for (const [path, raw] of Object.entries(movementSourceModules)) {
+  for (const [path, raw] of Object.entries(modulesForCountry(allMovementSourceModules, country))) {
     const year = extractYear(path);
     if (!year || !visibleYearSet.has(year)) continue;
 
@@ -273,12 +359,11 @@ export function loadDataSources(): DataSourceEntry[] {
   }
 
   // Load totals for all years (not just visible years)
-  for (const [path, raw] of Object.entries(totalsModules)) {
+  for (const path of Object.keys(modulesForCountry(allTotalsModules, country))) {
     const year = extractYear(path);
     if (!year) continue;
 
-    const doc = yaml.load(raw) as { source?: unknown } | null;
-    const source = normalizeDataSource(doc?.source);
+    const source = normalizeDataSource(getParsedTotals(path)?.source);
     if (!source) {
       console.warn(`[loader] Skipping totals source with no resolvable source block: ${path}`);
       continue;
@@ -330,7 +415,7 @@ export function resolvePartyName(
   name: string,
   parties: PartyInfo[]
 ): string {
-  const index = createPartyIndex(parties);
+  const index = getPartyIndex(parties);
   return index.resolveMap.get(name) ?? name;
 }
 
@@ -338,7 +423,7 @@ export function resolvePartyName(
  * Get color for a party name. Resolves through previous_names for color matching.
  */
 export function getPartyColor(name: string, parties: PartyInfo[]): string {
-  const index = createPartyIndex(parties);
+  const index = getPartyIndex(parties);
 
   const exact = index.byKey.get(name);
   if (exact) return exact.color || DEFAULT_PARTY_COLOR;
@@ -358,7 +443,7 @@ export function getPartyColor(name: string, parties: PartyInfo[]): string {
  * NOT the resolved/canonical name.
  */
 export function getPartyDisplayName(name: string, parties: PartyInfo[]): string {
-  const party = createPartyIndex(parties).byKey.get(name);
+  const party = getPartyIndex(parties).byKey.get(name);
   if (party) return party.display_name;
 
   return name;
@@ -368,7 +453,8 @@ export function getPartyDisplayName(name: string, parties: PartyInfo[]): string 
  * Check if two party names refer to the same party (for selectedParty filtering).
  */
 function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolean {
-  return resolvePartyName(nameA, parties) === resolvePartyName(nameB, parties);
+  const index = getPartyIndex(parties);
+  return (index.resolveMap.get(nameA) ?? nameA) === (index.resolveMap.get(nameB) ?? nameB);
 }
 
 /** Decide whether a flow matches the optional selected-party filter. */
@@ -602,8 +688,26 @@ export function buildMultiElectionFlows(
   return {nodes: mergeNodeMap(allNodes), links: allLinks};
 }
 
-/** Parse coalition resources and return them in inauguration order. */
-export function loadCoalitions(): CoalitionData[] {
+/** Election dates (YYYY-MM-DD) in chronological order, read from the totals resources. */
+function getElectionDates(country: string): {year: string; date: string}[] {
+  return Object.keys(modulesForCountry(allTotalsModules, country))
+    .map((path) => {
+      const date: unknown = getParsedTotals(path)?.date;
+      return {year: extractYear(path), date: typeof date === 'string' ? date : ''};
+    })
+    .filter((entry) => entry.year && entry.date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Parse a country's coalition resources and return them in inauguration order. */
+export function loadCoalitions(country: string): CoalitionData[] {
+  const electionDates = getElectionDates(country);
+  // The election that produced a cabinet's seats is the latest one held before its inauguration.
+  const findElectionYear = (inaugurationDate: string): string | undefined => {
+    const preceding = electionDates.filter((election) => election.date <= inaugurationDate);
+    return preceding[preceding.length - 1]?.year;
+  };
+
   type CoalitionEntry = {
     sortKey: string;
     name: string;
@@ -613,7 +717,7 @@ export function loadCoalitions(): CoalitionData[] {
     seats: Record<string, number>;
   };
 
-  const entries: CoalitionEntry[] = Object.entries(coalitionModules).map(([path, raw]) => {
+  const entries: CoalitionEntry[] = Object.entries(modulesForCountry(allCoalitionModules, country)).map(([path, raw]) => {
     const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
     const data = yaml.load(raw) as {
       inauguration?: unknown;
@@ -645,8 +749,97 @@ export function loadCoalitions(): CoalitionData[] {
   return sortedEntries.map((entry) => ({
     name: entry.name,
     year: entry.year,
+    electionYear: findElectionYear(entry.sortKey),
     coalition: entry.coalition,
     support: entry.support,
     seats: entry.seats,
   }));
+}
+
+/**
+ * The first cabinet formed after an election. Its seat snapshot is that
+ * election's result; later cabinets in the same term can reflect mid-term splits.
+ */
+export function getCoalitionForElection(
+  electionYear: string,
+  coalitions: CoalitionData[]
+): CoalitionData | undefined {
+  return coalitions.find((coalition) => coalition.electionYear === electionYear);
+}
+
+/** Seats produced by an election, taken from the first cabinet formed after it. */
+export function getElectionSeats(
+  electionYear: string,
+  coalitions: CoalitionData[]
+): Record<string, number> | null {
+  return getCoalitionForElection(electionYear, coalitions)?.seats ?? null;
+}
+
+export interface ComparisonRow {
+  partyId: string;
+  label: string;
+  color: string;
+  votesA: number;
+  votesB: number;
+  voteChange: number;
+  shareA: number;
+  shareB: number;
+  shareChange: number;
+  seatsA: number | null;
+  seatsB: number | null;
+  seatChange: number | null;
+}
+
+/**
+ * Per-party vote, share and seat changes between two elections. Shared by the
+ * compare table and its CSV export so both always show the same numbers.
+ */
+export function buildComparisonRows(
+  elections: ElectionYear[],
+  yearA: string,
+  yearB: string,
+  coalitions: CoalitionData[],
+  parties: PartyInfo[]
+): ComparisonRow[] {
+  const elA = elections.find((e) => e.year === yearA);
+  const elB = elections.find((e) => e.year === yearB);
+  if (!elA || !elB || yearA === yearB) return [];
+
+  const votesA = elA.voteTotals.parties_votes ?? {};
+  const votesB = elB.voteTotals.parties_votes ?? {};
+  const totalValidA = elA.voteTotals.valid_votes || 1;
+  const totalValidB = elB.voteTotals.valid_votes || 1;
+  const seatsA = getElectionSeats(yearA, coalitions);
+  const seatsB = getElectionSeats(yearB, coalitions);
+
+  const rows: ComparisonRow[] = [];
+  for (const partyId of new Set([...Object.keys(votesA), ...Object.keys(votesB)])) {
+    const vA = votesA[partyId] ?? 0;
+    const vB = votesB[partyId] ?? 0;
+    if (vA === 0 && vB === 0) continue;
+
+    // Seat maps only list parties that won seats: missing means 0, unless the
+    // election has no seat data at all.
+    const sA = seatsA ? (seatsA[partyId] ?? 0) : null;
+    const sB = seatsB ? (seatsB[partyId] ?? 0) : null;
+    const shareA = (vA / totalValidA) * 100;
+    const shareB = (vB / totalValidB) * 100;
+
+    rows.push({
+      partyId,
+      label: getPartyDisplayName(partyId, parties),
+      color: getPartyColor(partyId, parties),
+      votesA: vA,
+      votesB: vB,
+      voteChange: vB - vA,
+      shareA,
+      shareB,
+      shareChange: shareB - shareA,
+      seatsA: sA,
+      seatsB: sB,
+      seatChange: sA !== null && sB !== null ? sB - sA : null,
+    });
+  }
+
+  return rows;
 }

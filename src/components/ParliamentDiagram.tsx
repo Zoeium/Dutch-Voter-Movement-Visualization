@@ -3,6 +3,7 @@ import type {CoalitionData, PartyInfo} from '@/types';
 import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
 import {DualRangeSlider, RibbonGradient} from '@/components/shared';
 import {buildGradientId, buildRibbonPath, toggleButtonClass} from '@/components/diagramUtils';
+import {useI18n} from '@/theme';
 
 interface ParliamentDiagramProps {
   coalitions: CoalitionData[];
@@ -37,10 +38,18 @@ interface LineageRibbon {
 type RibbonSide = 'source' | 'target';
 
 const PX_PER_SEAT = 3;
-const MIN_BLOCK_HEIGHT = 8;
-// Block height at which the in-block label steps up to the regular font size. Every block is
-// labelled whatever its height; short blocks simply keep the smaller size.
+// Tallest a full chamber may get (150 Dutch seats at PX_PER_SEAT). Larger chambers,
+// such as the 650-seat House of Commons, scale down to fit instead of growing taller.
+const MAX_CHAMBER_HEIGHT = 450;
+// Every block is labelled, so even a one-seat party is tall enough for one line of the
+// small label font; the label must never stick out over the neighbouring blocks.
+const MIN_BLOCK_HEIGHT = 13;
+// Block height at which the in-block label steps up to the regular font size.
 const MEDIUM_LABEL_HEIGHT = 24;
+const SMALL_LABEL_PX = 9;
+const MEDIUM_LABEL_PX = 12;
+const LABEL_PADDING_X = 4;
+const LABEL_LINE_HEIGHT = 1.2;
 const ROW_GAP = 6;
 // Extra room inserted where a column changes role (coalition -> tolerating party ->
 // opposition), so the three groups read as separate bands.
@@ -99,7 +108,8 @@ function getRibbonSeats(ribbon: LineageRibbon, side: RibbonSide): number {
 function allocateRibbonGroup(
   block: PartyBlock,
   group: LineageRibbon[],
-  side: RibbonSide
+  side: RibbonSide,
+  pxPerSeat: number
 ): void {
   const hasLineage = group.some((ribbon) => ribbon.kind !== 'continuity');
   if (!hasLineage) {
@@ -116,7 +126,7 @@ function allocateRibbonGroup(
     return;
   }
 
-  const pixelsPerSeat = Math.min(PX_PER_SEAT, block.height / totalSeats);
+  const pixelsPerSeat = Math.min(pxPerSeat, block.height / totalSeats);
   let y = block.y;
   for (const ribbon of group) {
     const bottom = y + getRibbonSeats(ribbon, side) * pixelsPerSeat;
@@ -130,6 +140,50 @@ function allocateRibbonGroup(
  * luminance. Light parties (GL-PvdA's bright green, GroenLinks) get dark text instead of
  * the white-on-light outline that made the labels look smeared.
  */
+let measureContext: CanvasRenderingContext2D | null | undefined;
+const labelWidthCache = new Map<string, number>();
+
+/** Rendered width of a block label in the page font (cached: blocks re-render on hover). */
+function measureLabel(text: string, fontPx: number): number {
+  const key = `${fontPx}|${text}`;
+  const cached = labelWidthCache.get(key);
+  if (cached !== undefined) return cached;
+  measureContext ??= document.createElement('canvas').getContext('2d');
+  let width = text.length * fontPx * 0.6;
+  if (measureContext) {
+    measureContext.font = `600 ${fontPx}px ${getComputedStyle(document.body).fontFamily || 'sans-serif'}`;
+    width = measureContext.measureText(text).width;
+  }
+  labelWidthCache.set(key, width);
+  return width;
+}
+
+/** Shorten text with an ellipsis until it fits `maxWidth`. */
+function truncateToWidth(text: string, fontPx: number, maxWidth: number): string {
+  if (measureLabel(text, fontPx) <= maxWidth) return text;
+  let end = text.length;
+  while (end > 1 && measureLabel(`${text.slice(0, end).trimEnd()}…`, fontPx) > maxWidth) end--;
+  return `${text.slice(0, end).trimEnd()}…`;
+}
+
+/**
+ * Fit "Name (seats)" inside a block: one line when it fits, otherwise the name over
+ * the seat count when the block is tall enough, otherwise a shortened name. The seat
+ * count is never dropped, and the full name is in the block's tooltip.
+ */
+function fitBlockLabel(name: string, seats: number, height: number): { lines: string[]; fontPx: number } {
+  const maxWidth = BLOCK_WIDTH - 2 * LABEL_PADDING_X;
+  const fontPx = height >= MEDIUM_LABEL_HEIGHT ? MEDIUM_LABEL_PX : SMALL_LABEL_PX;
+  const seatText = `(${seats})`;
+  const oneLine = `${name} ${seatText}`;
+  if (measureLabel(oneLine, fontPx) <= maxWidth) return {lines: [oneLine], fontPx};
+  if (height >= 2 * fontPx * LABEL_LINE_HEIGHT + 4) {
+    return {lines: [truncateToWidth(name, fontPx, maxWidth), seatText], fontPx};
+  }
+  const room = maxWidth - measureLabel(` ${seatText}`, fontPx);
+  return {lines: [`${truncateToWidth(name, fontPx, room)} ${seatText}`], fontPx};
+}
+
 function getLabelColor(background: string): string {
   const hex = background.replace('#', '');
   const expanded = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
@@ -159,9 +213,9 @@ const DEFAULT_VISIBLE_COLUMNS = 10;
 // Quick range presets; `size` is how many coalitions to show counting back from the
 // newest one (`0` means every coalition).
 const RANGE_PRESETS = [
-  {label: 'All', size: 0},
-  {label: 'Last 10', size: 10},
-  {label: 'Last 5', size: 5},
+  {labelKey: 'all' as const, size: 0},
+  {labelKey: 'last10' as const, size: 10},
+  {labelKey: 'last5' as const, size: 5},
 ];
 
 /** Return the parties from which a literal party entry split. */
@@ -231,7 +285,8 @@ function collectMergeLineage(
 function buildLineageRibbons(
   edges: { block: PartyBlock; next: PartyBlock }[],
   mergeEdges: { from: PartyBlock; to: PartyBlock }[],
-  splitEdges: { from: PartyBlock; to: PartyBlock }[]
+  splitEdges: { from: PartyBlock; to: PartyBlock }[],
+  pxPerSeat: number
 ): LineageRibbon[] {
   const ribbons: LineageRibbon[] = [
     ...edges.map(({block, next}) => ({
@@ -281,8 +336,8 @@ function buildLineageRibbons(
     targetGroups.set(ribbon.to, incoming);
   }
 
-  for (const [block, group] of sourceGroups) allocateRibbonGroup(block, group, 'source');
-  for (const [block, group] of targetGroups) allocateRibbonGroup(block, group, 'target');
+  for (const [block, group] of sourceGroups) allocateRibbonGroup(block, group, 'source', pxPerSeat);
+  for (const [block, group] of targetGroups) allocateRibbonGroup(block, group, 'target', pxPerSeat);
 
   return ribbons;
 }
@@ -297,6 +352,7 @@ interface ParliamentLayout {
   splitEdges: { from: PartyBlock; to: PartyBlock }[];
   svgWidth: number;
   svgHeight: number;
+  pxPerSeat: number;
 }
 
 /**
@@ -322,7 +378,8 @@ function getPartyRole(
 function buildColumnBlocks(
   coalition: CoalitionData,
   colIndex: number,
-  parties: PartyInfo[]
+  parties: PartyInfo[],
+  pxPerSeat: number
 ): PartyBlock[] {
   const coalitionSet = new Set(coalition.coalition);
   const supportSet = new Set(coalition.support ?? []);
@@ -350,7 +407,7 @@ function buildColumnBlocks(
     seats: g.seats,
     role: g.role,
     columnIndex: colIndex,
-    height: Math.max(MIN_BLOCK_HEIGHT, g.seats * PX_PER_SEAT),
+    height: Math.max(MIN_BLOCK_HEIGHT, g.seats * pxPerSeat),
     x: LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP),
     y: 0,
   }) as PartyBlock);
@@ -501,8 +558,16 @@ function buildParliamentLayout(
   const selected = coalitions.slice(start, end + 1);
   const selectedCount = selected.length;
 
+  // Scale from the largest chamber of the whole country, not just the selected range,
+  // so a party's block keeps the same height while the range changes.
+  const largestChamber = Math.max(
+    0,
+    ...coalitions.map((coalition) => Object.values(coalition.seats).reduce((sum, seats) => sum + Math.max(0, seats), 0))
+  );
+  const pxPerSeat = largestChamber > 0 ? Math.min(PX_PER_SEAT, MAX_CHAMBER_HEIGHT / largestChamber) : PX_PER_SEAT;
+
   const colBlocks = selected.map((coalition, colIndex) =>
-    buildColumnBlocks(coalition, colIndex, parties)
+    buildColumnBlocks(coalition, colIndex, parties, pxPerSeat)
   );
   const colDividers = colBlocks.map((colBlock, index) => layoutColumnBlocks(colBlock, index));
 
@@ -522,11 +587,12 @@ function buildParliamentLayout(
   const mergeEdges = collectMergeEdges(colBlocks, parties, firstSeen);
   const splitEdges = collectSplitEdges(colBlocks, parties, firstSeen);
 
-  return {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
+  return {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight, pxPerSeat};
 }
 
 /** Render coalition composition and party lineage across cabinets. */
 export default function ParliamentDiagram({coalitions, parties}: Readonly<ParliamentDiagramProps>) {
+  const {t} = useI18n();
   const columns = coalitions.length;
   const [hoveredParty, setHoveredParty] = useState<string | null>(null);
   const [rangeStart, setRangeStart] = useState(Math.max(0, columns - DEFAULT_VISIBLE_COLUMNS));
@@ -537,7 +603,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
 
   // Derived layout is memoized so hover updates (local state) do not re-run the
   // effectively O(columns x blocks^2) edge/split computation on every mouse move.
-  const {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight} = useMemo(
+  const {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight, pxPerSeat} = useMemo(
     () => buildParliamentLayout(coalitions, parties, start, end),
     [coalitions, parties, start, end]
   );
@@ -549,15 +615,15 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
     [hoveredParty, mergeEdges]
   );
   const lineageRibbons = useMemo(
-    () => buildLineageRibbons(edges, mergeEdges, splitEdges),
-    [edges, mergeEdges, splitEdges]
+    () => buildLineageRibbons(edges, mergeEdges, splitEdges, pxPerSeat),
+    [edges, mergeEdges, splitEdges, pxPerSeat]
   );
   const continuityRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'continuity');
   const mergeRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'merge');
   const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
 
   if (columns === 0) {
-    return <div className="text-gray-400 text-center py-8">No coalition data available</div>;
+    return <div className="text-app-muted text-center py-8">{t('noCoalitionData')}</div>;
   }
 
   const selectedCount = selected.length;
@@ -585,7 +651,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
     <div className="relative w-full">
       {/* Dual-thumb range slider (single control, two thumbs) */}
       <div className="flex items-center gap-3 flex-wrap mb-3">
-        <span className="text-sm font-medium text-gray-400 whitespace-nowrap">Range:</span>
+        <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('range')}</span>
         <DualRangeSlider
           min={0}
           max={columns - 1}
@@ -596,7 +662,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           startAriaLabel="Range start"
           endAriaLabel="Range end"
         />
-        <span className="text-xs text-gray-400 whitespace-nowrap">
+        <span className="text-xs text-app-muted whitespace-nowrap">
           {selected[0].name} ({selected[0].year}) — {selected[selectedCount - 1].name} ({selected[selectedCount - 1].year})
         </span>
         {/* Quick ranges: reading ~30 columns at once is not useful, so offer a window. */}
@@ -608,14 +674,14 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
             return (
               <button
                 type="button"
-                key={preset.label}
+                key={preset.labelKey}
                 onClick={() => {
                   setRangeStart(presetStart);
                   setRangeEnd(columns - 1);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${toggleButtonClass(isActive)}`}
               >
-                {preset.label}
+                {t(preset.labelKey)}
               </button>
             );
           })}
@@ -626,6 +692,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           squashing a long selection down to illegible slivers. */}
       <div className="parliament-scroll overflow-x-auto">
         <svg
+          data-export-chart
           width="100%"
           height={svgHeight}
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
@@ -763,7 +830,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                 x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}
                 y={26}
                 textAnchor="middle"
-                className="fill-gray-300 text-sm font-bold"
+                className="fill-app-muted text-sm font-bold"
               >
                 {coalition.name}
               </text>
@@ -771,7 +838,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                 x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}
                 y={40}
                 textAnchor="middle"
-                className="fill-gray-500 text-[10px]"
+                className="fill-app-subtle text-[10px]"
               >
                 {coalition.year}
               </text>
@@ -785,7 +852,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                   x2={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH + 10}
                   y1={dividerY}
                   y2={dividerY}
-                  stroke="#4b5563"
+                  stroke="var(--c-divider-line)"
                   strokeWidth={2}
                   strokeDasharray="4 4"
                 />
@@ -794,11 +861,12 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
               {/* Party blocks */}
               {list.map((block) => {
                 const isHovered = isPartyHighlighted(block.party);
-                const textY = block.y + block.height / 2;
-                const textSize = block.height >= MEDIUM_LABEL_HEIGHT ? 'text-xs' : 'text-[9px]';
-                // Tolerating parties are drawn translucent, so their effective background is
-                // the dark page - white text stays the readable choice there.
-                const labelColor = block.role === 'support' ? '#ffffff' : getLabelColor(block.color);
+                const label = fitBlockLabel(block.displayName, block.seats, block.height);
+                const lineHeight = label.fontPx * LABEL_LINE_HEIGHT;
+                const firstLineY = block.y + block.height / 2 - ((label.lines.length - 1) * lineHeight) / 2;
+                // Tolerating parties are drawn translucent, so the page shows through: use the
+                // theme's text colour, which is readable on the page in both themes.
+                const labelColor = block.role === 'support' ? 'var(--c-text-heading)' : getLabelColor(block.color);
 
                 return (
                   <g
@@ -823,18 +891,22 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
                       opacity={hoveredParty && !isHovered ? 0.3 : 1}
                       style={{transition: 'opacity 0.2s ease'}}
                     />
-                    {/* Always labelled: short blocks keep a smaller font instead of dropping
-                        the name. The text colour is picked from the block colour so light
-                        parties stay readable without an outline. */}
+                    <title>{`${block.displayName}: ${block.seats} ${t('coalitionSeatsLabel')}`}</title>
+                    {/* Always labelled and always inside the block (see fitBlockLabel), so the
+                        colour picked from the block colour is the colour behind the text. */}
                     <text
                       x={block.x + BLOCK_WIDTH / 2}
-                      y={textY}
+                      y={firstLineY}
                       textAnchor="middle"
-                      dy="0.35em"
                       fill={labelColor}
-                      className={`font-semibold pointer-events-none ${textSize}`}
+                      fontSize={label.fontPx}
+                      className="font-semibold pointer-events-none"
                     >
-                      {block.displayName} ({block.seats})
+                      {label.lines.map((line, index) => (
+                        <tspan key={line} x={block.x + BLOCK_WIDTH / 2} dy={index === 0 ? '0.35em' : lineHeight}>
+                          {line}
+                        </tspan>
+                      ))}
                     </text>
                   </g>
                 );
@@ -855,13 +927,13 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
             strokeWidth={2}
             strokeDasharray="4 3"
           />
-          <text x={26} y={10} className="fill-gray-400 text-[10px]">
-            Tolerating party (gedoogpartner)
+          <text x={26} y={10} className="fill-app-muted text-[10px]">
+            {t('toleratingParty')}
           </text>
 
-          <line x1={232} x2={260} y1={5} y2={5} stroke="#4b5563" strokeWidth={2} strokeDasharray="4 4"/>
-          <text x={268} y={10} className="fill-gray-400 text-[10px]">
-            Coalition above · opposition below
+          <line x1={232} x2={260} y1={5} y2={5} stroke="var(--c-divider-line)" strokeWidth={2} strokeDasharray="4 4"/>
+          <text x={268} y={10} className="fill-app-muted text-[10px]">
+            {t('coalitionOpposition')}
           </text>
         </g>
         </svg>

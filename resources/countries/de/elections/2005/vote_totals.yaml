@@ -1,0 +1,22 @@
+date: 2005-09-18
+source:
+  name: 'Wikipedia: 2005 German federal election'
+  url: https://en.wikipedia.org/wiki/2005_German_federal_election
+electorate: 61870711
+not_voted: 13826577
+total_votes: 48044134
+non_valid_votes_and_blanco_votes: 756146
+valid_votes: 47287988
+parties_votes:
+  spd: 16194665
+  cdu: 13136740
+  fdp: 4648144
+  linke: 4118194
+  gruene: 3838326
+  csu: 3494309
+  npd: 748568
+  other: 692785
+  rep: 266101
+  tierschutz: 110603
+  bp: 35543
+  zentrum: 4010

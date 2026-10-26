@@ -1,0 +1,11 @@
+# Brandt I government, seats from the 1969 election
+name: Brandt I
+inauguration: 1969-10-22
+coalition:
+  - spd
+  - fdp
+seats:
+  spd: 224
+  cdu: 193
+  csu: 49
+  fdp: 30

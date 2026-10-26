@@ -1,0 +1,16 @@
+date: 1948-09-19
+source:
+  name: 'Wikipedia: 1948 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1948_Swedish_general_election
+electorate: 4707783
+not_voted: 812622
+total_votes: 3895161
+non_valid_votes_and_blanco_votes: 16170
+valid_votes: 3878991
+parties_votes:
+  s: 1789459
+  l: 882437
+  c: 480421
+  m: 478786
+  v: 244826
+  other: 3062

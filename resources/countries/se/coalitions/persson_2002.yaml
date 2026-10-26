@@ -1,0 +1,16 @@
+# Persson government, seats from the 2002 election
+name: Persson
+inauguration: 2002-09-16
+coalition:
+  - s
+support:
+  - v
+  - mp
+seats:
+  s: 144
+  m: 55
+  l: 48
+  kd: 33
+  v: 30
+  c: 22
+  mp: 17

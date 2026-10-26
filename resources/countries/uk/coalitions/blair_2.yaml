@@ -1,0 +1,16 @@
+# Blair II government, seats from the 2001 general election
+name: Blair II
+inauguration: 2001-06-08
+coalition:
+  - labour
+seats:
+  labour: 412
+  conservative: 166
+  lib_dem: 52
+  uup: 6
+  snp: 5
+  dup: 5
+  plaid_cymru: 4
+  sinn_fein: 4
+  sdlp: 3
+  other: 2

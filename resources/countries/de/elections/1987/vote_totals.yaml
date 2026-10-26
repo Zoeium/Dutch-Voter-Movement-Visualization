@@ -1,0 +1,19 @@
+date: 1987-01-25
+source:
+  name: 'Wikipedia: 1987 West German federal election'
+  url: https://en.wikipedia.org/wiki/1987_West_German_federal_election
+electorate: 45327982
+not_voted: 7102688
+total_votes: 38225294
+non_valid_votes_and_blanco_votes: 357975
+valid_votes: 37867319
+parties_votes:
+  spd: 14025763
+  cdu: 13045745
+  csu: 3715827
+  fdp: 3440911
+  gruene: 3126256
+  other: 240361
+  npd: 227054
+  bp: 26367
+  zentrum: 19035

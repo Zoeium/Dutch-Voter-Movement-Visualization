@@ -1,0 +1,13 @@
+# Carlsson III government, seats from the 1994 election
+name: Carlsson III
+inauguration: 1994-10-07
+coalition:
+  - s
+seats:
+  s: 161
+  m: 80
+  c: 27
+  l: 26
+  v: 22
+  mp: 18
+  kd: 15

@@ -1,0 +1,10 @@
+# Wilson I government, seats from the 1964 general election
+name: Wilson I
+inauguration: 1964-10-16
+coalition:
+  - labour
+seats:
+  labour: 317
+  conservative: 298
+  liberal: 9
+  national_liberal: 6

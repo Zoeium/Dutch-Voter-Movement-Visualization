@@ -1,0 +1,20 @@
+date: 2002-09-15
+source:
+  name: 'Wikipedia: 2002 Swedish general election'
+  url: https://en.wikipedia.org/wiki/2002_Swedish_general_election
+electorate: 6722152
+not_voted: 1336722
+total_votes: 5385430
+non_valid_votes_and_blanco_votes: 82218
+valid_votes: 5303212
+parties_votes:
+  s: 2113560
+  m: 809041
+  l: 710312
+  kd: 485235
+  v: 444854
+  c: 328428
+  mp: 246392
+  other: 88984
+  sd: 76300
+  nyd: 106

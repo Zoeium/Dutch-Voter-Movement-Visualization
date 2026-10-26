@@ -1,0 +1,24 @@
+date: 2009-09-27
+source:
+  name: 'Wikipedia: 2009 German federal election'
+  url: https://en.wikipedia.org/wiki/2009_German_federal_election
+electorate: 62168489
+not_voted: 18162914
+total_votes: 44005575
+non_valid_votes_and_blanco_votes: 634385
+valid_votes: 43371190
+parties_votes:
+  cdu: 11828277
+  spd: 9990488
+  fdp: 6316080
+  linke: 5155933
+  gruene: 4643272
+  csu: 2830238
+  piraten: 847870
+  npd: 635525
+  other: 633598
+  tierschutz: 230872
+  rep: 193396
+  bp: 48311
+  fw: 11243
+  zentrum: 6087

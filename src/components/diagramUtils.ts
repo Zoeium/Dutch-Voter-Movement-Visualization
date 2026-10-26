@@ -7,7 +7,28 @@
 export const toggleButtonClass = (active: boolean): string =>
   active
     ? 'bg-emerald-500 text-white'
-    : 'bg-gray-800 text-gray-300 hover:bg-gray-700';
+    : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
+
+/**
+ * Tailwind class for a party chip button. `ringOffsetClass` must be a literal
+ * class (e.g. 'ring-offset-app-bg') matching the surface behind the chip.
+ */
+export const partyButtonClass = (selected: boolean, ringOffsetClass: string): string => {
+  const stateClass = selected ? 'ring-2 ring-offset-2 ' + ringOffsetClass : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
+  return `${stateClass} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
+};
+
+const MONTH_ABBREVIATIONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Display label for an election id. Ids are years, or YYYY-MM when a country held
+ * two elections in one year (UK 1974): '1974-02' becomes 'Feb 1974'.
+ */
+export function formatElectionLabel(id: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(id);
+  const month = match ? MONTH_ABBREVIATIONS[Number(match[2]) - 1] : undefined;
+  return match && month ? `${month} ${match[1]}` : id;
+}
 
 /** Filter an array by an inclusive index range. */
 export function sliceByIndexRange<T>(items: T[], start: number, end: number): T[] {

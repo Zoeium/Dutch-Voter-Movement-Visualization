@@ -1,0 +1,23 @@
+date: 2019-12-12
+source:
+  name: 'Wikipedia: 2019 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/2019_United_Kingdom_general_election'
+electorate: 47562702
+not_voted: 15548592
+total_votes: 32014110
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 32014110
+parties_votes:
+  conservative: 13966454
+  labour: 10269051
+  lib_dem: 3696419
+  snp: 1242380
+  green: 835597
+  brexit_party: 644257
+  other: 527854
+  dup: 244128
+  sinn_fein: 181853
+  plaid_cymru: 153265
+  alliance_ni: 134115
+  sdlp: 118737

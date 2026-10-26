@@ -1,0 +1,13 @@
+# Adenauer III government, seats from the 1957 election
+name: Adenauer III
+inauguration: 1957-10-29
+coalition:
+  - cdu
+  - csu
+  - dp
+seats:
+  cdu: 215
+  spd: 169
+  csu: 55
+  fdp: 41
+  dp: 17

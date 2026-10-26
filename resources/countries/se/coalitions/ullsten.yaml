@@ -1,0 +1,11 @@
+# Ullsten government, seats from the 1976 election
+name: Ullsten
+inauguration: 1978-10-18
+coalition:
+  - l
+seats:
+  s: 152
+  c: 86
+  m: 55
+  l: 39
+  v: 17

@@ -1,0 +1,16 @@
+date: 1976-10-03
+source:
+  name: 'Wikipedia: 1976 West German federal election'
+  url: https://en.wikipedia.org/wiki/1976_West_German_federal_election
+electorate: 42058015
+not_voted: 3892262
+total_votes: 38165753
+non_valid_votes_and_blanco_votes: 343253
+valid_votes: 37822500
+parties_votes:
+  spd: 16099019
+  cdu: 14367302
+  csu: 4027499
+  fdp: 2995085
+  other: 210934
+  npd: 122661
