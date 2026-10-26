@@ -33,10 +33,29 @@ function ChangeIcon({value}: Readonly<{ value: number }>) {
   return <Minus className="w-3.5 h-3.5 text-app-subtle"/>;
 }
 
+/** Text colour for a change: green for a gain, red for a loss, muted for none. */
+function changeClass(value: number): string {
+  if (value > 0) return 'text-emerald-500';
+  if (value < 0) return 'text-red-500';
+  return 'text-app-subtle';
+}
+
+type SortDirection = 'asc' | 'desc';
+
+function ariaSort(isSorted: boolean, direction: SortDirection): 'ascending' | 'descending' | 'none' {
+  if (!isSorted) return 'none';
+  return direction === 'asc' ? 'ascending' : 'descending';
+}
+
+function SortIcon({isSorted, direction}: Readonly<{ isSorted: boolean; direction: SortDirection }>) {
+  if (!isSorted) return <ArrowDownUp className="w-3.5 h-3.5 opacity-40"/>;
+  return direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5"/> : <ArrowDown className="w-3.5 h-3.5"/>;
+}
+
 export default function ElectionCompare({elections, coalitions, parties, yearA, yearB, onYearAChange, onYearBChange}: Readonly<ElectionCompareProps>) {
   const {t} = useI18n();
   const [sortKey, setSortKey] = useState<SortKey>('voteChange');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const years = elections.map((e) => e.year);
 
   const rows = useMemo(
@@ -45,6 +64,9 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
   );
 
   const isSameYear = yearA === yearB;
+  let emptyMessage: string | null = null;
+  if (isSameYear) emptyMessage = t('compareSameElection');
+  else if (rows.length === 0) emptyMessage = t('compareSelectTwo');
 
   const totalValidA = elections.find((e) => e.year === yearA)?.voteTotals.valid_votes ?? 0;
   const totalValidB = elections.find((e) => e.year === yearB)?.voteTotals.valid_votes ?? 0;
@@ -119,13 +141,9 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
         </div>
       </div>
 
-      {isSameYear ? (
+      {emptyMessage ? (
         <div className="flex items-center justify-center h-48 text-app-muted">
-          <p>{t('compareSameElection')}</p>
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="flex items-center justify-center h-48 text-app-muted">
-          <p>{t('compareSelectTwo')}</p>
+          <p>{emptyMessage}</p>
         </div>
       ) : (
         <>
@@ -174,7 +192,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                     <th
                       key={key}
                       className={`py-3 px-3 font-semibold text-app-heading ${align === 'left' ? 'text-left' : 'text-right'}`}
-                      aria-sort={sortKey === key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      aria-sort={ariaSort(sortKey === key, sortDirection)}
                     >
                       <button
                         type="button"
@@ -182,9 +200,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                         className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}
                       >
                         {label}
-                        {sortKey === key
-                          ? sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5"/> : <ArrowDown className="w-3.5 h-3.5"/>
-                          : <ArrowDownUp className="w-3.5 h-3.5 opacity-40"/>}
+                        <SortIcon isSorted={sortKey === key} direction={sortDirection}/>
                       </button>
                     </th>
                   ))}
@@ -216,7 +232,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                     <td className="text-right py-2 px-3">
                       <span className="inline-flex items-center gap-1 font-medium">
                         <ChangeIcon value={row.voteChange}/>
-                        <span className={row.voteChange > 0 ? 'text-emerald-500' : row.voteChange < 0 ? 'text-red-500' : 'text-app-subtle'}>
+                        <span className={changeClass(row.voteChange)}>
                           {formatSigned(row.voteChange)}
                         </span>
                       </span>
@@ -226,7 +242,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                     <td className="text-right py-2 px-3">
                       <span className="inline-flex items-center gap-1 font-medium">
                         <ChangeIcon value={row.shareChange}/>
-                        <span className={row.shareChange > 0 ? 'text-emerald-500' : row.shareChange < 0 ? 'text-red-500' : 'text-app-subtle'}>
+                        <span className={changeClass(row.shareChange)}>
                           {formatSignedPP(row.shareChange)}
                         </span>
                       </span>
@@ -237,7 +253,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                       {row.seatChange !== null ? (
                         <span className="inline-flex items-center gap-1 font-medium">
                           <ChangeIcon value={row.seatChange}/>
-                          <span className={row.seatChange > 0 ? 'text-emerald-500' : row.seatChange < 0 ? 'text-red-500' : 'text-app-subtle'}>
+                          <span className={changeClass(row.seatChange)}>
                             {formatSigned(row.seatChange)}
                           </span>
                         </span>

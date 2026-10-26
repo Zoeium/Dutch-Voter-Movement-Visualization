@@ -1,4 +1,4 @@
-import {useDeferredValue, useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef} from 'react';
+import {useDeferredValue, useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef, type ReactNode} from 'react';
 import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check, ChevronDown, ChevronUp} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
@@ -31,7 +31,7 @@ import {
   type Language,
   type TranslationKey,
 } from '@/theme';
-import {updateUrl, copyShareUrl, exportSvg, exportCsv} from '@/utils/export';
+import {updateUrl, copyShareUrl, exportSvg, exportCsv, type UrlState} from '@/utils/export';
 
 type TabKey = 'alluvial' | 'turnout' | 'parliament' | 'compare' | 'coalition';
 
@@ -74,6 +74,13 @@ function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): P
 
 const DEFAULT_COUNTRY = 'nl';
 
+/** The requested country when it has data, else the default country, else the first one. */
+function pickCountry(countryIds: string[], requested: string): string {
+  if (countryIds.includes(requested)) return requested;
+  if (countryIds.includes(DEFAULT_COUNTRY)) return DEFAULT_COUNTRY;
+  return countryIds[0] ?? '';
+}
+
 /** Parse the state that survives a country switch from the URL. */
 function getInitialAppStateFromUrl(countries: CountryInfo[]) {
   const params = new URLSearchParams(window.location.search);
@@ -85,9 +92,7 @@ function getInitialAppStateFromUrl(countries: CountryInfo[]) {
   const lang = (params.get('lang') as Language) || 'en';
 
   return {
-    country: countryIds.includes(country)
-      ? country
-      : countryIds.includes(DEFAULT_COUNTRY) ? DEFAULT_COUNTRY : countryIds[0] ?? '',
+    country: pickCountry(countryIds, country),
     tab: validTabs.includes(tab) ? tab : 'alluvial' as TabKey,
     theme: (theme === 'light' || theme === 'dark') ? theme : 'dark' as Theme,
     lang: (lang === 'en' || lang === 'nl') ? lang : 'en' as Language,
@@ -169,10 +174,13 @@ export default function App() {
   }, []);
 
   const t = useCallback((key: TranslationKey) => translations[lang][key], [lang]);
+  // Stable context values: a new object every render would re-render every consumer.
+  const themeContext = useMemo(() => ({theme, toggleTheme}), [theme, toggleTheme]);
+  const languageContext = useMemo(() => ({lang, t}), [lang, t]);
 
   return (
-    <ThemeContext.Provider value={{theme, toggleTheme}}>
-      <LanguageContext.Provider value={{lang, t}}>
+    <ThemeContext.Provider value={themeContext}>
+      <LanguageContext.Provider value={languageContext}>
         {/* Keyed by country: every country starts with its own fresh diagram state. */}
         <Dashboard
           key={country}
@@ -186,6 +194,154 @@ export default function App() {
         />
       </LanguageContext.Provider>
     </ThemeContext.Provider>
+  );
+}
+
+const HEADER_BUTTON_CLASS = 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
+const CARD_CLASS = 'bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl';
+
+/** Title and introduction shown above every tab. */
+function TabHeading({title, description}: Readonly<{ title: string; description: string }>) {
+  return (
+    <div className="mb-8">
+      <h2 className="text-3xl font-bold mb-2 text-app-heading">{title}</h2>
+      <p className="text-app-muted max-w-2xl">{description}</p>
+    </div>
+  );
+}
+
+/** Header button that briefly shows a check mark and `doneLabel` after it was used. */
+function FeedbackButton({done, icon, label, doneLabel, onClick}: Readonly<{
+  done: boolean;
+  icon: ReactNode;
+  label: string;
+  doneLabel: string;
+  onClick: () => void;
+}>) {
+  return (
+    <button type="button" onClick={onClick} className={HEADER_BUTTON_CLASS} aria-label={label}>
+      {done ? <Check className="w-4 h-4 text-emerald-500"/> : icon}
+      {done ? doneLabel : label}
+    </button>
+  );
+}
+
+interface YearRangeControlProps {
+  years: string[];
+  start: number;
+  end: number;
+  onStartChange: (index: number) => void;
+  onEndChange: (index: number) => void;
+  ariaLabelPrefix: string;
+}
+
+/** "Years: A–B" label with the range slider, or a note when there are no years. */
+function YearRangeControl({years, start, end, onStartChange, onEndChange, ariaLabelPrefix}: Readonly<YearRangeControlProps>) {
+  const {t} = useI18n();
+  if (years.length === 0) {
+    return <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('yearsNone')}</span>;
+  }
+  return (
+    <>
+      <span className="text-sm font-medium text-app-muted whitespace-nowrap">
+        {`${t('years')}: ${formatElectionLabel(years[start])}–${formatElectionLabel(years[end])}`}
+      </span>
+      <DualRangeSlider
+        min={0}
+        max={years.length - 1}
+        start={start}
+        end={end}
+        onStartChange={onStartChange}
+        onEndChange={onEndChange}
+        startAriaLabel={`${ariaLabelPrefix} start`}
+        endAriaLabel={`${ariaLabelPrefix} end`}
+      />
+    </>
+  );
+}
+
+/** "All parties" plus one toggle per party with voter movement data. */
+function PartyFilter({parties, activeParty, onSelect}: Readonly<{
+  parties: PartyInfo[];
+  activeParty: string | null;
+  onSelect: (party: string | null) => void;
+}>) {
+  const {t} = useI18n();
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('partyFilter')}</span>
+      <button
+        type="button"
+        onClick={() => onSelect(null)}
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeParty === null)}`}
+      >
+        {t('allParties')}
+      </button>
+      {parties.map((p) => {
+        const isSelected = activeParty === p.party;
+        return (
+          <button
+            type="button"
+            key={p.party}
+            onClick={() => onSelect(isSelected ? null : p.party)}
+            className={partyButtonClass(isSelected, 'ring-offset-app-bg')}
+            style={isSelected ? {backgroundColor: p.color, color: '#fff', boxShadow: `0 0 0 2px ${p.color}`} : undefined}
+          >
+            <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
+            {p.display_name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Collapsible list of every data source of the selected country. */
+function SourcesFooter({dataSources}: Readonly<{ dataSources: DataSourceEntry[] }>) {
+  const {t} = useI18n();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const getSourceLabel = (source: DataSourceEntry) =>
+    source.kind === 'totals'
+      ? `${t('totals')} (${formatElectionLabel(source.year)})`
+      : `${t('movements')} (${formatElectionLabel(source.fromYear ?? source.year)} → ${formatElectionLabel(source.toYear ?? source.year)})`;
+
+  return (
+    <footer className="border-t border-app-border mt-12 py-8">
+      <div className="max-w-[1600px] mx-auto px-6">
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          aria-controls="all-data-sources"
+          className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted hover:text-app-text"
+        >
+          {t('sources')}
+          <span className="normal-case tracking-normal">
+            — {isOpen ? t('sourcesHide') : t('sourcesShow')}
+          </span>
+          {isOpen ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+        </button>
+        {isOpen && (
+          <ul id="all-data-sources" className="mt-4 space-y-3 text-sm text-app-subtle">
+            {dataSources.map((source) => (
+              <li key={`${source.year}-${source.kind}-${source.name}`}
+                  className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <span className="text-app-text font-medium min-w-[170px]">{getSourceLabel(source)}</span>
+                {source.url ? (
+                  <a href={source.url} target="_blank" rel="noreferrer"
+                     className="text-app-link underline decoration-dotted underline-offset-4 hover:text-app-link-hover">
+                    {source.name}
+                  </a>
+                ) : (
+                  <span>{source.name}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </footer>
   );
 }
 
@@ -250,7 +406,6 @@ function Dashboard({
   );
 
   const electionLabels = elections.map((e) => formatElectionLabel(e.year));
-  const hasSelectableYears = electionYears.length > 0;
 
   const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
 
@@ -273,13 +428,8 @@ function Dashboard({
     [allElectionsForTurnout, deferredTurnoutYearStart, deferredTurnoutYearEnd]
   );
 
-  const getSourceLabel = (source: DataSourceEntry) =>
-    source.kind === 'totals'
-      ? `${t('totals')} (${formatElectionLabel(source.year)})`
-      : `${t('movements')} (${formatElectionLabel(source.fromYear ?? source.year)} → ${formatElectionLabel(source.toYear ?? source.year)})`;
-
   const urlState = useMemo(() => {
-    const state: Record<string, string | number | boolean | null> = {
+    const state: UrlState = {
       country,
       tab: activeTab,
       theme,
@@ -310,8 +460,8 @@ function Dashboard({
   // Share & export state
   const [shareFeedback, setShareFeedback] = useState(false);
   const [exportFeedback, setExportFeedback] = useState(false);
-  const [areSourcesOpen, setAreSourcesOpen] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const isCompareTab = activeTab === 'compare';
 
   const handleShare = useCallback(async () => {
     const success = await copyShareUrl(urlState);
@@ -376,31 +526,21 @@ function Dashboard({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Share button */}
-            <button
-              type="button"
+            <FeedbackButton
+              done={shareFeedback}
+              icon={<Share2 className="w-4 h-4"/>}
+              label={t('share')}
+              doneLabel={t('shareCopied')}
               onClick={handleShare}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover"
-              aria-label={t('share')}
-            >
-              {shareFeedback ? <Check className="w-4 h-4 text-emerald-500"/> : <Share2 className="w-4 h-4"/>}
-              {shareFeedback ? t('shareCopied') : t('share')}
-            </button>
-
-            {/* Export button */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={activeTab === 'compare' ? handleExportData : handleExportChart}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover"
-                aria-label={t(activeTab === 'compare' ? 'exportData' : 'exportChart')}
-              >
-                {exportFeedback ? <Check className="w-4 h-4 text-emerald-500"/> : <Download className="w-4 h-4"/>}
-                {exportFeedback
-                  ? t('exportDone')
-                  : t(activeTab === 'compare' ? 'exportData' : 'exportChart')}
-              </button>
-            </div>
+            />
+            {/* The compare tab exports its table as CSV; every other tab its chart as SVG. */}
+            <FeedbackButton
+              done={exportFeedback}
+              icon={<Download className="w-4 h-4"/>}
+              label={isCompareTab ? t('exportData') : t('exportChart')}
+              doneLabel={t('exportDone')}
+              onClick={isCompareTab ? handleExportData : handleExportChart}
+            />
 
             {/* Language selector */}
             <label
@@ -427,7 +567,7 @@ function Dashboard({
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-app-btn text-app-btn-text hover:bg-app-btn-hover"
+              className={HEADER_BUTTON_CLASS}
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
@@ -455,57 +595,23 @@ function Dashboard({
         {/* Alluvial Tab */}
         {activeTab === 'alluvial' && (
           <>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('alluvialTitle')}</h2>
-              <p className="text-app-muted max-w-2xl">{t('alluvialDescription')}</p>
-            </div>
+            <TabHeading title={t('alluvialTitle')} description={t('alluvialDescription')}/>
 
             <div className="mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('partyFilter')}</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedParty(null)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${toggleButtonClass(activeParty === null)}`}
-                >
-                  {t('allParties')}
-                </button>
-                {availableParties.map((p) => {
-                  const isSelected = activeParty === p.party;
-                  return (
-                    <button
-                      type="button"
-                      key={p.party}
-                      onClick={() => setSelectedParty(isSelected ? null : p.party)}
-                      className={partyButtonClass(isSelected, 'ring-offset-app-bg')}
-                      style={isSelected ? {backgroundColor: p.color, color: '#fff', boxShadow: `0 0 0 2px ${p.color}`} : undefined}
-                    >
-                      <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
-                      {p.display_name}
-                    </button>
-                  );
-                })}
-              </div>
+              <PartyFilter parties={availableParties} activeParty={activeParty} onSelect={setSelectedParty}/>
             </div>
 
             <div className="mb-6 flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
                 <CalendarRange className="w-4 h-4 text-app-muted"/>
-                <span className="text-sm font-medium text-app-muted whitespace-nowrap">
-                  {hasSelectableYears ? `${t('years')}: ${formatElectionLabel(electionYears[yearStart])}–${formatElectionLabel(electionYears[yearEnd])}` : t('yearsNone')}
-                </span>
-                {hasSelectableYears && (
-                  <DualRangeSlider
-                    min={0}
-                    max={electionYears.length - 1}
-                    start={yearStart}
-                    end={yearEnd}
-                    onStartChange={setYearStart}
-                    onEndChange={setYearEnd}
-                    startAriaLabel="Range start"
-                    endAriaLabel="Range end"
-                  />
-                )}
+                <YearRangeControl
+                  years={electionYears}
+                  start={yearStart}
+                  end={yearEnd}
+                  onStartChange={setYearStart}
+                  onEndChange={setYearEnd}
+                  ariaLabelPrefix="Range"
+                />
               </div>
 
               <div className="flex items-center gap-2 ml-auto">
@@ -516,7 +622,7 @@ function Dashboard({
               </div>
             </div>
 
-            <div ref={chartContainerRef} className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
+            <div ref={chartContainerRef} className={CARD_CLASS}>
               {nodes.length === 0 ? (
                 <div className="flex items-center justify-center h-96 text-app-muted">
                   <div className="text-center">
@@ -542,31 +648,21 @@ function Dashboard({
         {/* Turnout Tab */}
         {activeTab === 'turnout' && (
           <>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('turnoutTitle')}</h2>
-              <p className="text-app-muted max-w-2xl">{t('turnoutDescription')}</p>
-            </div>
+            <TabHeading title={t('turnoutTitle')} description={t('turnoutDescription')}/>
 
             <div className="mb-6 flex items-center gap-3 flex-wrap">
               <CalendarRange className="w-4 h-4 text-app-muted"/>
-              <span className="text-sm font-medium text-app-muted whitespace-nowrap">
-                {turnoutYears.length > 0 ? `${t('years')}: ${formatElectionLabel(turnoutYears[turnoutYearStart])}–${formatElectionLabel(turnoutYears[turnoutYearEnd])}` : t('yearsNone')}
-              </span>
-              {turnoutYears.length > 0 && (
-                <DualRangeSlider
-                  min={0}
-                  max={turnoutYears.length - 1}
-                  start={turnoutYearStart}
-                  end={turnoutYearEnd}
-                  onStartChange={setTurnoutYearStart}
-                  onEndChange={setTurnoutYearEnd}
-                  startAriaLabel="Turnout range start"
-                  endAriaLabel="Turnout range end"
-                />
-              )}
+              <YearRangeControl
+                years={turnoutYears}
+                start={turnoutYearStart}
+                end={turnoutYearEnd}
+                onStartChange={setTurnoutYearStart}
+                onEndChange={setTurnoutYearEnd}
+                ariaLabelPrefix="Turnout range"
+              />
             </div>
 
-            <div ref={chartContainerRef} className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
+            <div ref={chartContainerRef} className={CARD_CLASS}>
               <TurnoutDiagram elections={turnoutElections}/>
             </div>
 
@@ -576,12 +672,9 @@ function Dashboard({
         {/* Parliament Tab */}
         {activeTab === 'parliament' && (
           <>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('parliamentTitle')}</h2>
-              <p className="text-app-muted max-w-2xl">{t('parliamentDescription')}</p>
-            </div>
+            <TabHeading title={t('parliamentTitle')} description={t('parliamentDescription')}/>
 
-            <div ref={chartContainerRef} className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
+            <div ref={chartContainerRef} className={CARD_CLASS}>
               <ParliamentDiagram coalitions={coalitions} parties={parties}/>
             </div>
 
@@ -589,14 +682,11 @@ function Dashboard({
         )}
 
         {/* Compare Tab */}
-        {activeTab === 'compare' && (
+        {isCompareTab && (
           <>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('compareTitle')}</h2>
-              <p className="text-app-muted max-w-2xl">{t('compareDescription')}</p>
-            </div>
+            <TabHeading title={t('compareTitle')} description={t('compareDescription')}/>
 
-            <div className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
+            <div className={CARD_CLASS}>
               <ElectionCompare
                 elections={allElectionsForTurnout}
                 coalitions={coalitions}
@@ -613,53 +703,16 @@ function Dashboard({
         {/* Coalition Explorer Tab */}
         {activeTab === 'coalition' && (
           <>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2 text-app-heading">{t('coalitionExplTitle')}</h2>
-              <p className="text-app-muted max-w-2xl">{t('coalitionExplDescription')}</p>
-            </div>
+            <TabHeading title={t('coalitionExplTitle')} description={t('coalitionExplDescription')}/>
 
-            <div ref={chartContainerRef} className="bg-app-card rounded-2xl p-6 border border-app-border shadow-2xl">
+            <div ref={chartContainerRef} className={CARD_CLASS}>
               <CoalitionExplorer coalitions={coalitions} parties={parties}/>
             </div>
           </>
         )}
       </main>
 
-      <footer className="border-t border-app-border mt-12 py-8">
-        <div className="max-w-[1600px] mx-auto px-6">
-          <button
-            type="button"
-            onClick={() => setAreSourcesOpen((open) => !open)}
-            aria-expanded={areSourcesOpen}
-            aria-controls="all-data-sources"
-            className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted hover:text-app-text"
-          >
-            {t('sources')}
-            <span className="normal-case tracking-normal">
-              — {areSourcesOpen ? t('sourcesHide') : t('sourcesShow')}
-            </span>
-            {areSourcesOpen ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
-          </button>
-          {areSourcesOpen && (
-            <ul id="all-data-sources" className="mt-4 space-y-3 text-sm text-app-subtle">
-              {dataSources.map((source) => (
-                <li key={`${source.year}-${source.kind}-${source.name}`}
-                    className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                  <span className="text-app-text font-medium min-w-[170px]">{getSourceLabel(source)}</span>
-                  {source.url ? (
-                    <a href={source.url} target="_blank" rel="noreferrer"
-                       className="text-app-link underline decoration-dotted underline-offset-4 hover:text-app-link-hover">
-                      {source.name}
-                    </a>
-                  ) : (
-                    <span>{source.name}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </footer>
+      <SourcesFooter dataSources={dataSources}/>
     </div>
   );
 }

@@ -13,8 +13,10 @@ export const toggleButtonClass = (active: boolean): string =>
  * Tailwind class for a party chip button. `ringOffsetClass` must be a literal
  * class (e.g. 'ring-offset-app-bg') matching the surface behind the chip.
  */
-export const partyButtonClass = (selected: boolean, ringOffsetClass: string): string =>
-  `${selected ? `ring-2 ring-offset-2 ${ringOffsetClass}` : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover'} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
+export const partyButtonClass = (selected: boolean, ringOffsetClass: string): string => {
+  const stateClass = selected ? 'ring-2 ring-offset-2 ' + ringOffsetClass : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
+  return `${stateClass} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
+};
 
 const MONTH_ABBREVIATIONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

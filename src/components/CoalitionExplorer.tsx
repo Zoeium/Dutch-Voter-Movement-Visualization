@@ -235,7 +235,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
                 stroke={seat.selected ? seat.color : 'var(--c-border-strong)'}
                 strokeWidth="1"
               >
-              <title>{`${seat.label}${seat.selected ? ` (${t('coalitionSeatSelected')})` : ''}`}</title>
+              <title>{seat.selected ? `${seat.label} (${t('coalitionSeatSelected')})` : seat.label}</title>
             </circle>
           ))}
           <text x="300" y="250" textAnchor="middle" fill="var(--c-text-heading)" fontSize="30" fontWeight="700">
