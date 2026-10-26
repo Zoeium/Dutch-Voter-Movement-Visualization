@@ -3,7 +3,7 @@ import {Check, ChevronDown, X, Users} from 'lucide-react';
 import type {CoalitionData, PartyInfo} from '@/types';
 import {getCoalitionForElection, getPartyColor, getPartyDisplayName} from '@/data/loader';
 import {useI18n} from '@/theme';
-import {partyButtonClass} from '@/components/diagramUtils';
+import {formatElectionLabel, partyButtonClass} from '@/components/diagramUtils';
 
 interface CoalitionExplorerProps {
   coalitions: CoalitionData[];
@@ -193,7 +193,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
         <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('coalitionSelectElection')}</label>
         <span className="relative">
           <select value={selectedYear} onChange={(e) => handleYearChange(e.target.value)} className={selectClass}>
-            {yearsWithSeats.map((y) => <option key={y} value={y}>{y}</option>)}
+            {yearsWithSeats.map((y) => <option key={y} value={y}>{formatElectionLabel(y)}</option>)}
           </select>
           <ChevronDown className="app-select-chevron w-4 h-4"/>
         </span>

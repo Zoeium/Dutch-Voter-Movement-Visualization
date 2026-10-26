@@ -46,7 +46,7 @@ export const translations = {
     // Alluvial
     alluvialTitle: 'Voter movements between parties',
     alluvialDescription:
-      'Visualizes voter migration across Dutch parliamentary elections. Each flow shows where a party\u2019s voters came from — or where they went. Hover over a party block to highlight its flows, or filter to a single party.',
+      'Visualizes voter migration across parliamentary elections. Each flow shows where a party\u2019s voters came from — or where they went. Hover over a party block to highlight its flows, or filter to a single party.',
     partyFilter: 'Party filter:',
     allParties: 'All parties',
     years: 'Years',
@@ -90,7 +90,7 @@ export const translations = {
     last10: 'Last 10',
     last5: 'Last 5',
     noCoalitionData: 'No coalition data available',
-    toleratingParty: 'Tolerating party (gedoogpartner)',
+    toleratingParty: 'Supporting party (outside the cabinet)',
     coalitionOpposition: 'Coalition above \u00b7 opposition below',
 
     // Footer
@@ -107,6 +107,9 @@ export const translations = {
     lightMode: 'Light',
     darkMode: 'Dark',
     language: 'Language',
+    countryData: 'Election data:',
+    countryDataHint: 'Choose which country’s elections are shown',
+    languageHint: 'Language of the interface',
 
     // Compare Elections
     compareTitle: 'Compare elections',
@@ -161,13 +164,13 @@ export const translations = {
 
     tabAlluvial: 'Kiezersmigratie',
     tabTurnout: 'Opkomstoverzicht',
-    tabParliament: 'Tweede Kamer samenstelling',
+    tabParliament: 'Samenstelling parlement',
     tabCompare: 'Verkiezingen vergelijken',
     tabCoalition: 'Coalitie verkenner',
 
     alluvialTitle: 'Kiezersmigratie tussen partijen',
     alluvialDescription:
-      'Visualiseert kiezersmigratie bij Tweede Kamerverkiezingen. Elke stroom laat zien waar de kiezers van een partij vandaan kwamen — of naartoe gingen. Hover over een partijblok om de stromen te markeren, of filter op \u00e9\u00e9n partij.',
+      'Visualiseert kiezersmigratie bij parlementsverkiezingen. Elke stroom laat zien waar de kiezers van een partij vandaan kwamen — of naartoe gingen. Hover over een partijblok om de stromen te markeren, of filter op \u00e9\u00e9n partij.',
     partyFilter: 'Partijfilter:',
     allParties: 'Alle partijen',
     years: 'Jaren',
@@ -201,7 +204,7 @@ export const translations = {
     numberVotes: 'Aantal stemmen',
     pctOfElectorate: 'Percentage van kiesgerechtigden',
 
-    parliamentTitle: 'Tweede Kamer samenstelling',
+    parliamentTitle: 'Samenstelling parlement',
     parliamentDescription:
       'Coalitie- en oppositiepartijen door de jaren heen. Partijen zijn gesorteerd op aantal zetels, met coalitiepartijen boven de stippellijn en oppositiepartijen eronder. Lijnen verbinden dezelfde partij (of opvolgers) tussen verkiezingen.',
     range: 'Bereik:',
@@ -223,6 +226,9 @@ export const translations = {
     lightMode: 'Licht',
     darkMode: 'Donker',
     language: 'Taal',
+    countryData: 'Verkiezingsdata:',
+    countryDataHint: 'Kies van welk land de verkiezingen worden getoond',
+    languageHint: 'Taal van de interface',
 
     compareTitle: 'Verkiezingen vergelijken',
     compareDescription:

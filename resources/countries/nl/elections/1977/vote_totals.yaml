@@ -2,8 +2,8 @@ date: 1977-05-25
 source:
   name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1977'
   url: https://data.overheid.nl/dataset/3582-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1977
-electorate: 9506318
-not_voted: 1140489
+electorate: 9497999
+not_voted: 1132170
 total_votes: 8365829
 non_valid_votes_and_blanco_votes: 48217
 valid_votes: 8317612

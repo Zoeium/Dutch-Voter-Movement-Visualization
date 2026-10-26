@@ -2,8 +2,8 @@ date: 1972-11-29
 source:
   name: 'overheid.nl: Verkiezingsuitslag en zetelverdeling Tweede Kamer, 1972'
   url: https://data.overheid.nl/dataset/3583-verkiezingsuitslag-en-zetelverdeling-tweede-kamer--1972
-electorate: 8916947
-not_voted: 1471660
+electorate: 8915179
+not_voted: 1469892
 total_votes: 7445287
 non_valid_votes_and_blanco_votes: 51242
 valid_votes: 7394045
