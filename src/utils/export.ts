@@ -2,8 +2,11 @@
  * Utilities for sharing state via URL and exporting chart/data.
  */
 
+/** Shareable view state: every value becomes one URL search parameter. */
+export type UrlState = Record<string, string | number | boolean | null>;
+
 /** Serialize a state object into URL search params. */
-export function stateToSearchParams(state: Record<string, string | number | boolean | null>): string {
+export function stateToSearchParams(state: UrlState): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(state)) {
     if (value === null || value === undefined || value === '') continue;
@@ -23,7 +26,7 @@ export function searchParamsToState(): Record<string, string> {
 }
 
 /** Update the browser URL with new state without a full page reload. */
-export function updateUrl(state: Record<string, string | number | boolean | null>): void {
+export function updateUrl(state: UrlState): void {
   const qs = stateToSearchParams(state);
   const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
   if (newUrl === `${window.location.pathname}${window.location.search}`) return;
@@ -36,7 +39,7 @@ export function updateUrl(state: Record<string, string | number | boolean | null
 }
 
 /** Copy a URL to the clipboard. Returns true on success. */
-export async function copyShareUrl(state: Record<string, string | number | boolean | null>): Promise<boolean> {
+export async function copyShareUrl(state: UrlState): Promise<boolean> {
   const qs = stateToSearchParams(state);
   const url = qs ? `${window.location.origin}${window.location.pathname}?${qs}` : window.location.origin + window.location.pathname;
   try {
