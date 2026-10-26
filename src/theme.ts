@@ -110,6 +110,7 @@ export const translations = {
     countryData: 'Election data:',
     countryDataHint: 'Choose which country’s elections are shown',
     languageHint: 'Language of the interface',
+    version: 'Version',
 
     // Compare Elections
     compareTitle: 'Compare elections',
@@ -229,6 +230,7 @@ export const translations = {
     countryData: 'Verkiezingsdata:',
     countryDataHint: 'Kies van welk land de verkiezingen worden getoond',
     languageHint: 'Taal van de interface',
+    version: 'Versie',
 
     compareTitle: 'Verkiezingen vergelijken',
     compareDescription:

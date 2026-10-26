@@ -26,4 +26,11 @@ export default [
       ],
     },
   },
+  {
+    // Release tooling runs in Node, not the browser.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ];
