@@ -309,19 +309,22 @@ function SourcesFooter({dataSources}: Readonly<{ dataSources: DataSourceEntry[] 
   return (
     <footer className="border-t border-app-border mt-12 py-8">
       <div className="max-w-[1600px] mx-auto px-6">
-        <button
-          type="button"
-          onClick={() => setIsOpen((open) => !open)}
-          aria-expanded={isOpen}
-          aria-controls="all-data-sources"
-          className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted hover:text-app-text"
-        >
-          {t('sources')}
-          <span className="normal-case tracking-normal">
-            — {isOpen ? t('sourcesHide') : t('sourcesShow')}
-          </span>
-          {isOpen ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
-        </button>
+        <div className="flex items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={() => setIsOpen((open) => !open)}
+            aria-expanded={isOpen}
+            aria-controls="all-data-sources"
+            className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-app-muted hover:text-app-text"
+          >
+            {t('sources')}
+            <span className="normal-case tracking-normal">
+              — {isOpen ? t('sourcesHide') : t('sourcesShow')}
+            </span>
+            {isOpen ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+          </button>
+          <span className="text-xs text-app-subtle">{t('version')} {__APP_VERSION__}</span>
+        </div>
         {isOpen && (
           <ul id="all-data-sources" className="mt-4 space-y-3 text-sm text-app-subtle">
             {dataSources.map((source) => (
