@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {Check, ChevronDown, X, Users} from 'lucide-react';
 import type {CoalitionData, PartyInfo} from '@/types';
-import {getPartyColor, getPartyDisplayName} from '@/data/loader';
+import {getCoalitionForElection, getPartyColor, getPartyDisplayName} from '@/data/loader';
 import {useI18n} from '@/theme';
 
 interface CoalitionExplorerProps {
@@ -86,23 +86,16 @@ function createChamberLayout(parties: PartySeat[], selectedParties: Set<string>)
 export default function CoalitionExplorer({coalitions, parties}: Readonly<CoalitionExplorerProps>) {
   const {t} = useI18n();
 
-  const yearsWithSeats = useMemo(() => {
-    const seen = new Set<string>();
-    return coalitions
-      .map((c) => c.year)
-      .filter((y) => {
-        if (seen.has(y)) return false;
-        seen.add(y);
-        return true;
-      })
-      .sort((a, b) => b.localeCompare(a));
-  }, [coalitions]);
+  const yearsWithSeats = useMemo(
+    () => Array.from(new Set(coalitions.flatMap((c) => c.electionYear ?? []))).sort((a, b) => b.localeCompare(a)),
+    [coalitions]
+  );
 
   const [selectedYear, setSelectedYear] = useState<string>(yearsWithSeats[0] ?? '');
   const [selectedParties, setSelectedParties] = useState<Set<string>>(new Set());
 
   const coalitionForYear = useMemo(
-    () => coalitions.find((c) => c.year === selectedYear),
+    () => getCoalitionForElection(selectedYear, coalitions),
     [coalitions, selectedYear]
   );
 
@@ -222,6 +215,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
         </div>
 
         <svg
+          data-export-chart
           viewBox="0 0 600 330"
           role="img"
           aria-label={`${selectedTotal} of ${totalSeats} seats selected; ${majority} seats needed for a majority`}

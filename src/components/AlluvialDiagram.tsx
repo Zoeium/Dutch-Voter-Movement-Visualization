@@ -542,6 +542,7 @@ export default function AlluvialDiagram({
   return (
     <div ref={containerRef} className="w-full">
       <svg
+        data-export-chart
         width="100%"
         height={contentHeight}
         viewBox={`0 0 ${svgWidth} ${contentHeight}`}
