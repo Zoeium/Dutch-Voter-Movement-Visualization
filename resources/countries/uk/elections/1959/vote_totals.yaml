@@ -1,0 +1,19 @@
+date: 1959-10-08
+source:
+  name: 'Wikipedia: 1959 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1959_United_Kingdom_general_election'
+electorate: 35397304
+not_voted: 7534652
+total_votes: 27862652
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 27862652
+parties_votes:
+  conservative: 12985081
+  labour: 12216172
+  liberal: 1640760
+  national_liberal: 765794
+  other: 92121
+  plaid_cymru: 77571
+  sinn_fein: 63415
+  snp: 21738

@@ -1,0 +1,19 @@
+date: 1994-09-18
+source:
+  name: 'Wikipedia: 1994 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1994_Swedish_general_election
+electorate: 6496120
+not_voted: 855727
+total_votes: 5640393
+non_valid_votes_and_blanco_votes: 84853
+valid_votes: 5555540
+parties_votes:
+  s: 2513905
+  m: 1243253
+  c: 425153
+  l: 399556
+  v: 342988
+  mp: 279042
+  kd: 225974
+  nyd: 68663
+  other: 57006

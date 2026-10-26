@@ -1,0 +1,17 @@
+date: 1980-10-05
+source:
+  name: 'Wikipedia: 1980 West German federal election'
+  url: https://en.wikipedia.org/wiki/1980_West_German_federal_election
+electorate: 43231741
+not_voted: 4939645
+total_votes: 38292096
+non_valid_votes_and_blanco_votes: 353115
+valid_votes: 37938981
+parties_votes:
+  spd: 16260677
+  cdu: 12989200
+  fdp: 4030999
+  csu: 3908459
+  gruene: 569589
+  other: 111961
+  npd: 68096

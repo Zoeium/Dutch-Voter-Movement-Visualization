@@ -1,0 +1,19 @@
+date: 1985-09-15
+source:
+  name: 'Wikipedia: 1985 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1985_Swedish_general_election
+electorate: 6249445
+not_voted: 634203
+total_votes: 5615242
+non_valid_votes_and_blanco_votes: 48220
+valid_votes: 5567022
+parties_votes:
+  s: 2487551
+  m: 1187335
+  l: 792268
+  c: 490999
+  v: 298419
+  kd: 131548
+  mp: 83645
+  c_kds: 73711
+  other: 21546

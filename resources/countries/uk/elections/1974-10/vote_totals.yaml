@@ -1,0 +1,21 @@
+date: 1974-10-10
+source:
+  name: 'Wikipedia: October 1974 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/October_1974_United_Kingdom_general_election'
+electorate: 40072971
+not_voted: 10883867
+total_votes: 29189104
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 29189104
+parties_votes:
+  labour: 11457079
+  conservative: 10462565
+  liberal: 5346704
+  snp: 839617
+  other: 402465
+  uup: 256065
+  plaid_cymru: 166321
+  sdlp: 154193
+  dup: 59451
+  alliance_ni: 44644

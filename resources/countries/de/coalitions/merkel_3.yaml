@@ -1,0 +1,13 @@
+# Merkel III government, seats from the 2013 election
+name: Merkel III
+inauguration: 2013-12-17
+coalition:
+  - cdu
+  - csu
+  - spd
+seats:
+  cdu: 255
+  spd: 193
+  linke: 64
+  gruene: 63
+  csu: 56

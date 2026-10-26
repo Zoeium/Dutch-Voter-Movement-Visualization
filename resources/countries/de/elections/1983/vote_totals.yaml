@@ -1,0 +1,17 @@
+date: 1983-03-06
+source:
+  name: 'Wikipedia: 1983 West German federal election'
+  url: https://en.wikipedia.org/wiki/1983_West_German_federal_election
+electorate: 44088935
+not_voted: 4809407
+total_votes: 39279528
+non_valid_votes_and_blanco_votes: 338841
+valid_votes: 38940687
+parties_votes:
+  spd: 14865807
+  cdu: 14857680
+  csu: 4140865
+  fdp: 2706942
+  gruene: 2167431
+  other: 110867
+  npd: 91095

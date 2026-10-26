@@ -1,0 +1,14 @@
+# Kohl V government, seats from the 1994 election
+name: Kohl V
+inauguration: 1994-11-17
+coalition:
+  - cdu
+  - csu
+  - fdp
+seats:
+  spd: 252
+  cdu: 244
+  csu: 50
+  gruene: 49
+  fdp: 47
+  pds: 30

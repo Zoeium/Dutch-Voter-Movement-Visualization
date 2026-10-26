@@ -1,0 +1,16 @@
+date: 1952-09-21
+source:
+  name: 'Wikipedia: 1952 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1952_Swedish_general_election
+electorate: 4805216
+not_voted: 1003932
+total_votes: 3801284
+non_valid_votes_and_blanco_votes: 17577
+valid_votes: 3783707
+parties_votes:
+  s: 1742284
+  l: 924819
+  m: 543825
+  c: 406183
+  v: 164194
+  other: 2402

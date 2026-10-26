@@ -1,0 +1,11 @@
+# Wilson II government, seats from the 1966 general election
+name: Wilson II
+inauguration: 1966-04-01
+coalition:
+  - labour
+seats:
+  labour: 364
+  conservative: 250
+  liberal: 12
+  national_liberal: 3
+  other: 1

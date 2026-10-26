@@ -1,0 +1,16 @@
+# Scholz government, seats from the 2021 election
+name: Scholz
+inauguration: 2021-12-08
+coalition:
+  - spd
+  - gruene
+  - fdp
+seats:
+  spd: 206
+  cdu: 152
+  gruene: 118
+  fdp: 92
+  afd: 83
+  csu: 45
+  linke: 39
+  ssw: 1

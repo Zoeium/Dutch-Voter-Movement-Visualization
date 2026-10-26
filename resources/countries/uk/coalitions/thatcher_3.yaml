@@ -1,0 +1,16 @@
+# Thatcher III government, seats from the 1987 general election
+name: Thatcher III
+inauguration: 1987-06-12
+coalition:
+  - conservative
+seats:
+  conservative: 376
+  labour: 229
+  alliance: 22
+  uup: 9
+  snp: 3
+  sdlp: 3
+  plaid_cymru: 3
+  dup: 3
+  sinn_fein: 1
+  other: 1

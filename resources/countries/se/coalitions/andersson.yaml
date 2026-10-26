@@ -1,0 +1,14 @@
+# Andersson government, seats from the 2018 election
+name: Andersson
+inauguration: 2021-11-30
+coalition:
+  - s
+seats:
+  s: 100
+  m: 70
+  sd: 62
+  c: 31
+  v: 28
+  kd: 22
+  l: 20
+  mp: 16

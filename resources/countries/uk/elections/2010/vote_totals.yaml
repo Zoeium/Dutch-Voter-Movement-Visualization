@@ -1,0 +1,23 @@
+date: 2010-05-06
+source:
+  name: 'Wikipedia: 2010 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/2010_United_Kingdom_general_election'
+electorate: 45597461
+not_voted: 15909857
+total_votes: 29687604
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 29687604
+parties_votes:
+  conservative: 10703754
+  labour: 8609527
+  lib_dem: 6836825
+  other: 1181741
+  ukip: 919471
+  snp: 491386
+  green: 285616
+  sinn_fein: 171942
+  dup: 168216
+  plaid_cymru: 165394
+  sdlp: 110970
+  alliance_ni: 42762

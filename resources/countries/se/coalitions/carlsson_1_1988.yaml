@@ -1,0 +1,12 @@
+# Carlsson I government, seats from the 1988 election
+name: Carlsson I
+inauguration: 1988-09-19
+coalition:
+  - s
+seats:
+  s: 156
+  m: 66
+  l: 44
+  c: 42
+  v: 21
+  mp: 20

@@ -1,0 +1,17 @@
+date: 1976-09-19
+source:
+  name: 'Wikipedia: 1976 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1976_Swedish_general_election
+electorate: 5947077
+not_voted: 490034
+total_votes: 5457043
+non_valid_votes_and_blanco_votes: 19295
+valid_votes: 5437748
+parties_votes:
+  s: 2324603
+  c: 1309669
+  m: 847672
+  l: 601556
+  v: 258432
+  kd: 73844
+  other: 21972

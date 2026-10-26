@@ -1,0 +1,23 @@
+date: 2017-09-24
+source:
+  name: 'Wikipedia: 2017 German federal election'
+  url: https://en.wikipedia.org/wiki/2017_German_federal_election
+electorate: 61688485
+not_voted: 14712144
+total_votes: 46976341
+non_valid_votes_and_blanco_votes: 460849
+valid_votes: 46515492
+parties_votes:
+  cdu: 12447656
+  spd: 9539381
+  afd: 5878115
+  fdp: 4999449
+  linke: 4297270
+  gruene: 4158400
+  csu: 2869688
+  other: 1080529
+  fw: 463292
+  tierschutz: 374179
+  npd: 176020
+  piraten: 173476
+  bp: 58037

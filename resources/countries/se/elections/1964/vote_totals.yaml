@@ -1,0 +1,18 @@
+date: 1964-09-20
+source:
+  name: 'Wikipedia: 1964 Swedish general election'
+  url: https://en.wikipedia.org/wiki/1964_Swedish_general_election
+electorate: 5095850
+not_voted: 822255
+total_votes: 4273595
+non_valid_votes_and_blanco_votes: 27815
+valid_votes: 4245780
+parties_votes:
+  s: 2006923
+  l: 720733
+  m: 582609
+  c: 559632
+  v: 221746
+  kd: 75389
+  medborgerlig_samling: 64807
+  other: 13941

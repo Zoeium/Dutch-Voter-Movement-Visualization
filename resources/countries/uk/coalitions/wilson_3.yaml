@@ -1,0 +1,15 @@
+# Wilson III government, seats from the 1974-02 general election
+name: Wilson III
+inauguration: 1974-03-04
+coalition:
+  - labour
+seats:
+  labour: 301
+  conservative: 297
+  liberal: 14
+  snp: 7
+  uup: 7
+  other: 5
+  plaid_cymru: 2
+  sdlp: 1
+  dup: 1

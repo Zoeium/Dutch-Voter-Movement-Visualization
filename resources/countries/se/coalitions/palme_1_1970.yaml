@@ -1,0 +1,11 @@
+# Palme I government, seats from the 1970 election
+name: Palme I
+inauguration: 1970-09-21
+coalition:
+  - s
+seats:
+  s: 163
+  c: 71
+  l: 58
+  m: 41
+  v: 17

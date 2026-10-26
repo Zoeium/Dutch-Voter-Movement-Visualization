@@ -1,0 +1,17 @@
+# Truss government, seats from the 2019 general election
+name: Truss
+inauguration: 2022-09-06
+coalition:
+  - conservative
+seats:
+  conservative: 365
+  labour: 202
+  snp: 48
+  lib_dem: 11
+  dup: 8
+  sinn_fein: 7
+  plaid_cymru: 4
+  sdlp: 2
+  green: 1
+  alliance_ni: 1
+  other: 1

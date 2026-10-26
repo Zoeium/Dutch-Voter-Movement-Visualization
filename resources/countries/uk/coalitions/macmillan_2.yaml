@@ -1,0 +1,12 @@
+# Macmillan II government, seats from the 1959 general election
+name: Macmillan II
+inauguration: 1959-10-09
+coalition:
+  - conservative
+  - national_liberal
+seats:
+  conservative: 345
+  labour: 258
+  national_liberal: 20
+  liberal: 6
+  other: 1

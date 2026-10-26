@@ -1,0 +1,18 @@
+# Löfven II government, seats from the 2018 election
+name: Löfven II
+inauguration: 2019-01-21
+coalition:
+  - s
+  - mp
+support:
+  - c
+  - l
+seats:
+  s: 100
+  m: 70
+  sd: 62
+  c: 31
+  v: 28
+  kd: 22
+  l: 20
+  mp: 16

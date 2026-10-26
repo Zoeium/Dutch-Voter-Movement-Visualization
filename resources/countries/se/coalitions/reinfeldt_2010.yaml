@@ -1,0 +1,17 @@
+# Reinfeldt government, seats from the 2010 election
+name: Reinfeldt
+inauguration: 2010-09-20
+coalition:
+  - m
+  - c
+  - l
+  - kd
+seats:
+  s: 112
+  m: 107
+  mp: 25
+  l: 24
+  c: 23
+  sd: 20
+  v: 19
+  kd: 19

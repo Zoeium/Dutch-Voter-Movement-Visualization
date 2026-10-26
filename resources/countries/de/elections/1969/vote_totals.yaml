@@ -1,0 +1,19 @@
+date: 1969-09-28
+source:
+  name: 'Wikipedia: 1969 West German federal election'
+  url: https://en.wikipedia.org/wiki/1969_West_German_federal_election
+electorate: 38677235
+not_voted: 5154171
+total_votes: 33523064
+non_valid_votes_and_blanco_votes: 557040
+valid_votes: 32966024
+parties_votes:
+  spd: 14065716
+  cdu: 12079535
+  csu: 3115652
+  fdp: 1903422
+  npd: 1422010
+  other: 268661
+  bp: 49694
+  dp: 45401
+  zentrum: 15933

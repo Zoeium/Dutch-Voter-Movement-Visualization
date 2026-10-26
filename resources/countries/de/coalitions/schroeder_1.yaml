@@ -1,0 +1,13 @@
+# Schröder I government, seats from the 1998 election
+name: Schröder I
+inauguration: 1998-10-27
+coalition:
+  - spd
+  - gruene
+seats:
+  spd: 298
+  cdu: 198
+  csu: 47
+  gruene: 47
+  fdp: 43
+  pds: 36

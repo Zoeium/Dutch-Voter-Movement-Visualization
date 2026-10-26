@@ -1,0 +1,12 @@
+# Erlander II government, seats from the 1948 election
+name: Erlander II
+inauguration: 1951-10-01
+coalition:
+  - s
+  - c
+seats:
+  s: 112
+  l: 57
+  c: 30
+  m: 23
+  v: 8

@@ -1,0 +1,18 @@
+date: 1945-07-05
+source:
+  name: 'Wikipedia: 1945 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1945_United_Kingdom_general_election'
+electorate: 33672036
+not_voted: 8576841
+total_votes: 25095195
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 25095195
+parties_votes:
+  labour: 11967746
+  conservative: 9101099
+  liberal: 2252430
+  other: 989576
+  national_liberal: 737732
+  snp: 30595
+  plaid_cymru: 16017

@@ -1,0 +1,23 @@
+date: 2001-06-07
+source:
+  name: 'Wikipedia: 2001 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/2001_United_Kingdom_general_election'
+electorate: 44403238
+not_voted: 18035855
+total_votes: 26367383
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 26367383
+parties_votes:
+  labour: 10724953
+  conservative: 8357615
+  lib_dem: 4814321
+  other: 508590
+  snp: 464314
+  ukip: 390574
+  uup: 216839
+  plaid_cymru: 195893
+  dup: 181999
+  sinn_fein: 175933
+  sdlp: 169865
+  green: 166487

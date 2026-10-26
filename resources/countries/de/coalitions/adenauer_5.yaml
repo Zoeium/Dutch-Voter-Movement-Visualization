@@ -1,0 +1,12 @@
+# Adenauer V government, seats from the 1961 election
+name: Adenauer V
+inauguration: 1962-12-14
+coalition:
+  - cdu
+  - csu
+  - fdp
+seats:
+  cdu: 192
+  spd: 190
+  fdp: 67
+  csu: 50

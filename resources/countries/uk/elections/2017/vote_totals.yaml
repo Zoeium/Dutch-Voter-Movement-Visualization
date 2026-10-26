@@ -1,0 +1,24 @@
+date: 2017-06-08
+source:
+  name: 'Wikipedia: 2017 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/2017_United_Kingdom_general_election'
+electorate: 46836533
+not_voted: 14632349
+total_votes: 32204184
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 32204184
+parties_votes:
+  conservative: 13636684
+  labour: 12877918
+  lib_dem: 2371861
+  snp: 977568
+  ukip: 594068
+  green: 512327
+  other: 294809
+  dup: 292316
+  sinn_fein: 238915
+  plaid_cymru: 164466
+  sdlp: 95419
+  uup: 83280
+  alliance_ni: 64553

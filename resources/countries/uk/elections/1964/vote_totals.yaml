@@ -1,0 +1,18 @@
+date: 1964-10-15
+source:
+  name: 'Wikipedia: 1964 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1964_United_Kingdom_general_election'
+electorate: 35894054
+not_voted: 8236906
+total_votes: 27657148
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 27657148
+parties_votes:
+  labour: 12205808
+  conservative: 11676512
+  liberal: 3099283
+  national_liberal: 326130
+  other: 215864
+  plaid_cymru: 69507
+  snp: 64044

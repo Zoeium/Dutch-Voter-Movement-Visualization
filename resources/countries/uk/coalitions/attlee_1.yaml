@@ -1,0 +1,11 @@
+# Attlee I government, seats from the 1945 general election
+name: Attlee I
+inauguration: 1945-07-26
+coalition:
+  - labour
+seats:
+  labour: 393
+  conservative: 197
+  other: 27
+  liberal: 12
+  national_liberal: 11

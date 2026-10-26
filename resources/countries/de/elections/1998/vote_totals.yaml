@@ -1,0 +1,21 @@
+date: 1998-09-27
+source:
+  name: 'Wikipedia: 1998 German federal election'
+  url: https://en.wikipedia.org/wiki/1998_German_federal_election
+electorate: 60762751
+not_voted: 10815664
+total_votes: 49947087
+non_valid_votes_and_blanco_votes: 638575
+valid_votes: 49308512
+parties_votes:
+  spd: 20181269
+  cdu: 14004908
+  csu: 3324480
+  gruene: 3301624
+  fdp: 3080955
+  pds: 2515454
+  other: 1704929
+  rep: 906383
+  tierschutz: 133832
+  npd: 126571
+  bp: 28107

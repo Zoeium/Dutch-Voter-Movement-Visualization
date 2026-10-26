@@ -1,0 +1,16 @@
+# Brown government, seats from the 2005 general election
+name: Brown
+inauguration: 2007-06-27
+coalition:
+  - labour
+seats:
+  labour: 355
+  conservative: 198
+  lib_dem: 62
+  dup: 9
+  snp: 6
+  sinn_fein: 5
+  other: 4
+  plaid_cymru: 3
+  sdlp: 3
+  uup: 1

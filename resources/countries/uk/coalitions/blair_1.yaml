@@ -1,0 +1,16 @@
+# Blair I government, seats from the 1997 general election
+name: Blair I
+inauguration: 1997-05-02
+coalition:
+  - labour
+seats:
+  labour: 418
+  conservative: 165
+  lib_dem: 46
+  uup: 10
+  snp: 6
+  plaid_cymru: 4
+  other: 3
+  sdlp: 3
+  sinn_fein: 2
+  dup: 2

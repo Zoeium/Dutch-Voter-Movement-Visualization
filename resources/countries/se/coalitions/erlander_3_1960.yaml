@@ -1,0 +1,11 @@
+# Erlander III government, seats from the 1960 election
+name: Erlander III
+inauguration: 1960-09-19
+coalition:
+  - s
+seats:
+  s: 114
+  l: 40
+  m: 39
+  c: 34
+  v: 5

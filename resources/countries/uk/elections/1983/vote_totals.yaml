@@ -1,0 +1,22 @@
+date: 1983-06-09
+source:
+  name: 'Wikipedia: 1983 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1983_United_Kingdom_general_election'
+electorate: 42197344
+not_voted: 11526207
+total_votes: 30671137
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 30671137
+parties_votes:
+  conservative: 13012316
+  labour: 8456934
+  alliance: 7780949
+  snp: 331975
+  uup: 259952
+  other: 249965
+  dup: 152749
+  sdlp: 137012
+  plaid_cymru: 125309
+  sinn_fein: 102701
+  alliance_ni: 61275

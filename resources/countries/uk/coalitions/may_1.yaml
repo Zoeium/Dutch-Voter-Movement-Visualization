@@ -1,0 +1,18 @@
+# May I government, seats from the 2015 general election
+name: May I
+inauguration: 2016-07-13
+coalition:
+  - conservative
+seats:
+  conservative: 330
+  labour: 232
+  snp: 56
+  lib_dem: 8
+  dup: 8
+  sinn_fein: 4
+  plaid_cymru: 3
+  sdlp: 3
+  uup: 2
+  other: 2
+  ukip: 1
+  green: 1

@@ -1,0 +1,12 @@
+# Erlander II government, seats from the 1956 election
+name: Erlander II
+inauguration: 1956-09-17
+coalition:
+  - s
+  - c
+seats:
+  s: 106
+  l: 58
+  m: 42
+  c: 19
+  v: 6

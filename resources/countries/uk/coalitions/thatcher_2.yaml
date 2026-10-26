@@ -1,0 +1,16 @@
+# Thatcher II government, seats from the 1983 general election
+name: Thatcher II
+inauguration: 1983-06-10
+coalition:
+  - conservative
+seats:
+  conservative: 397
+  labour: 209
+  alliance: 23
+  uup: 11
+  dup: 3
+  snp: 2
+  plaid_cymru: 2
+  sdlp: 1
+  sinn_fein: 1
+  other: 1

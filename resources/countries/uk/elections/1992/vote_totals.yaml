@@ -1,0 +1,22 @@
+date: 1992-04-09
+source:
+  name: 'Wikipedia: 1992 United Kingdom general election'
+  url: 'https://en.wikipedia.org/wiki/1992_United_Kingdom_general_election'
+electorate: 43249721
+not_voted: 9635647
+total_votes: 33614074
+non_valid_votes: 0
+blanco_votes: 0
+valid_votes: 33614074
+parties_votes:
+  conservative: 14093007
+  labour: 11560484
+  lib_dem: 5999606
+  snp: 629564
+  sinn_fein: 334405
+  uup: 271049
+  sdlp: 184445
+  green: 156747
+  plaid_cymru: 154947
+  other: 126781
+  dup: 103039

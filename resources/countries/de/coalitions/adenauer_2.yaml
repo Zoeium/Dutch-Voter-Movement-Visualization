@@ -1,0 +1,17 @@
+# Adenauer II government, seats from the 1953 election
+name: Adenauer II
+inauguration: 1953-10-20
+coalition:
+  - cdu
+  - csu
+  - fdp
+  - dp
+  - gb_bhe
+seats:
+  cdu: 191
+  spd: 151
+  csu: 52
+  fdp: 48
+  gb_bhe: 27
+  dp: 15
+  zentrum: 3
