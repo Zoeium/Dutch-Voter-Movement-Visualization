@@ -11,14 +11,18 @@ from 2021 to 2025:
 
 ![Voters movement for D66, 2021 to 2025](resources/pictures/d66-2021-to-2025.png)
 
+To put the Dutch results in perspective, the app also covers the United Kingdom, Germany and Sweden.
+
+**Try it:** [zoeium.github.io/Dutch-Voter-Movement-Visualization](https://zoeium.github.io/Dutch-Voter-Movement-Visualization/)
+
 ## What the app shows
 
 - **Voter movements:** where each party's voters came from and went to between elections, for all parties at once or
-  focused on a single party.
-- **Turnout:** for every election since 1946, how the electorate splits into valid votes, blank and invalid votes, and
-  people who did not vote.
-- **Parliament:** how the seats in the Tweede Kamer were divided under each cabinet, and how parties merged, split and
-  carried their seats over from one cabinet to the next.
+  focused on a single party. Available for the Netherlands, the only country with voter movement data so far.
+- **Turnout:** for every election, how the electorate splits into valid votes, blank and invalid votes, and people who
+  did not vote.
+- **Parliament:** how the seats in parliament were divided under each cabinet or government, and how parties merged,
+  split and carried their seats over from one to the next.
 - **Compare elections:** for any two elections, each party's change in votes, vote share and seats, with the biggest
   gainers and losers highlighted.
 - **Coalition explorer:** for each election, which combinations of parties reach a majority of the seats, next to the
@@ -65,6 +69,18 @@ For Germany and Sweden, parties that never won a seat or 1% of the vote are grou
 movements are available.
 
 Every source is listed in the app itself, under "Sources" at the bottom of the page.
+
+### Data checks
+
+Every change to the data is checked automatically before it is published. Among other things, the checks confirm that
+each party's votes add up to the valid votes, that every party has a name and colour, that a cabinet or government
+with seats follows every election, and that every governing party actually holds seats.
+
+## Versions
+
+The app is released in numbered versions; the version shown at the bottom of the page is the one you are looking at.
+What changed in each version is described in the [changelog](CHANGELOG.md), and every version is available on the
+[releases page](https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/releases).
 
 ## Notes
 
