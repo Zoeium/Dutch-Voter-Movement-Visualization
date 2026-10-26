@@ -1,8 +1,8 @@
-name: Preview cleanup
+name: Test site cleanup
 
-# Keeps preview deployments (published by the CI workflow) temporary: a preview is
-# removed when its branch is deleted, and the daily cleanup removes previews that have
-# not been refreshed for PREVIEW_DAYS days. GitHub runs these triggers from main only.
+# Keeps the test site (published by the CI workflow at /test/) temporary: it is removed
+# when the branch it shows is deleted, and the daily cleanup removes it once nothing has
+# been deployed to it for TEST_SITE_DAYS days. GitHub runs these triggers from main only.
 on:
   delete:
   schedule:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  PREVIEW_DAYS: 14
+  TEST_SITE_DAYS: 14
 
 permissions:
   contents: write
@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   remove:
-    name: Remove preview of deleted branch
+    name: Remove test site of deleted branch
     if: github.event_name == 'delete' && github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
@@ -30,12 +30,12 @@ jobs:
       - name: Remove
         env:
           BRANCH: ${{ github.event.ref }}
-        run: bash scripts/pages.sh remove "$(bash scripts/pages.sh slug "$BRANCH")"
+        run: bash scripts/pages.sh remove-test "$BRANCH"
 
   prune:
-    name: Remove expired previews
+    name: Remove expired test site
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: bash scripts/pages.sh prune "$PREVIEW_DAYS"
+      - run: bash scripts/pages.sh prune "$TEST_SITE_DAYS"

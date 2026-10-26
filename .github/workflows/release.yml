@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
 
-# Shared with the CI preview job and the cleanup: only one job writes to gh-pages at a time.
+# Shared with the CI test-site job and its cleanup: only one job writes to gh-pages at a time.
 concurrency:
   group: gh-pages
   cancel-in-progress: false
@@ -61,8 +61,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      # The release goes to the root of the gh-pages branch; branch previews under
-      # /preview/ are kept (see scripts/pages.sh and the preview workflow).
+      # The release goes to the root of the gh-pages branch; the test site at /test/
+      # is kept (see scripts/pages.sh).
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:

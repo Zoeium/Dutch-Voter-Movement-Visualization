@@ -12,7 +12,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   define: {
-    // Preview deployments append their branch and commit (see the preview job in .github/workflows/ci.yml).
+    // The test site appends its branch and commit (see the test-site job in .github/workflows/ci.yml).
     __APP_VERSION__: JSON.stringify(pkg.version + (process.env.APP_VERSION_SUFFIX ?? '')),
   },
   resolve: {

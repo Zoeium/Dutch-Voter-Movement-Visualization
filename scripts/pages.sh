@@ -1,23 +1,19 @@
 #!/usr/bin/env bash
 # Manage the gh-pages branch that GitHub Pages serves:
-#   /                   the latest release
-#   /preview/<branch>/  a temporary preview of a branch, with a .deployed-at timestamp
+#   /        the main site: the latest release
+#   /test/   the test site: the most recently pushed branch, with .deployed-at (Unix time)
+#            and .deployed-branch files; removed after a period without deployments
 #
 # Usage (from a checkout of the repository, in CI):
-#   scripts/pages.sh release <build dir>          publish a release at the root, keeping previews
-#   scripts/pages.sh preview <slug> <build dir>   publish or refresh one preview
-#   scripts/pages.sh remove <slug>                remove one preview
-#   scripts/pages.sh prune <days>                 remove previews not refreshed for <days> days
-#   scripts/pages.sh slug <branch name>           print the preview folder name for a branch
+#   scripts/pages.sh release <build dir>          publish a release at the root, keeping the test site
+#   scripts/pages.sh test <branch> <build dir>    publish a branch as the test site
+#   scripts/pages.sh remove-test <branch>         remove the test site if it shows <branch>
+#   scripts/pages.sh prune <days>                 remove the test site if not deployed for <days> days
 set -euo pipefail
 
 BRANCH=gh-pages
 SITE_DIR=.pages-site
-
-slug() {
-  # Lowercase, every run of other characters becomes one dash: feature/Phone_UI -> feature-phone-ui
-  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//'
-}
+TEST_DIR=test
 
 checkout_site() {
   git config user.name 'github-actions[bot]'
@@ -32,9 +28,11 @@ checkout_site() {
     git worktree add --detach "$SITE_DIR"
     (cd "$SITE_DIR" && git checkout --orphan "$BRANCH" && git rm -rf --quiet .)
   fi
-  # Serve files as they are (no Jekyll), and keep search engines away from previews.
+  # Earlier versions published one preview per branch; the test site replaces them.
+  rm -rf "$SITE_DIR/preview"
+  # Serve files as they are (no Jekyll), and keep search engines away from the test site.
   touch "$SITE_DIR/.nojekyll"
-  printf 'User-agent: *\nDisallow: /preview/\n' > "$SITE_DIR/robots.txt"
+  printf 'User-agent: *\nDisallow: /%s/\n' "$TEST_DIR" > "$SITE_DIR/robots.txt"
 }
 
 commit_and_push() {
@@ -55,44 +53,43 @@ case "${1:-}" in
   release)
     build_dir=$2
     checkout_site
-    find "$SITE_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name preview ! -name .nojekyll ! -name robots.txt -exec rm -rf {} +
+    find "$SITE_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name "$TEST_DIR" ! -name .nojekyll ! -name robots.txt -exec rm -rf {} +
     cp -R "$build_dir"/. "$SITE_DIR"/
     commit_and_push "Release ${GITHUB_REF_NAME:-site}"
     ;;
-  preview)
-    name=$2 build_dir=$3
+  test)
+    branch=$2 build_dir=$3
     checkout_site
-    rm -rf "${SITE_DIR:?}/preview/$name"
-    mkdir -p "$SITE_DIR/preview/$name"
-    cp -R "$build_dir"/. "$SITE_DIR/preview/$name"/
-    date +%s > "$SITE_DIR/preview/$name/.deployed-at"
-    commit_and_push "Preview $name"
+    rm -rf "${SITE_DIR:?}/$TEST_DIR"
+    mkdir -p "$SITE_DIR/$TEST_DIR"
+    cp -R "$build_dir"/. "$SITE_DIR/$TEST_DIR"/
+    date +%s > "$SITE_DIR/$TEST_DIR/.deployed-at"
+    printf '%s\n' "$branch" > "$SITE_DIR/$TEST_DIR/.deployed-branch"
+    commit_and_push "Test site: $branch"
     ;;
-  remove)
-    name=$2
+  remove-test)
+    branch=$2
     checkout_site
-    rm -rf "${SITE_DIR:?}/preview/$name"
-    commit_and_push "Remove preview $name"
+    if [ "$(cat "$SITE_DIR/$TEST_DIR/.deployed-branch" 2>/dev/null || true)" = "$branch" ]; then
+      echo "The test site shows deleted branch $branch: removing it."
+      rm -rf "${SITE_DIR:?}/$TEST_DIR"
+    else
+      echo "The test site does not show $branch: keeping it."
+    fi
+    commit_and_push "Remove test site of deleted branch $branch"
     ;;
   prune)
     days=$2
     checkout_site
-    now=$(date +%s)
-    for dir in "$SITE_DIR"/preview/*/; do
-      [ -d "$dir" ] || continue
-      deployed=$(cat "$dir/.deployed-at" 2>/dev/null || echo 0)
-      if [ $(( now - deployed )) -gt $(( days * 86400 )) ]; then
-        echo "Removing expired preview $(basename "$dir")"
-        rm -rf "$dir"
-      fi
-    done
-    commit_and_push "Remove previews older than $days days"
-    ;;
-  slug)
-    slug "$2"
+    deployed=$(cat "$SITE_DIR/$TEST_DIR/.deployed-at" 2>/dev/null || echo 0)
+    if [ -d "$SITE_DIR/$TEST_DIR" ] && [ $(( $(date +%s) - deployed )) -gt $(( days * 86400 )) ]; then
+      echo "The test site was not deployed for more than $days days: removing it."
+      rm -rf "${SITE_DIR:?}/$TEST_DIR"
+    fi
+    commit_and_push "Remove test site after $days days without deployments"
     ;;
   *)
-    sed -n '2,12p' "$0"
+    sed -n '2,13p' "$0"
     exit 1
     ;;
 esac

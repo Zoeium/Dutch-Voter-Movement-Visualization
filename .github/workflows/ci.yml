@@ -15,11 +15,11 @@ jobs:
     name: Checks
     uses: ./.github/workflows/checks.yml
 
-  # Temporary test deployment of the pushed branch (main included) at
-  #   https://<owner>.github.io/<repository>/preview/<branch>/
-  # Runs only when the checks pass. Removal of old previews: see preview-cleanup.yml.
-  preview:
-    name: Deploy preview
+  # The shared test site, https://<owner>.github.io/<repository>/test/, shows the most
+  # recently pushed branch whose checks passed. The main site (the latest release) is not
+  # touched. Expiry and removal: see test-site-cleanup.yml.
+  test-site:
+    name: Deploy test site
     needs: checks
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -35,21 +35,15 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - name: Preview name
-        id: preview
-        run: |
-          slug="$(bash scripts/pages.sh slug "$GITHUB_REF_NAME")"
-          echo "slug=$slug" >> "$GITHUB_OUTPUT"
-          # Shown next to the version number, so testers know this is not a release.
-          echo "suffix= (preview $GITHUB_REF_NAME, ${GITHUB_SHA::7})" >> "$GITHUB_OUTPUT"
       - run: npm ci
-      - run: npm run build
-        env:
-          APP_VERSION_SUFFIX: ${{ steps.preview.outputs.suffix }}
+      - name: Build
+        run: |
+          # Shown next to the version number, so testers know this is not a release.
+          export APP_VERSION_SUFFIX=" (test $GITHUB_REF_NAME, ${GITHUB_SHA::7})"
+          npm run build
       - name: Publish
-        run: bash scripts/pages.sh preview "${{ steps.preview.outputs.slug }}" dist
+        run: bash scripts/pages.sh test "$GITHUB_REF_NAME" dist
       - name: Summary
         run: |
-          url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/preview/${{ steps.preview.outputs.slug }}/"
-          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
-          echo "Removed when the branch is deleted, or after the number of days set in preview-cleanup.yml without a new push." >> "$GITHUB_STEP_SUMMARY"
+          url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/test/"
+          echo "Test site: $url (branch $GITHUB_REF_NAME, ${GITHUB_SHA::7})" >> "$GITHUB_STEP_SUMMARY"
