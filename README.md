@@ -49,7 +49,7 @@ The app covers seven countries, chosen with the "Election data" selector in the 
 - **Election results** for every House of Commons general election since the Second World War, from 1945 to 2024,
   including both elections of 1974: electorate, turnout, and votes and seats per party. Small parties are grouped as
   "Other parties". Spoilt ballots are not part of the published national totals, so turnout shows valid votes only.
-- **Governments** from Attlee I (1945) to Starmer (2024), including changes of prime minister between elections.
+- **Governments** from Attlee I (1945) to Burnham (2026), including changes of prime minister between elections.
 - **No voter movements** are available, so the voter movement diagram is not shown for the United Kingdom.
 
 **Germany**

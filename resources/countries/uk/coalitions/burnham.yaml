@@ -1,0 +1,19 @@
+# Burnham government, seats from the 2024 general election
+name: Burnham
+inauguration: 2026-07-20
+coalition:
+  - labour
+seats:
+  labour: 411
+  conservative: 121
+  lib_dem: 72
+  snp: 9
+  other: 8
+  sinn_fein: 7
+  reform_uk: 5
+  dup: 5
+  green: 4
+  plaid_cymru: 4
+  sdlp: 2
+  alliance_ni: 1
+  uup: 1
