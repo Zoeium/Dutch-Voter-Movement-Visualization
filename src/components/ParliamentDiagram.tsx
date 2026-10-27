@@ -2,13 +2,22 @@ import {useMemo, useState} from 'react';
 import type {CoalitionData, PartyInfo} from '@/types';
 import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
 import {DualRangeSlider, RibbonGradient} from '@/components/shared';
-import {buildGradientId, buildRibbonPath, toggleButtonClass} from '@/components/diagramUtils';
+import {buildGradientId, buildRibbonPath, formatElectionLabel, toggleButtonClass} from '@/components/diagramUtils';
 import {useI18n} from '@/theme';
+import {collectMergeEdges, collectSplitEdges} from '@/components/lineage';
 
 interface ParliamentDiagramProps {
   coalitions: CoalitionData[];
   parties: PartyInfo[];
+  /** Election date (YYYY-MM-DD) per election id, for the election markers above the columns. */
+  electionDates?: Record<string, string>;
+  /** Votes per party per election id, to divide a merged party between its predecessors. */
+  electionVotes?: Record<string, Record<string, number>>;
 }
+
+const NO_VOTES: Record<string, Record<string, number>> = {};
+
+const ELECTION_MARKER_COLOR = '#10b981';
 
 interface PartyBlock {
   party: string;           // literal seat key (each key is its own block)
@@ -37,13 +46,12 @@ interface LineageRibbon {
 
 type RibbonSide = 'source' | 'target';
 
-const PX_PER_SEAT = 3;
-// Tallest a full chamber may get (150 Dutch seats at PX_PER_SEAT). Larger chambers,
-// such as the 650-seat House of Commons, scale down to fit instead of growing taller.
-const MAX_CHAMBER_HEIGHT = 450;
-// Every block is labelled, so even a one-seat party is tall enough for one line of the
-// small label font; the label must never stick out over the neighbouring blocks.
-const MIN_BLOCK_HEIGHT = 13;
+// Height of the seats of the largest chamber among the shown columns; smaller chambers
+// are shorter in proportion to their number of seats.
+const CHAMBER_HEIGHT = 450;
+// Every block is at least one line of label text tall, so every party is named. Small
+// parties are then taller than their share; the rest of the column stays proportional.
+const MIN_BLOCK_HEIGHT = 12;
 // Block height at which the in-block label steps up to the regular font size.
 const MEDIUM_LABEL_HEIGHT = 24;
 const SMALL_LABEL_PX = 9;
@@ -59,7 +67,8 @@ const ROLE_GAP = 26;
 const BLOCK_WIDTH = 72;
 const COLUMN_GAP = 42;
 const LABEL_SPACE = 40;
-const HEADER_SPACE = 50;
+// Cabinet name, year in office and, for a cabinet formed after an election, the election marker.
+const HEADER_SPACE = 70;
 const LEGEND_SPACE = 62;
 // The legend sits in the space reserved below the columns; never let the drawing end up
 // narrower than the legend needs, or it gets clipped on small selections.
@@ -108,8 +117,7 @@ function getRibbonSeats(ribbon: LineageRibbon, side: RibbonSide): number {
 function allocateRibbonGroup(
   block: PartyBlock,
   group: LineageRibbon[],
-  side: RibbonSide,
-  pxPerSeat: number
+  side: RibbonSide
 ): void {
   const hasLineage = group.some((ribbon) => ribbon.kind !== 'continuity');
   if (!hasLineage) {
@@ -126,7 +134,10 @@ function allocateRibbonGroup(
     return;
   }
 
-  const pixelsPerSeat = Math.min(pxPerSeat, block.height / totalSeats);
+  // The block's own seat scale (columns can differ), shrunk only when the ribbons carry
+  // more seats than the block holds.
+  const blockScale = block.seats > 0 ? block.height / block.seats : 0;
+  const pixelsPerSeat = Math.min(blockScale, block.height / totalSeats);
   let y = block.y;
   for (const ribbon of group) {
     const bottom = y + getRibbonSeats(ribbon, side) * pixelsPerSeat;
@@ -168,10 +179,13 @@ function truncateToWidth(text: string, fontPx: number, maxWidth: number): string
 
 /**
  * Fit "Name (seats)" inside a block: one line when it fits, otherwise the name over
- * the seat count when the block is tall enough, otherwise a shortened name. The seat
- * count is never dropped, and the full name is in the block's tooltip.
+ * the seat count when the block is tall enough, otherwise a shortened name. A labelled
+ * block always shows its seat count; the full name is in the block's tooltip.
  */
 function fitBlockLabel(name: string, seats: number, height: number): { lines: string[]; fontPx: number } {
+  // Heights follow the seat share, so a small party can be thinner than a line of text:
+  // it is then not labelled in the block (the tooltip still names it).
+  if (height < SMALL_LABEL_PX * LABEL_LINE_HEIGHT + 1) return {lines: [], fontPx: SMALL_LABEL_PX};
   const maxWidth = BLOCK_WIDTH - 2 * LABEL_PADDING_X;
   const fontPx = height >= MEDIUM_LABEL_HEIGHT ? MEDIUM_LABEL_PX : SMALL_LABEL_PX;
   const seatText = `(${seats})`;
@@ -219,17 +233,6 @@ const RANGE_PRESETS = [
 ];
 
 /** Return the parties from which a literal party entry split. */
-function getSplitParents(party: string, parties: PartyInfo[]): string[] {
-  // Prefer the party's own entry over the `previous_names` fallback: `ppr` is also
-  // a previous name of groenlinks, and groenlinks sorts first, so a combined
-  // lookup would return groenlinks (no split_off) and never read ppr.yaml.
-  const exact = parties.find((x) => x.party === party);
-  if (exact) return exact.split_off ?? [];
-
-  const viaPreviousName = parties.find((x) => x.previous_names?.includes(party));
-  return viaPreviousName?.split_off ?? [];
-}
-
 /**
  * Directed merge lineage of a party: the party itself plus every party it merged FROM
  * and every party it merged INTO (transitively). Sibling predecessors of the same merge
@@ -286,7 +289,7 @@ function buildLineageRibbons(
   edges: { block: PartyBlock; next: PartyBlock }[],
   mergeEdges: { from: PartyBlock; to: PartyBlock }[],
   splitEdges: { from: PartyBlock; to: PartyBlock }[],
-  pxPerSeat: number
+  votesOf: (block: PartyBlock) => number | undefined
 ): LineageRibbon[] {
   const ribbons: LineageRibbon[] = [
     ...edges.map(({block, next}) => ({
@@ -336,10 +339,33 @@ function buildLineageRibbons(
     targetGroups.set(ribbon.to, incoming);
   }
 
-  for (const [block, group] of sourceGroups) allocateRibbonGroup(block, group, 'source', pxPerSeat);
-  for (const [block, group] of targetGroups) allocateRibbonGroup(block, group, 'target', pxPerSeat);
+  for (const [block, group] of targetGroups) shareMergedBlock(block, group, votesOf);
+  for (const [block, group] of sourceGroups) allocateRibbonGroup(block, group, 'source');
+  for (const [block, group] of targetGroups) allocateRibbonGroup(block, group, 'target');
 
   return ribbons;
+}
+
+/**
+ * Where parties merge into one block, divide that block between the incoming lines by
+ * the votes each party won at its previous election, rather than giving each the whole
+ * merged party's seats. Falls back to their seats when any of them has no vote count.
+ */
+function shareMergedBlock(
+  block: PartyBlock,
+  group: LineageRibbon[],
+  votesOf: (block: PartyBlock) => number | undefined
+): void {
+  if (group.length < 2 || !group.some((ribbon) => ribbon.kind === 'merge')) return;
+  const votes = group.map((ribbon) => votesOf(ribbon.from));
+  const weights = votes.every((count) => count !== undefined && count > 0)
+    ? (votes as number[])
+    : group.map((ribbon) => ribbon.from.seats);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (total === 0) return;
+  group.forEach((ribbon, index) => {
+    ribbon.targetSeats = (block.seats * weights[index]) / total;
+  });
 }
 
 interface ParliamentLayout {
@@ -352,7 +378,6 @@ interface ParliamentLayout {
   splitEdges: { from: PartyBlock; to: PartyBlock }[];
   svgWidth: number;
   svgHeight: number;
-  pxPerSeat: number;
 }
 
 /**
@@ -378,8 +403,7 @@ function getPartyRole(
 function buildColumnBlocks(
   coalition: CoalitionData,
   colIndex: number,
-  parties: PartyInfo[],
-  pxPerSeat: number
+  parties: PartyInfo[]
 ): PartyBlock[] {
   const coalitionSet = new Set(coalition.coalition);
   const supportSet = new Set(coalition.support ?? []);
@@ -407,7 +431,7 @@ function buildColumnBlocks(
     seats: g.seats,
     role: g.role,
     columnIndex: colIndex,
-    height: Math.max(MIN_BLOCK_HEIGHT, g.seats * pxPerSeat),
+    height: 0,
     x: LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP),
     y: 0,
   }) as PartyBlock);
@@ -420,14 +444,65 @@ function buildColumnBlocks(
   return list;
 }
 
-function layoutColumnBlocks(list: PartyBlock[], colIndex: number): number[] {
+/** Total block height at `pxPerSeat`, with every block at least MIN_BLOCK_HEIGHT. */
+function blockHeightsAt(list: PartyBlock[], pxPerSeat: number): number {
+  return list.reduce((sum, block) => sum + Math.max(MIN_BLOCK_HEIGHT, block.seats * pxPerSeat), 0);
+}
+
+function totalSeatsOf(list: PartyBlock[]): number {
+  return list.reduce((sum, block) => sum + block.seats, 0);
+}
+
+/**
+ * Size the blocks of a column so that together they are `target` tall. Blocks too small
+ * for a label are raised to MIN_BLOCK_HEIGHT and the larger ones share what is left in
+ * proportion to their seats, so they never shrink below `minPxPerSeat` per seat.
+ */
+function sizeColumnBlocks(list: PartyBlock[], target: number, minPxPerSeat: number): void {
+  let pxPerSeat = minPxPerSeat;
+  // Raising pxPerSeat can only lift blocks above the minimum, so this settles quickly.
+  for (let pass = 0; pass < list.length; pass += 1) {
+    const large = list.filter((block) => block.seats * pxPerSeat >= MIN_BLOCK_HEIGHT);
+    const largeSeats = large.reduce((sum, block) => sum + block.seats, 0);
+    if (largeSeats === 0) break;
+    const next = (target - (list.length - large.length) * MIN_BLOCK_HEIGHT) / largeSeats;
+    if (next <= pxPerSeat) break;
+    pxPerSeat = next;
+  }
+  for (const block of list) block.height = Math.max(MIN_BLOCK_HEIGHT, block.seats * pxPerSeat);
+}
+
+/** Number of role changes (coalition -> support -> opposition) down a column. */
+function countRoleChanges(list: PartyBlock[]): number {
+  return list.filter((block, idx) => idx > 0 && list[idx - 1].role !== block.role).length;
+}
+
+/** Room a column needs between its blocks, with the minimum row gap. */
+function minimumGapHeight(list: PartyBlock[]): number {
+  return Math.max(0, list.length - 1) * ROW_GAP + countRoleChanges(list) * ROLE_GAP;
+}
+
+/** Height of a column's blocks and its fixed gaps, with the minimum row gap. */
+function minimumColumnHeight(list: PartyBlock[]): number {
+  return list.reduce((sum, block) => sum + block.height, 0) + minimumGapHeight(list);
+}
+
+/**
+ * Stack a column's blocks so that it ends at `columnHeight`: the blocks keep their
+ * heights and the row gaps take up the rest, so a column with few parties gets wider
+ * gaps instead of ending higher up than a column with as many seats.
+ */
+function layoutColumnBlocks(list: PartyBlock[], colIndex: number, columnHeight: number): number[] {
+  const rowGaps = Math.max(0, list.length - 1);
+  const extra = Math.max(0, columnHeight - minimumColumnHeight(list));
+  const rowGap = rowGaps > 0 ? ROW_GAP + extra / rowGaps : ROW_GAP;
   let y = HEADER_SPACE;
   const dividers: number[] = [];
 
   list.forEach((block, idx) => {
     block.x = LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP);
     block.y = y;
-    y += block.height + ROW_GAP;
+    y += block.height + rowGap;
 
     const next = list[idx + 1];
     if (next && next.role !== block.role) {
@@ -458,97 +533,6 @@ function collectContinuityEdges(colBlocks: PartyBlock[][], selectedCount: number
   return edges;
 }
 
-function collectFirstSeen(colBlocks: PartyBlock[][]): Record<string, number> {
-  const firstSeen: Record<string, number> = {};
-
-  for (const [colIndex, list] of colBlocks.entries()) {
-    for (const block of list) {
-      const previous = firstSeen[block.party];
-      firstSeen[block.party] = previous === undefined ? colIndex : Math.min(previous, colIndex);
-    }
-  }
-
-  return firstSeen;
-}
-
-function collectMergeEdges(
-  colBlocks: PartyBlock[][],
-  parties: PartyInfo[],
-  firstSeen: Record<string, number>
-): { from: PartyBlock; to: PartyBlock }[] {
-  const mergeEdges: { from: PartyBlock; to: PartyBlock }[] = [];
-  const previousNamesByParty = new Map<string, string[]>();
-  for (const party of parties) {
-    if (!previousNamesByParty.has(party.party)) {
-      previousNamesByParty.set(party.party, party.previous_names ?? []);
-    }
-  }
-
-  for (let colIndex = 1; colIndex < colBlocks.length; colIndex += 1) {
-    const previousBlocks = new Map(colBlocks[colIndex - 1].map((block) => [block.party, block]));
-    appendColumnMergeEdges(
-      mergeEdges,
-      colBlocks[colIndex],
-      previousBlocks,
-      previousNamesByParty,
-      firstSeen,
-      colIndex
-    );
-  }
-
-  return mergeEdges;
-}
-
-function appendColumnMergeEdges(
-  edges: { from: PartyBlock; to: PartyBlock }[],
-  blocks: PartyBlock[],
-  previousBlocks: Map<string, PartyBlock>,
-  previousNamesByParty: Map<string, string[]>,
-  firstSeen: Record<string, number>,
-  colIndex: number
-): void {
-  for (const block of blocks) {
-    if (firstSeen[block.party] !== colIndex) continue;
-
-    const predecessors = previousNamesByParty.get(block.party) ?? [];
-    for (const predecessor of predecessors) {
-      const from = previousBlocks.get(predecessor);
-      if (from && from.party !== block.party) {
-        edges.push({from, to: block});
-      }
-    }
-  }
-}
-
-function collectSplitEdges(
-  colBlocks: PartyBlock[][],
-  parties: PartyInfo[],
-  firstSeen: Record<string, number>
-): { from: PartyBlock; to: PartyBlock }[] {
-  const splitEdges: { from: PartyBlock; to: PartyBlock }[] = [];
-
-  for (let colIndex = 0; colIndex < colBlocks.length; colIndex += 1) {
-    const list = colBlocks[colIndex];
-
-    for (const block of list) {
-      if (firstSeen[block.party] !== colIndex) continue;
-
-      const parents = getSplitParents(block.party, parties);
-      if (parents.length === 0) continue;
-
-      const parent = parents[0];
-      const previousList = colBlocks[colIndex - 1];
-      const from = previousList?.find((candidate) => candidate.party === parent || candidate.canonical === parent)
-        ?? list.find((candidate) => candidate.party === parent || candidate.canonical === parent);
-
-      if (!from || from === block) continue;
-      splitEdges.push({from, to: block});
-    }
-  }
-
-  return splitEdges;
-}
-
 function buildParliamentLayout(
   coalitions: CoalitionData[],
   parties: PartyInfo[],
@@ -558,18 +542,20 @@ function buildParliamentLayout(
   const selected = coalitions.slice(start, end + 1);
   const selectedCount = selected.length;
 
-  // Scale from the largest chamber of the whole country, not just the selected range,
-  // so a party's block keeps the same height while the range changes.
-  const largestChamber = Math.max(
-    0,
-    ...coalitions.map((coalition) => Object.values(coalition.seats).reduce((sum, seats) => sum + Math.max(0, seats), 0))
-  );
-  const pxPerSeat = largestChamber > 0 ? Math.min(PX_PER_SEAT, MAX_CHAMBER_HEIGHT / largestChamber) : PX_PER_SEAT;
-
-  const colBlocks = selected.map((coalition, colIndex) =>
-    buildColumnBlocks(coalition, colIndex, parties, pxPerSeat)
-  );
-  const colDividers = colBlocks.map((colBlock, index) => layoutColumnBlocks(colBlock, index));
+  // One scale for every column, so a column's height follows its number of seats: the
+  // Dutch chamber grows from 100 to 150 seats in 1956, Italy's shrinks to 400 in 2022.
+  // On top of that, every column gets the same room for raising small parties to label
+  // height and for the gaps, so columns with as many seats end at the same height.
+  const colBlocks = selected.map((coalition, colIndex) => buildColumnBlocks(coalition, colIndex, parties));
+  const maxSeats = Math.max(0, ...colBlocks.map(totalSeatsOf));
+  const pxPerSeat = maxSeats > 0 ? CHAMBER_HEIGHT / maxSeats : 0;
+  const raise = Math.max(0, ...colBlocks.map((list) => blockHeightsAt(list, pxPerSeat) - totalSeatsOf(list) * pxPerSeat));
+  const gapHeight = Math.max(0, ...colBlocks.map(minimumGapHeight));
+  const colDividers = colBlocks.map((list, index) => {
+    const blocksHeight = totalSeatsOf(list) * pxPerSeat + raise;
+    sizeColumnBlocks(list, blocksHeight, pxPerSeat);
+    return layoutColumnBlocks(list, index, blocksHeight + gapHeight);
+  });
 
   const columnWidth = selectedCount * (BLOCK_WIDTH + COLUMN_GAP) + LABEL_SPACE * 2 - COLUMN_GAP;
   const svgWidth = Math.max(columnWidth, LEGEND_WIDTH);
@@ -583,16 +569,40 @@ function buildParliamentLayout(
   const svgHeight = Math.ceil(maxColHeight + LEGEND_SPACE);
 
   const edges = collectContinuityEdges(colBlocks, selectedCount);
-  const firstSeen = collectFirstSeen(colBlocks);
-  const mergeEdges = collectMergeEdges(colBlocks, parties, firstSeen);
-  const splitEdges = collectSplitEdges(colBlocks, parties, firstSeen);
+  const mergeEdges = collectMergeEdges(colBlocks, parties);
+  const splitEdges = collectSplitEdges(colBlocks, parties);
 
-  return {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight, pxPerSeat};
+  return {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
 }
 
 /** Render coalition composition and party lineage across cabinets. */
-export default function ParliamentDiagram({coalitions, parties}: Readonly<ParliamentDiagramProps>) {
-  const {t} = useI18n();
+export default function ParliamentDiagram({
+  coalitions,
+  parties,
+  electionDates = {},
+  electionVotes = NO_VOTES,
+}: Readonly<ParliamentDiagramProps>) {
+  const {lang, t} = useI18n();
+
+  // The first cabinet after an election starts a new parliament: the seats changed there
+  // because of the vote, not because of a cabinet change mid-term.
+  const electionStarts = useMemo(() => {
+    const firstCabinet = new Map<string, CoalitionData>();
+    for (const coalition of coalitions) {
+      if (coalition.electionYear && !firstCabinet.has(coalition.electionYear)) {
+        firstCabinet.set(coalition.electionYear, coalition);
+      }
+    }
+    return new Set(firstCabinet.values());
+  }, [coalitions]);
+
+  const electionLabel = (electionYear: string): string => {
+    const date = electionDates[electionYear];
+    if (!date) return `${t('election')} ${formatElectionLabel(electionYear)}`;
+    const formatted = new Intl.DateTimeFormat(lang === 'nl' ? 'nl-NL' : 'en-GB', {month: 'short', year: 'numeric'})
+      .format(new Date(`${date}T12:00:00`));
+    return `${t('electionMarker')} · ${formatted}`;
+  };
   const columns = coalitions.length;
   const [hoveredParty, setHoveredParty] = useState<string | null>(null);
   const [rangeStart, setRangeStart] = useState(Math.max(0, columns - DEFAULT_VISIBLE_COLUMNS));
@@ -603,7 +613,7 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
 
   // Derived layout is memoized so hover updates (local state) do not re-run the
   // effectively O(columns x blocks^2) edge/split computation on every mouse move.
-  const {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight, pxPerSeat} = useMemo(
+  const {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight} = useMemo(
     () => buildParliamentLayout(coalitions, parties, start, end),
     [coalitions, parties, start, end]
   );
@@ -614,10 +624,14 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
     () => collectMergeLineage(hoveredParty, mergeEdges),
     [hoveredParty, mergeEdges]
   );
-  const lineageRibbons = useMemo(
-    () => buildLineageRibbons(edges, mergeEdges, splitEdges, pxPerSeat),
-    [edges, mergeEdges, splitEdges, pxPerSeat]
-  );
+  const lineageRibbons = useMemo(() => {
+    // A block's votes at the election its column's seats come from.
+    const votesOf = (block: PartyBlock) => {
+      const electionYear = selected[block.columnIndex]?.electionYear;
+      return electionYear ? electionVotes[electionYear]?.[block.party] : undefined;
+    };
+    return buildLineageRibbons(edges, mergeEdges, splitEdges, votesOf);
+  }, [edges, mergeEdges, splitEdges, selected, electionVotes]);
   const continuityRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'continuity');
   const mergeRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'merge');
   const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
@@ -822,9 +836,51 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           const list = colBlocks[colIndex];
           const dividers = colDividers[colIndex] ?? [];
           const columnKey = `${coalition.name}-${coalition.year}`;
+          const columnX = LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP);
+          const startsAfterElection = electionStarts.has(coalition) && coalition.electionYear !== undefined;
 
           return (
             <g key={columnKey}>
+              {startsAfterElection && (
+                <g className="pointer-events-none">
+                  <title>{electionLabel(coalition.electionYear ?? '')}</title>
+                  {/* A new parliament starts here: a line between the columns, except before the first. */}
+                  {colIndex > 0 && (
+                    <line
+                      x1={columnX - COLUMN_GAP / 2}
+                      x2={columnX - COLUMN_GAP / 2}
+                      y1={HEADER_SPACE - 14}
+                      y2={svgHeight - LEGEND_SPACE + 8}
+                      stroke={ELECTION_MARKER_COLOR}
+                      strokeOpacity={0.45}
+                      strokeWidth={1.5}
+                      strokeDasharray="2 4"
+                    />
+                  )}
+                  <rect
+                    x={columnX - 8}
+                    y={HEADER_SPACE - 23}
+                    width={BLOCK_WIDTH + 16}
+                    height={16}
+                    rx={8}
+                    fill={ELECTION_MARKER_COLOR}
+                    fillOpacity={0.15}
+                    stroke={ELECTION_MARKER_COLOR}
+                    strokeOpacity={0.6}
+                  />
+                  <text
+                    x={columnX + BLOCK_WIDTH / 2}
+                    y={HEADER_SPACE - 15}
+                    dy="0.35em"
+                    textAnchor="middle"
+                    fill={ELECTION_MARKER_COLOR}
+                    className="text-[9px] font-semibold"
+                  >
+                    {electionLabel(coalition.electionYear ?? '')}
+                  </text>
+                </g>
+              )}
+
               {/* Coalition header */}
               <text
                 x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}
@@ -934,6 +990,12 @@ export default function ParliamentDiagram({coalitions, parties}: Readonly<Parlia
           <line x1={232} x2={260} y1={5} y2={5} stroke="var(--c-divider-line)" strokeWidth={2} strokeDasharray="4 4"/>
           <text x={268} y={10} className="fill-app-muted text-[10px]">
             {t('coalitionOpposition')}
+          </text>
+        </g>
+        <g transform={`translate(${LABEL_SPACE}, ${svgHeight - 12})`} className="pointer-events-none">
+          <rect width={18} height={11} rx={5.5} fill={ELECTION_MARKER_COLOR} fillOpacity={0.15} stroke={ELECTION_MARKER_COLOR} strokeOpacity={0.6}/>
+          <text x={26} y={10} className="fill-app-muted text-[10px]">
+            {t('electionMarkerLegend')}
           </text>
         </g>
         </svg>

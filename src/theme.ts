@@ -92,6 +92,8 @@ export const translations = {
     noCoalitionData: 'No coalition data available',
     toleratingParty: 'Supporting party (outside the cabinet)',
     coalitionOpposition: 'Coalition above \u00b7 opposition below',
+    electionMarker: 'Election',
+    electionMarkerLegend: 'Election: a new parliament starts here',
 
     // Footer
     sources: 'Sources',
@@ -232,6 +234,8 @@ export const translations = {
     noCoalitionData: 'Geen coalitiedata beschikbaar',
     toleratingParty: 'Gedoogpartner',
     coalitionOpposition: 'Coalitie boven \u00b7 oppositie onder',
+    electionMarker: 'Verkiezing',
+    electionMarkerLegend: 'Verkiezing: hier begint een nieuw parlement',
 
     sources: 'Bronnen',
     sourcesShow: 'Alle bronnen tonen',

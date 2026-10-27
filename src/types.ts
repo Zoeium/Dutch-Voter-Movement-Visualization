@@ -2,8 +2,17 @@ export interface PartyInfo {
   party: string;
   display_name: string;
   color: string;
+  /** Predecessors this party continues or merged: renamed parties and mergers. */
   previous_names?: string[];
+  /** Parties this party split off from. */
   split_off?: string[];
+  /**
+   * Parties that temporarily ran together as this joint list or alliance, and may run
+   * separately again afterwards (e.g. an electoral alliance).
+   */
+  alliance_of?: string[];
+  /** Parties this party (re)joined when it ended, e.g. after a temporary split. */
+  rejoined?: string[];
 }
 
 export interface DataSource {
