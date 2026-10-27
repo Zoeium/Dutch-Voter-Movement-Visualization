@@ -1,4 +1,4 @@
-import {useEffect, useId, useRef, useState, type KeyboardEvent} from 'react';
+import {useEffect, useId, useMemo, useRef, useState, type KeyboardEvent} from 'react';
 import {Check, ChevronDown} from 'lucide-react';
 import type {CountryInfo} from '@/data/loader';
 import {useI18n} from '@/theme';
@@ -24,8 +24,13 @@ function Flag({country}: Readonly<{ country: CountryInfo }>) {
  * Picks whose election data is shown. A native <select> cannot show flag images,
  * so this is a small listbox with the same keyboard behaviour.
  */
-export default function CountrySelect({countries, value, onChange}: Readonly<CountrySelectProps>) {
+export default function CountrySelect({countries: unsortedCountries, value, onChange}: Readonly<CountrySelectProps>) {
   const {lang, t} = useI18n();
+  // Listed alphabetically by name in the interface language (Spain is Spanje in Dutch).
+  const countries = useMemo(
+    () => [...unsortedCountries].sort((a, b) => a.name[lang].localeCompare(b.name[lang], lang)),
+    [unsortedCountries, lang]
+  );
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
