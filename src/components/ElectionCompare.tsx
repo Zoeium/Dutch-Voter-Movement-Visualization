@@ -42,6 +42,9 @@ function changeClass(value: number): string {
 
 type SortDirection = 'asc' | 'desc';
 
+// The party column stays in view while the table scrolls sideways on narrow screens.
+const STICKY_COLUMN = 'sticky left-0 z-10 bg-app-card';
+
 function ariaSort(isSorted: boolean, direction: SortDirection): 'ascending' | 'descending' | 'none' {
   if (!isSorted) return 'none';
   return direction === 'asc' ? 'ascending' : 'descending';
@@ -148,7 +151,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
       ) : (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {biggestGainers.length > 0 && (
               <div className="bg-app-card rounded-xl p-4 border border-app-border">
                 <h4 className="text-sm font-semibold text-app-heading mb-3">{t('compareGainers')}</h4>
@@ -191,7 +194,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                   {headers.map(({key, label, align}) => (
                     <th
                       key={key}
-                      className={`py-3 px-3 font-semibold text-app-heading ${align === 'left' ? 'text-left' : 'text-right'}`}
+                      className={`py-3 px-3 font-semibold text-app-heading ${align === 'left' ? 'text-left' : 'text-right'} ${key === 'label' ? STICKY_COLUMN : ''}`}
                       aria-sort={ariaSort(sortKey === key, sortDirection)}
                     >
                       <button
@@ -208,7 +211,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
               </thead>
               <tbody>
                 <tr className="border-b border-app-border text-app-muted">
-                  <td className="py-2 px-3 italic">{t('compareTotalVotes')}</td>
+                  <td className={`py-2 px-3 italic ${STICKY_COLUMN}`}>{t('compareTotalVotes')}</td>
                   <td className="text-right py-2 px-3">{totalValidA.toLocaleString('en-US')}</td>
                   <td className="text-right py-2 px-3">{totalValidB.toLocaleString('en-US')}</td>
                   <td className="text-right py-2 px-3">{formatSigned(totalValidB - totalValidA)}</td>
@@ -220,8 +223,8 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                   <td className="text-right py-2 px-3">—</td>
                 </tr>
                 {sortedRows.map((row) => (
-                  <tr key={row.partyId} className="border-b border-app-border hover:bg-app-btn transition-colors">
-                    <td className="py-2 px-3">
+                  <tr key={row.partyId} className="group border-b border-app-border hover:bg-app-btn transition-colors">
+                    <td className={`py-2 px-3 ${STICKY_COLUMN} group-hover:bg-app-btn transition-colors`}>
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full flex-shrink-0" style={{backgroundColor: row.color}}/>
                         <span className="text-app-text font-medium">{row.label}</span>
