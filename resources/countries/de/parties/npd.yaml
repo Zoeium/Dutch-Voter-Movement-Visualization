@@ -1,3 +1,5 @@
 party: npd
 display_name: NPD
 color: '#8B5A2B'
+previous_names:
+  - drp

@@ -1,3 +1,5 @@
 party: rkpn
 display_name: RKPN
 color: '#A6192E'
+split_off:
+  - kvp

@@ -1,3 +1,7 @@
 party: knp
 display_name: KNP
 color: '#A64B2A'
+split_off:
+  - kvp
+rejoined:
+  - kvp

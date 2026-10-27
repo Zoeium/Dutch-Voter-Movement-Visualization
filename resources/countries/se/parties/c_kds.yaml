@@ -1,3 +1,6 @@
 party: c_kds
 display_name: Centern–KDS (gemensam lista)
 color: '#3B7A57'
+alliance_of:
+  - c
+  - kd

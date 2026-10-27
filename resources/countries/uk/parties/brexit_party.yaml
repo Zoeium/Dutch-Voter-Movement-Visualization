@@ -1,3 +1,5 @@
 party: brexit_party
 display_name: Brexit Party
 color: '#12B6CF'
+split_off:
+  - ukip

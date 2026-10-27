@@ -1,3 +1,5 @@
 party: rpf
 display_name: RPF
 color: '#7BA9DE'
+split_off:
+  - arp
