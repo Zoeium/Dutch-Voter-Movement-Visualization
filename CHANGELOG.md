@@ -20,9 +20,14 @@ All notable changes to this project are documented here. The format follows
 - The parliament diagram shows temporary alliances and parties that split off and later rejoin, and the relations
   between parties were reviewed for every country.
 - A description of the data files and the relations between parties, in `docs/DATA.md`.
+- The Burnham government (United Kingdom, July 2026).
+- A release script: `npm run release:minor` (or `release:patch`, `release:major`) bumps the version, dates the
+  changelog, commits and tags.
 
 ### Changed
 
+- The flags in the "Election data" selector come from the flag-icons library, so they are complete (Spain's coat of
+  arms was missing), and the countries are listed alphabetically by name.
 - Parliament Composition comes before Turnout Overview in the tabs.
 - In the parliament diagram, each party's block matches its share of the seats, and a cabinet's column is as tall as
   its parliament is large, however many parties it has.
