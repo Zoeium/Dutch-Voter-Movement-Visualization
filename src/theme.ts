@@ -112,6 +112,23 @@ export const translations = {
     languageHint: 'Language of the interface',
     version: 'Version',
 
+    // Front page
+    homeLink: 'Front page',
+    homeTitle: 'How do voters move between elections?',
+    homeIntro:
+      'Election coverage often follows one party in one election. This app puts every party, election and government side by side: where voters came from and went to, how parliaments were divided, how many people voted, and which coalitions could have formed.',
+    homeDataFor: 'Data for',
+    homeElections: 'elections',
+    homePeriod: 'period',
+    homeGovernments: 'cabinets and governments',
+    homeExplore: 'Explore',
+    homeOpen: 'Open',
+    homeAlluvial: 'Where each party’s voters came from and where they went, from one election to the next.',
+    homeParliament: 'How the seats were divided under every cabinet, and how parties merged and split over time.',
+    homeTurnout: 'How many people voted in every election, and how many votes were blank or invalid.',
+    homeCompare: 'Votes, vote share and seats of every party in any two elections, side by side.',
+    homeCoalition: 'Pick parties and see whether they reach a majority, next to the coalition that actually formed.',
+
     // Compare Elections
     compareTitle: 'Compare elections',
     compareDescription:
@@ -231,6 +248,23 @@ export const translations = {
     countryDataHint: 'Kies van welk land de verkiezingen worden getoond',
     languageHint: 'Taal van de interface',
     version: 'Versie',
+
+    // Front page
+    homeLink: 'Voorpagina',
+    homeTitle: 'Hoe bewegen kiezers tussen verkiezingen?',
+    homeIntro:
+      'Verkiezingsnieuws volgt vaak één partij bij één verkiezing. Deze app zet alle partijen, verkiezingen en kabinetten naast elkaar: waar kiezers vandaan kwamen en naartoe gingen, hoe het parlement verdeeld was, hoeveel mensen stemden en welke coalities mogelijk waren.',
+    homeDataFor: 'Gegevens voor',
+    homeElections: 'verkiezingen',
+    homePeriod: 'periode',
+    homeGovernments: 'kabinetten en regeringen',
+    homeExplore: 'Verkennen',
+    homeOpen: 'Openen',
+    homeAlluvial: 'Waar de kiezers van elke partij vandaan kwamen en naartoe gingen, van de ene verkiezing naar de volgende.',
+    homeParliament: 'Hoe de zetels onder elk kabinet verdeeld waren, en hoe partijen in de loop der tijd fuseerden en splitsten.',
+    homeTurnout: 'Hoeveel mensen bij elke verkiezing stemden, en hoeveel stemmen blanco of ongeldig waren.',
+    homeCompare: 'Stemmen, stemaandeel en zetels van elke partij bij twee verkiezingen naast elkaar.',
+    homeCoalition: 'Kies partijen en zie of ze een meerderheid halen, naast de coalitie die echt gevormd werd.',
 
     compareTitle: 'Verkiezingen vergelijken',
     compareDescription:

@@ -1,11 +1,12 @@
 import {useDeferredValue, useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef, type ReactNode} from 'react';
-import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check, ChevronDown, ChevronUp} from 'lucide-react';
+import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check, ChevronDown, ChevronUp, Shuffle, Landmark, BarChart3, ArrowLeftRight, Handshake} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
 import ParliamentDiagram from '@/components/ParliamentDiagram';
 import ElectionCompare from '@/components/ElectionCompare';
 import CoalitionExplorer from '@/components/CoalitionExplorer';
 import CountrySelect from '@/components/CountrySelect';
+import HomePage, {type HomeView} from '@/components/HomePage';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {
   loadCountries,
@@ -33,7 +34,7 @@ import {
 } from '@/theme';
 import {updateUrl, copyShareUrl, exportSvg, exportCsv, type UrlState} from '@/utils/export';
 
-type TabKey = 'alluvial' | 'turnout' | 'parliament' | 'compare' | 'coalition';
+type TabKey = 'home' | 'alluvial' | 'parliament' | 'turnout' | 'compare' | 'coalition';
 
 interface AppData {
   parties: PartyInfo[];
@@ -86,14 +87,14 @@ function getInitialAppStateFromUrl(countries: CountryInfo[]) {
   const params = new URLSearchParams(window.location.search);
   const countryIds = countries.map((c) => c.id);
   const country = params.get('country') ?? '';
-  const tab = (params.get('tab') as TabKey) || 'alluvial';
-  const validTabs: TabKey[] = ['alluvial', 'turnout', 'parliament', 'compare', 'coalition'];
+  const tab = (params.get('tab') as TabKey) || 'home';
+  const validTabs: TabKey[] = ['home', 'alluvial', 'parliament', 'turnout', 'compare', 'coalition'];
   const theme = (params.get('theme') as Theme) || 'dark';
   const lang = (params.get('lang') as Language) || 'en';
 
   return {
     country: pickCountry(countryIds, country),
-    tab: validTabs.includes(tab) ? tab : 'alluvial' as TabKey,
+    tab: validTabs.includes(tab) ? tab : 'home' as TabKey,
     theme: (theme === 'light' || theme === 'dark') ? theme : 'dark' as Theme,
     lang: (lang === 'en' || lang === 'nl') ? lang : 'en' as Language,
   };
@@ -500,11 +501,21 @@ function Dashboard({
 
   const tabs: {key: TabKey; label: string}[] = [
     ...(hasMovements ? [{key: 'alluvial' as TabKey, label: t('tabAlluvial')}] : []),
-    {key: 'turnout', label: t('tabTurnout')},
     {key: 'parliament', label: t('tabParliament')},
+    {key: 'turnout', label: t('tabTurnout')},
     {key: 'compare', label: t('tabCompare')},
     {key: 'coalition', label: t('tabCoalition')},
   ];
+
+  // The front page offers the same views, in the same order, as cards.
+  const homeViews: HomeView[] = [
+    ...(hasMovements ? [{key: 'alluvial', title: t('tabAlluvial'), description: t('homeAlluvial'), icon: <Shuffle className="w-5 h-5"/>}] : []),
+    {key: 'parliament', title: t('tabParliament'), description: t('homeParliament'), icon: <Landmark className="w-5 h-5"/>},
+    {key: 'turnout', title: t('tabTurnout'), description: t('homeTurnout'), icon: <BarChart3 className="w-5 h-5"/>},
+    {key: 'compare', title: t('tabCompare'), description: t('homeCompare'), icon: <ArrowLeftRight className="w-5 h-5"/>},
+    {key: 'coalition', title: t('tabCoalition'), description: t('homeCoalition'), icon: <Handshake className="w-5 h-5"/>},
+  ];
+  const currentCountry = countries.find((c) => c.id === country);
 
   return (
     <div className="min-h-screen bg-app-bg text-app-text">
@@ -512,13 +523,20 @@ function Dashboard({
           second, scrolling away with the page. Wider screens: one sticky row. */}
       <header className="border-b border-app-border bg-app-header backdrop-blur-sm sm:sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1 lg:flex-none">
-            <div
+          {/* Logo and title lead back to the front page. */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('home')}
+            aria-label={t('homeLink')}
+            title={t('homeLink')}
+            className="flex items-center gap-3 min-w-0 flex-1 lg:flex-none text-left rounded-lg"
+          >
+            <span
               className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <Users className="w-5 h-5 text-white"/>
-            </div>
+            </span>
             <h1 className="text-base sm:text-lg font-bold leading-tight tracking-tight text-app-heading">{t('appTitle')}</h1>
-          </div>
+          </button>
 
           {/* Data and language: their own full-width row on phones. The data selector stays at
               the start and the language at the end, so the two never read as one choice. */}
@@ -558,14 +576,17 @@ function Dashboard({
               doneLabel={t('shareCopied')}
               onClick={handleShare}
             />
-            {/* The compare tab exports its table as CSV; every other tab its chart as SVG. */}
-            <FeedbackButton
-              done={exportFeedback}
-              icon={<Download className="w-4 h-4"/>}
-              label={isCompareTab ? t('exportData') : t('exportChart')}
-              doneLabel={t('exportDone')}
-              onClick={isCompareTab ? handleExportData : handleExportChart}
-            />
+            {/* The compare tab exports its table as CSV; the chart tabs their chart as SVG.
+                The front page has nothing to export. */}
+            {activeTab !== 'home' && (
+              <FeedbackButton
+                done={exportFeedback}
+                icon={<Download className="w-4 h-4"/>}
+                label={isCompareTab ? t('exportData') : t('exportChart')}
+                doneLabel={t('exportDone')}
+                onClick={isCompareTab ? handleExportData : handleExportChart}
+              />
+            )}
 
             {/* Theme toggle */}
             <button
@@ -595,6 +616,16 @@ function Dashboard({
             </button>
           ))}
         </div>
+
+        {activeTab === 'home' && (
+          <HomePage
+            countryName={currentCountry?.name[lang] ?? country}
+            electionYears={turnoutYears}
+            governmentCount={coalitions.length}
+            views={homeViews}
+            onOpen={(key) => setActiveTab(key as TabKey)}
+          />
+        )}
 
         {/* Alluvial Tab */}
         {activeTab === 'alluvial' && (
