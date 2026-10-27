@@ -10,7 +10,9 @@ Every release is a [semantic version](https://semver.org/) (`MAJOR.MINOR.PATCH`)
 
 ## One-time setup
 
-In the repository on GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+1. In **Settings → Pages**, set **Source** to **GitHub Actions**.
+2. In **Settings → Environments → github-pages → Deployment branches and tags**, add a rule of type **Tag** with
+   the pattern `v*`. GitHub only lets the default branch deploy to Pages until version tags are allowed there.
 
 ## Making a release
 

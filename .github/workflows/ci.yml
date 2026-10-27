@@ -5,36 +5,11 @@ on:
     branches: ['**']
   pull_request:
     branches: [main]
-  # The release workflow runs the same checks before it publishes anything.
-  workflow_call:
 
 permissions:
   contents: read
 
 jobs:
-  code:
-    name: Code (lint, types, unit tests, build)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:unit
-      - run: npm run build
-
-  data:
-    name: Data consistency
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run test:data
+  checks:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
