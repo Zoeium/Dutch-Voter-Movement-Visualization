@@ -2,8 +2,7 @@ name: CI
 
 on:
   push:
-    # gh-pages only holds the published site (see scripts/pages.sh).
-    branches: ['**', '!gh-pages']
+    branches: ['**']
   pull_request:
     branches: [main]
 
@@ -14,36 +13,3 @@ jobs:
   checks:
     name: Checks
     uses: ./.github/workflows/checks.yml
-
-  # Every branch gets its own test site, https://<owner>.github.io/<repository>/test/<branch>/,
-  # replaced by each push whose checks pass. The main site (the latest release) is not
-  # touched. Expiry and removal: see test-site-cleanup.yml.
-  test-site:
-    name: Deploy test site
-    needs: checks
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    # Shared with the release and cleanup workflows: one writer to gh-pages at a time.
-    concurrency:
-      group: gh-pages
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - name: Build
-        run: |
-          # Shown next to the version number, so testers know this is not a release.
-          export APP_VERSION_SUFFIX=" (test $GITHUB_REF_NAME, ${GITHUB_SHA::7})"
-          npm run build
-      - name: Publish
-        run: bash scripts/pages.sh test "$GITHUB_REF_NAME" dist
-      - name: Summary
-        run: |
-          url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/test/$(bash scripts/pages.sh slug "$GITHUB_REF_NAME")/"
-          echo "Test site: $url (branch $GITHUB_REF_NAME, ${GITHUB_SHA::7})" >> "$GITHUB_STEP_SUMMARY"

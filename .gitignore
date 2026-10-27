@@ -22,6 +22,3 @@ dist-ssr
 *.sw?
 .vite
 .env
-
-# Working copy of the gh-pages branch used by scripts/pages.sh
-.pages-site

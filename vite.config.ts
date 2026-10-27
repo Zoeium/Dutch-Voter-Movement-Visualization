@@ -12,8 +12,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   define: {
-    // The test site appends its branch and commit (see the test-site job in .github/workflows/ci.yml).
-    __APP_VERSION__: JSON.stringify(pkg.version + (process.env.APP_VERSION_SUFFIX ?? '')),
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   resolve: {
     alias: {

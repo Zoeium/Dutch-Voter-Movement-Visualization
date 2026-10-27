@@ -9,9 +9,9 @@ on:
 permissions:
   contents: read
 
-# Shared with the CI test-site job and its cleanup: only one job writes to gh-pages at a time.
+# Never run two Pages deployments at the same time.
 concurrency:
-  group: gh-pages
+  group: pages
   cancel-in-progress: false
 
 jobs:
@@ -42,11 +42,9 @@ jobs:
         run: node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
       - name: Package the site
         run: (cd dist && zip -r "../site-$GITHUB_REF_NAME.zip" .)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          name: site
           path: dist
-          include-hidden-files: true
       - uses: actions/upload-artifact@v4
         with:
           name: release-assets
@@ -59,16 +57,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # The release goes to the root of the gh-pages branch; the test site at /test/
-      # is kept (see scripts/pages.sh).
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: site
-          path: site
-      - run: bash scripts/pages.sh release site
+      - id: deployment
+        uses: actions/deploy-pages@v4
 
   release:
     name: Create GitHub release
