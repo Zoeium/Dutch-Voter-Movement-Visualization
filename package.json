@@ -11,7 +11,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
-    "test:data": "vitest run --project data"
+    "test:data": "vitest run --project data",
+    "release": "node scripts/release.mjs",
+    "release:major": "node scripts/release.mjs major",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:patch": "node scripts/release.mjs patch"
   },
   "dependencies": {
     "js-yaml": "^5.4.1",

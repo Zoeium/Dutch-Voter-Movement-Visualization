@@ -16,17 +16,24 @@ Every release is a [semantic version](https://semver.org/) (`MAJOR.MINOR.PATCH`)
 
 ## Making a release
 
-1. Make sure CI is green on `main` and your working tree is clean.
-2. In `CHANGELOG.md`, rename the `## [Unreleased]` section to the new version and date, for example
-   `## [1.1.0] - 2026-11-15`, add a new empty `## [Unreleased]` above it, and update the links at the bottom.
-   Commit this change.
-3. Bump the version. This updates `package.json` and `package-lock.json`, commits, and creates the tag:
+1. Make sure CI is green on `main`, your working tree is clean, and the `## [Unreleased]` section of `CHANGELOG.md`
+   describes everything in the release.
+2. Run the release script with the kind of release (see below):
 
    ```
-   npm version minor    # or: patch, major
+   npm run release:minor    # or: release:patch, release:major
    ```
 
-4. Push the commit and the tag:
+   It works out the new version from `package.json` (1.0.0 becomes 1.1.0 for a minor release), then:
+   - renames the Unreleased section of `CHANGELOG.md` to the new version with today's date, adds a new empty
+     Unreleased section above it, and updates the links at the bottom;
+   - sets the version in `package.json` and `package-lock.json`;
+   - commits this as `Release v1.1.0` and creates the tag `v1.1.0`.
+
+   It refuses to run on a branch other than `main` (unless you add `--any-branch`:
+   `npm run release -- minor --any-branch`), with uncommitted changes, with an empty Unreleased section, or when the
+   tag already exists. To undo it before pushing, delete the tag and the commit, as the script prints.
+3. Check the commit, then push it and the tag:
 
    ```
    git push --follow-tags
