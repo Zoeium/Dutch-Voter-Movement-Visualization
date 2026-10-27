@@ -5,11 +5,14 @@ Every country lives in `resources/countries/<id>/`:
 | Path                                     | Contents                                                        |
 |------------------------------------------|-----------------------------------------------------------------|
 | `country.yaml`                           | The country's name in English and Dutch                         |
-| `flag.svg`                               | The flag shown in the "Election data" selector                  |
 | `elections/<id>/vote_totals.yaml`        | One election: date, electorate, turnout, votes per party        |
 | `elections/<id>/voters_movement/*.yaml`  | Optional voter movements into each party (with a `source.yaml`) |
 | `coalitions/*.yaml`                      | One cabinet or government: date, parties and seats              |
 | `parties/*.yaml`                         | One party: name, colour and relations to other parties          |
+
+The flag in the "Election data" selector comes from the [flag-icons](https://flagicons.lipis.dev/) package, by the
+country id as ISO 3166 code; `country.yaml` can name another code (`flag: gb` for `uk`). Add a new country's code to
+the flag list in `src/data/loader.ts`.
 
 An election id is its year, or `YYYY-MM` when a country held two elections in one year (`1974-02`).
 The data tests (`npm run test:data`) check every file; see `tests/data/consistency.test.ts`.

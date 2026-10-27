@@ -2,3 +2,5 @@
 name:
   en: United Kingdom
   nl: Verenigd Koninkrijk
+# ISO 3166 code of the flag (flag-icons), when it differs from the country id
+flag: gb

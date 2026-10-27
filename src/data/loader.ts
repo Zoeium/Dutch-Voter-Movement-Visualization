@@ -19,12 +19,17 @@ const countryModules = import.meta.glob('@/../resources/countries/*/country.yaml
   import: 'default',
 }) as Record<string, string>;
 
-// Flag images are served as files; only their URLs are bundled.
-const flagUrls = import.meta.glob('@/../resources/countries/*/flag.svg', {
+// Flags come from the flag-icons package, by ISO 3166 country code. Only the flags of the
+// countries with data are bundled: add a new country's code here (the data tests fail
+// for a country without a flag).
+const flagUrls = import.meta.glob('/node_modules/flag-icons/flags/4x3/{nl,gb,de,se,fr,es,it}.svg', {
   eager: true,
   query: '?url',
   import: 'default',
 }) as Record<string, string>;
+const flagByCode = new Map(
+  Object.entries(flagUrls).map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1, -'.svg'.length), url])
+);
 
 const allPartyModules = import.meta.glob('@/../resources/countries/*/parties/*.yaml', {
   eager: true,
@@ -82,21 +87,21 @@ function modulesForCountry(modules: Record<string, string>, country: string): Re
 export interface CountryInfo {
   id: string;
   name: Record<'en' | 'nl', string>;
-  /** URL of the country's flag.svg, when it has one. */
+  /** URL of the country's flag, when there is one. */
   flagUrl?: string;
 }
 
 /** List every country that has data, sorted by id. */
 export function loadCountries(): CountryInfo[] {
-  const flagByCountry = new Map(Object.entries(flagUrls).map(([path, url]) => [extractCountry(path), url]));
   return Object.entries(countryModules)
     .map(([path, raw]) => {
       const id = extractCountry(path);
-      const doc = yaml.load(raw) as { name?: Partial<Record<'en' | 'nl', string>> } | null;
+      const doc = yaml.load(raw) as { name?: Partial<Record<'en' | 'nl', string>>; flag?: string } | null;
       return {
         id,
         name: {en: doc?.name?.en ?? id, nl: doc?.name?.nl ?? doc?.name?.en ?? id},
-        flagUrl: flagByCountry.get(id),
+        // The flag's country code is the country id, unless country.yaml names another (uk -> gb).
+        flagUrl: flagByCode.get(doc?.flag ?? id),
       };
     })
     .filter((country) => country.id)
