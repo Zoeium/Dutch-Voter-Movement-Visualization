@@ -1,0 +1,22 @@
+# Spadolini I government, seats from the 1979 election
+name: Spadolini I
+inauguration: 1981-06-28
+coalition:
+  - dc
+  - psi
+  - psdi
+  - pri
+  - pli
+seats:
+  dc: 262
+  pci: 201
+  psi: 62
+  msi: 30
+  psdi: 20
+  radicali: 18
+  pri: 16
+  pli: 9
+  pdup: 6
+  svp: 4
+  lista_trieste: 1
+  union_valdotaine: 1

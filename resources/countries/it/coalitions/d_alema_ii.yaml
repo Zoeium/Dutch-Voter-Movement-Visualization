@@ -1,0 +1,21 @@
+# D'Alema II government, seats from the 1996 election
+name: 'D''Alema II'
+inauguration: 1999-12-22
+coalition:
+  - pds
+  - popolari_prodi
+  - rinnovamento
+  - verdi
+seats:
+  pds: 172
+  fi: 123
+  an: 93
+  popolari_prodi: 69
+  lega_nord: 59
+  prc: 35
+  ccd_cdu: 30
+  rinnovamento: 26
+  verdi: 18
+  svp: 3
+  lam: 1
+  vda: 1

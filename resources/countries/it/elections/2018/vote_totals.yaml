@@ -1,0 +1,25 @@
+date: 2018-03-04
+source:
+  name: 'Wikipedia: 2018 Italian general election'
+  url: https://en.wikipedia.org/wiki/2018_Italian_general_election
+electorate: 46505499
+not_voted: 12582178
+total_votes: 33923321
+non_valid_votes: 1471727
+blanco_votes: 0
+valid_votes: 32451594
+parties_votes:
+  m5s: 10732066
+  pd: 6161896
+  lega: 5698687
+  fi2013: 4596956
+  fdi: 1429550
+  leu: 1114799
+  piu_europa: 841468
+  other: 770134
+  nci: 427152
+  insieme: 190601
+  civica_popolare: 178107
+  svp: 134651
+  maie: 107236
+  usei: 68291

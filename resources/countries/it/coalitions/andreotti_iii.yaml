@@ -1,0 +1,22 @@
+# Andreotti III government, seats from the 1976 election
+name: Andreotti III
+inauguration: 1976-07-30
+coalition:
+  - dc
+support:
+  - pci
+  - psi
+  - psdi
+  - pri
+  - pli
+seats:
+  dc: 262
+  pci: 229
+  psi: 57
+  msi: 35
+  psdi: 15
+  pri: 14
+  dp: 6
+  pli: 5
+  radicali: 4
+  svp: 3

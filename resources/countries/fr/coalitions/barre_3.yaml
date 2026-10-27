@@ -1,0 +1,14 @@
+# Barre III government, seats from the 1978 election
+name: Barre III
+inauguration: 1978-04-05
+coalition:
+  - rpr
+  - udf
+seats:
+  rpr: 150
+  udf: 124
+  ps: 104
+  pcf: 86
+  dvd: 16
+  prg: 10
+  div: 1

@@ -1,0 +1,21 @@
+# Valls I government, seats from the 2012 election
+name: Valls I
+inauguration: 2014-04-02
+coalition:
+  - ps
+  - prg
+seats:
+  ps: 280
+  ump: 194
+  dvg: 22
+  eelv: 17
+  dvd: 15
+  nc: 12
+  prg: 12
+  fg: 10
+  rad: 6
+  rn: 2
+  modem: 2
+  ac: 2
+  reg: 2
+  exd: 1

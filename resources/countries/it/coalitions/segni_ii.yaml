@@ -1,0 +1,18 @@
+# Segni II government, seats from the 1958 election
+name: Segni II
+inauguration: 1959-02-16
+coalition:
+  - dc
+seats:
+  dc: 273
+  pci: 140
+  psi: 84
+  msi: 24
+  psdi: 22
+  pli: 17
+  ppm: 14
+  pnm: 11
+  pri: 6
+  svp: 3
+  comunita: 1
+  union_valdotaine: 1

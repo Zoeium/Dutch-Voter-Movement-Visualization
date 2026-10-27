@@ -1,0 +1,27 @@
+date: 2006-04-10
+source:
+  name: 'Wikipedia: 2006 Italian general election'
+  url: https://en.wikipedia.org/wiki/2006_Italian_general_election
+electorate: 46997601
+not_voted: 7699104
+total_votes: 39298497
+non_valid_votes: 1011169
+blanco_votes: 0
+valid_votes: 38287328
+parties_votes:
+  ulivo: 11930983
+  fi: 9048976
+  an: 4707126
+  udc: 2580190
+  prc: 2229464
+  lega_nord: 1747730
+  other: 1369932
+  rnp: 990694
+  pdci: 884127
+  idv: 877052
+  verdi: 784803
+  udeur: 534088
+  dca: 285474
+  svp: 182704
+  aisa: 99817
+  ald: 34168

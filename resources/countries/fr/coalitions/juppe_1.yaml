@@ -1,0 +1,14 @@
+# Juppé I government, seats from the 1993 election
+name: Juppé I
+inauguration: 1995-05-17
+coalition:
+  - rpr
+  - udf
+seats:
+  rpr: 247
+  udf: 213
+  ps: 54
+  dvd: 24
+  pcf: 23
+  dvg: 10
+  prg: 6

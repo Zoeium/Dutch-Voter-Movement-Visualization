@@ -1,0 +1,26 @@
+date: 2015-12-20
+source:
+  name: 'Wikipedia: 2015 Spanish general election'
+  url: https://en.wikipedia.org/wiki/2015_Spanish_general_election
+electorate: 36511848
+not_voted: 11073316
+total_votes: 25438532
+non_valid_votes: 227219
+blanco_votes: 188132
+valid_votes: 25023181
+parties_votes:
+  pp: 7236965
+  psoe: 5545315
+  podemos: 5212711
+  cs: 3514528
+  iu: 926783
+  erc: 604285
+  dil: 567253
+  other: 347705
+  pnv: 302316
+  pacma: 220369
+  bildu: 219125
+  upyd: 155153
+  cc: 81917
+  vox: 58114
+  gbai: 30642

@@ -1,0 +1,15 @@
+# Fanfani I government, seats from the 1953 election
+name: Fanfani I
+inauguration: 1954-01-19
+coalition:
+  - dc
+seats:
+  dc: 263
+  pci: 143
+  psi: 75
+  pnm: 40
+  msi: 29
+  psdi: 19
+  pli: 13
+  pri: 5
+  svp: 3

@@ -1,0 +1,17 @@
+# González II government, seats from the 1986 election
+name: González II
+inauguration: 1986-07-25
+coalition:
+  - psoe
+seats:
+  psoe: 184
+  cp: 105
+  cds: 19
+  reformistas: 19
+  iu: 7
+  pnv: 6
+  hb: 5
+  ee: 2
+  par: 1
+  aic: 1
+  uv: 1

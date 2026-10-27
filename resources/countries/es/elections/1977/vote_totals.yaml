@@ -1,0 +1,24 @@
+date: 1977-06-15
+source:
+  name: 'Wikipedia: 1977 Spanish general election'
+  url: https://en.wikipedia.org/wiki/1977_Spanish_general_election
+electorate: 23583762
+not_voted: 4993632
+total_votes: 18590130
+non_valid_votes: 265797
+blanco_votes: 46248
+valid_votes: 18278085
+parties_votes:
+  ucd: 6310391
+  psoe: 5371866
+  pce: 1709890
+  ap: 1526671
+  other: 987332
+  psp: 828461
+  pdc: 514647
+  edc: 417678
+  pnv: 314272
+  erc: 143954
+  ee: 85906
+  caic: 37183
+  cic: 29834

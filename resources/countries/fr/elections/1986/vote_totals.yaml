@@ -1,0 +1,23 @@
+date: 1986-03-16
+source:
+  name: 'Wikipedia: 1986 French legislative election'
+  url: https://en.wikipedia.org/wiki/1986_French_legislative_election
+electorate: 37541124
+not_voted: 8213016
+total_votes: 29328108
+non_valid_votes: 1280549
+blanco_votes: 0
+valid_votes: 28047559
+parties_votes:
+  rpr: 9162378
+  ps: 8705163
+  pcf: 2740972
+  rn: 2705336
+  udf: 2330072
+  dvd: 1096511
+  exg: 427753
+  dvg: 346103
+  eco: 340138
+  prg: 107754
+  exd: 57334
+  reg: 28045

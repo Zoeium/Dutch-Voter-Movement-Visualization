@@ -1,0 +1,27 @@
+date: 2004-03-14
+source:
+  name: 'Wikipedia: 2004 Spanish general election'
+  url: https://en.wikipedia.org/wiki/2004_Spanish_general_election
+electorate: 34571831
+not_voted: 8416395
+total_votes: 26155436
+non_valid_votes: 264137
+blanco_votes: 407795
+valid_votes: 25483504
+parties_votes:
+  psoe: 11026163
+  pp: 9763144
+  iu: 1284081
+  ciu: 835471
+  erc: 652196
+  other: 528090
+  pnv: 420980
+  cc: 235221
+  bng: 208688
+  pa: 181868
+  cha: 94252
+  ea: 80905
+  nabai: 61045
+  bloc: 40759
+  par: 36540
+  cds: 34101

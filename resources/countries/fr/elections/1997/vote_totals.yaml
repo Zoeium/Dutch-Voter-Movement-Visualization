@@ -1,0 +1,23 @@
+date: 1997-05-25
+source:
+  name: 'Wikipedia: 1997 French legislative election'
+  url: https://en.wikipedia.org/wiki/1997_French_legislative_election
+electorate: 39217241
+not_voted: 12581299
+total_votes: 26635942
+non_valid_votes: 1301456
+blanco_votes: 0
+valid_votes: 25334486
+parties_votes:
+  ps: 5961612
+  rpr: 3977964
+  rn: 3785383
+  udf: 3601279
+  pcf: 2519281
+  verts: 1726018
+  dvd: 1671626
+  dvg: 708605
+  exg: 638710
+  prg: 366067
+  div: 351503
+  exd: 26438

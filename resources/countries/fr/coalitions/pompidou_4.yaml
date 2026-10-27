@@ -1,0 +1,12 @@
+# Pompidou IV government, seats from the 1967 election
+name: Pompidou IV
+inauguration: 1967-04-06
+coalition:
+  - udr
+seats:
+  udr: 240
+  fgds: 118
+  pcf: 73
+  cd: 42
+  div: 9
+  psu: 5

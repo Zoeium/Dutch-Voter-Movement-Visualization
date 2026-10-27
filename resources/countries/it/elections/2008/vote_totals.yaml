@@ -1,0 +1,21 @@
+date: 2008-04-14
+source:
+  name: 'Wikipedia: 2008 Italian general election'
+  url: https://en.wikipedia.org/wiki/2008_Italian_general_election
+electorate: 47041814
+not_voted: 9050934
+total_votes: 37990880
+non_valid_votes: 1417315
+blanco_votes: 0
+valid_votes: 36573565
+parties_votes:
+  pdl: 13629464
+  pd: 12095306
+  other: 3505498
+  lega_nord: 3024543
+  udc: 2050229
+  idv: 1594024
+  mpa: 410499
+  svp: 147718
+  maie: 86970
+  ald: 29314

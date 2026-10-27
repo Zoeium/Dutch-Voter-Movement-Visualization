@@ -1,0 +1,29 @@
+date: 1989-10-29
+source:
+  name: 'Wikipedia: 1989 Spanish general election'
+  url: https://en.wikipedia.org/wiki/1989_Spanish_general_election
+electorate: 29604055
+not_voted: 8957690
+total_votes: 20646365
+non_valid_votes: 152683
+blanco_votes: 141795
+valid_votes: 20351887
+parties_votes:
+  psoe: 8115568
+  pp: 5285972
+  iu: 1858588
+  cds: 1617716
+  ciu: 1032243
+  other: 877979
+  pnv: 254681
+  ruiz_mateos: 219883
+  hb: 217278
+  pa: 212687
+  uv: 144924
+  ea: 136955
+  ee: 105238
+  erc: 84756
+  par: 71733
+  aic: 64767
+  bng: 47763
+  cha: 3156

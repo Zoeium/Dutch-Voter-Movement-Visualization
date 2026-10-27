@@ -1,0 +1,19 @@
+# De Gasperi V government, seats from the 1948 election
+name: De Gasperi V
+inauguration: 1948-05-23
+coalition:
+  - dc
+  - unita_socialista
+  - blocco_nazionale
+  - pri
+seats:
+  dc: 305
+  fdp: 183
+  unita_socialista: 33
+  blocco_nazionale: 19
+  pnm: 14
+  pri: 9
+  msi: 6
+  svp: 3
+  contadini: 1
+  psdaz: 1

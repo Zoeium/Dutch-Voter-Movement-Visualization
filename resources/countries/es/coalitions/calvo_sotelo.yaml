@@ -1,0 +1,20 @@
+# Calvo-Sotelo government, seats from the 1979 election
+name: Calvo-Sotelo
+inauguration: 1981-02-26
+coalition:
+  - ucd
+seats:
+  ucd: 168
+  psoe: 121
+  pce: 23
+  cd: 9
+  ciu: 8
+  pnv: 7
+  pa: 5
+  hb: 3
+  un: 1
+  erc: 1
+  ee: 1
+  upc: 1
+  par: 1
+  upn: 1

@@ -1,0 +1,28 @@
+date: 2007-06-10
+source:
+  name: 'Wikipedia: 2007 French legislative election'
+  url: https://en.wikipedia.org/wiki/2007_French_legislative_election
+electorate: 43895833
+not_voted: 17374011
+total_votes: 26521822
+non_valid_votes: 495357
+blanco_votes: 0
+valid_votes: 26026465
+parties_votes:
+  ump: 10289737
+  ps: 6436520
+  udf: 1981107
+  rn: 1116136
+  pcf: 1115663
+  exg: 888250
+  verts: 845977
+  dvd: 641842
+  nc: 616440
+  dvg: 513407
+  prg: 343565
+  mpf: 312581
+  div: 267760
+  cpnt: 213427
+  eco: 208456
+  reg: 133473
+  exd: 102124

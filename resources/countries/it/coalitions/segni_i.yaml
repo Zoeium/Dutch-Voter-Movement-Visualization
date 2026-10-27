@@ -1,0 +1,17 @@
+# Segni I government, seats from the 1953 election
+name: Segni I
+inauguration: 1955-07-06
+coalition:
+  - dc
+  - psdi
+  - pli
+seats:
+  dc: 263
+  pci: 143
+  psi: 75
+  pnm: 40
+  msi: 29
+  psdi: 19
+  pli: 13
+  pri: 5
+  svp: 3

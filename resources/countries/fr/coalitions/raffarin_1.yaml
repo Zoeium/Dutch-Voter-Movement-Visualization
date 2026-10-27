@@ -1,0 +1,17 @@
+# Raffarin I government, seats from the 1997 election
+name: Raffarin I
+inauguration: 2002-05-06
+coalition:
+  - rpr
+  - udf
+seats:
+  ps: 255
+  rpr: 139
+  udf: 112
+  pcf: 35
+  prg: 12
+  dvg: 11
+  verts: 7
+  div: 3
+  dvd: 2
+  rn: 1

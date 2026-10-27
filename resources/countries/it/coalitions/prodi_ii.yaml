@@ -1,0 +1,27 @@
+# Prodi II government, seats from the 2006 election
+name: Prodi II
+inauguration: 2006-05-17
+coalition:
+  - ulivo
+  - prc
+  - rnp
+  - pdci
+  - idv
+  - verdi
+  - udeur
+seats:
+  ulivo: 226
+  fi: 140
+  an: 72
+  prc: 41
+  udc: 39
+  lega_nord: 26
+  rnp: 18
+  idv: 17
+  pdci: 16
+  verdi: 15
+  udeur: 10
+  svp: 4
+  dca: 4
+  ald: 1
+  aisa: 1

@@ -1,0 +1,24 @@
+date: 1958-05-25
+source:
+  name: 'Wikipedia: 1958 Italian general election'
+  url: https://en.wikipedia.org/wiki/1958_Italian_general_election
+electorate: 32434852
+not_voted: 2000171
+total_votes: 30434681
+non_valid_votes: 874412
+blanco_votes: 0
+valid_votes: 29560269
+parties_votes:
+  dc: 12520207
+  pci: 6704454
+  psi: 4206726
+  msi: 1407718
+  psdi: 1345447
+  pli: 1047081
+  ppm: 776919
+  pnm: 659997
+  pri: 405782
+  comunita: 173227
+  other: 146624
+  svp: 135491
+  union_valdotaine: 30596

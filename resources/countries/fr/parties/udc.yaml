@@ -1,0 +1,6 @@
+party: udc
+display_name: 'UDC (LR, UDI)'
+color: '#2E5FA8'
+alliance_of:
+  - lr
+  - udi

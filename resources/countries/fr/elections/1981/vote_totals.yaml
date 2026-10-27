@@ -1,0 +1,20 @@
+date: 1981-06-14
+source:
+  name: 'Wikipedia: 1981 French legislative election'
+  url: https://en.wikipedia.org/wiki/1981_French_legislative_election
+electorate: 36257433
+not_voted: 10748633
+total_votes: 25508800
+non_valid_votes: 367610
+blanco_votes: 0
+valid_votes: 25141190
+parties_votes:
+  ps: 9432362
+  rpr: 5231269
+  udf: 4827437
+  pcf: 4065540
+  dvd: 704788
+  exg: 334674
+  eco: 271688
+  dvg: 183010
+  exd: 90422

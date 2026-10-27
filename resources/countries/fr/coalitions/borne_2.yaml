@@ -1,0 +1,17 @@
+# Borne II government, seats from the 2022 election
+name: Borne II
+inauguration: 2022-07-04
+coalition:
+  - ensemble
+seats:
+  ensemble: 245
+  nupes: 131
+  rn: 89
+  udc: 64
+  dvg: 21
+  dvd: 10
+  reg: 10
+  dvc: 4
+  souv: 1
+  div: 1
+  prg: 1

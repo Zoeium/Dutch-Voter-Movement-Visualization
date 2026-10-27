@@ -1,0 +1,5 @@
+party: sel
+display_name: SEL
+color: '#C2185B'
+split_off:
+  - prc

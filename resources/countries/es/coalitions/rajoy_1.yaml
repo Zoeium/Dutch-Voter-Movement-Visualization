@@ -1,0 +1,19 @@
+# Rajoy I government, seats from the 2011 election
+name: Rajoy I
+inauguration: 2011-12-22
+coalition:
+  - pp
+seats:
+  pp: 186
+  psoe: 110
+  ciu: 16
+  iu: 11
+  amaiur: 7
+  upyd: 5
+  pnv: 5
+  erc: 3
+  bng: 2
+  cc: 2
+  bloc: 1
+  foro: 1
+  gbai: 1

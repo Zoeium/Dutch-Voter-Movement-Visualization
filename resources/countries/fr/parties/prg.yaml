@@ -1,0 +1,5 @@
+party: prg
+display_name: PRG (Radicaux de gauche)
+color: '#F5B7C9'
+split_off:
+  - rad

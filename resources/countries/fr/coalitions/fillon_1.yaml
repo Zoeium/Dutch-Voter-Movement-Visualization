@@ -1,0 +1,19 @@
+# Fillon I government, seats from the 2002 election
+name: Fillon I
+inauguration: 2007-05-18
+coalition:
+  - ump
+seats:
+  ump: 357
+  ps: 140
+  udf: 27
+  pcf: 21
+  dvd: 9
+  prg: 7
+  dvg: 6
+  verts: 3
+  dl: 2
+  rpf: 2
+  mpf: 1
+  div: 1
+  reg: 1

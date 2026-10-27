@@ -1,0 +1,12 @@
+# Fabius government, seats from the 1981 election
+name: Fabius
+inauguration: 1984-07-17
+coalition:
+  - ps
+seats:
+  ps: 283
+  rpr: 85
+  udf: 61
+  pcf: 44
+  dvd: 11
+  dvg: 7

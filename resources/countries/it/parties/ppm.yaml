@@ -1,0 +1,5 @@
+party: ppm
+display_name: Partito Monarchico Popolare
+color: '#3F51B5'
+split_off:
+  - pnm

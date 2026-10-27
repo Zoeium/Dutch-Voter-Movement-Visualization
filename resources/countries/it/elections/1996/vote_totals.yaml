@@ -1,0 +1,24 @@
+date: 1996-04-21
+source:
+  name: 'Wikipedia: 1996 Italian general election'
+  url: https://en.wikipedia.org/wiki/1996_Italian_general_election
+electorate: 48744846
+not_voted: 8148933
+total_votes: 40595913
+non_valid_votes: 2917376
+blanco_votes: 0
+valid_votes: 37678537
+parties_votes:
+  pds: 7894118
+  fi: 7712149
+  an: 5870491
+  lega_nord: 3776354
+  prc: 3213748
+  popolari_prodi: 2554072
+  ccd_cdu: 2189563
+  other: 1635796
+  rinnovamento: 1627380
+  verdi: 938665
+  svp: 156708
+  lam: 72062
+  vda: 37431

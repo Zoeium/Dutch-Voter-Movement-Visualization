@@ -1,0 +1,15 @@
+# Rocard I government, seats from the 1986 election
+name: Rocard I
+inauguration: 1988-05-10
+coalition:
+  - ps
+  - prg
+seats:
+  rpr: 224
+  ps: 207
+  udf: 53
+  pcf: 35
+  rn: 35
+  dvd: 14
+  dvg: 7
+  prg: 2

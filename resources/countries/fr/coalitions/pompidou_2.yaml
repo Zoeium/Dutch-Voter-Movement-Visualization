@@ -1,0 +1,15 @@
+# Pompidou II government, seats from the 1962 election
+name: Pompidou II
+inauguration: 1962-12-06
+coalition:
+  - unr
+  - ri
+seats:
+  unr: 229
+  sfio: 65
+  rad: 42
+  pcf: 41
+  mrp: 36
+  cnip: 28
+  ri: 20
+  psu: 2

@@ -1,0 +1,23 @@
+# Berlusconi III government, seats from the 2001 election
+name: Berlusconi III
+inauguration: 2005-04-23
+coalition:
+  - fi
+  - an
+  - lega_nord
+  - biancofiore
+  - npsi
+seats:
+  fi: 194
+  ds: 136
+  an: 99
+  dl: 83
+  biancofiore: 40
+  lega_nord: 30
+  girasole: 17
+  prc: 11
+  pdci: 10
+  npsi: 5
+  svp: 3
+  illy: 1
+  vda: 1

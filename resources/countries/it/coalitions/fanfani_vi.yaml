@@ -1,0 +1,19 @@
+# Fanfani VI government, seats from the 1983 election
+name: Fanfani VI
+inauguration: 1987-04-18
+coalition:
+  - dc
+seats:
+  dc: 225
+  pci: 198
+  psi: 73
+  msi: 42
+  pri: 29
+  psdi: 23
+  pli: 16
+  radicali: 11
+  dp: 7
+  svp: 3
+  liga_veneta: 1
+  psdaz: 1
+  vda: 1

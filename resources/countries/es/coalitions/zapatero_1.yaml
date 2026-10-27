@@ -1,0 +1,20 @@
+# Zapatero I government, seats from the 2004 election
+name: Zapatero I
+inauguration: 2004-04-18
+coalition:
+  - psoe
+support:
+  - erc
+  - iu
+seats:
+  psoe: 164
+  pp: 148
+  ciu: 10
+  erc: 8
+  pnv: 7
+  iu: 5
+  cc: 3
+  bng: 2
+  cha: 1
+  ea: 1
+  nabai: 1

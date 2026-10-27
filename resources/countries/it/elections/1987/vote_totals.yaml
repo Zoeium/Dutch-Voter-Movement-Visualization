@@ -1,0 +1,27 @@
+date: 1987-06-15
+source:
+  name: 'Wikipedia: 1987 Italian general election'
+  url: https://en.wikipedia.org/wiki/1987_Italian_general_election
+electorate: 45692417
+not_voted: 5105844
+total_votes: 40586573
+non_valid_votes: 2015065
+blanco_votes: 0
+valid_votes: 38571508
+parties_votes:
+  dc: 13263557
+  pci: 10250644
+  psi: 5501696
+  msi: 2281126
+  pri: 1428663
+  psdi: 1140209
+  radicali: 987720
+  liste_verdi: 969218
+  pli: 809946
+  dp: 641901
+  other: 398464
+  liga_veneta: 298402
+  svp: 202022
+  lega_lombarda: 186255
+  psdaz: 169978
+  vda: 41707

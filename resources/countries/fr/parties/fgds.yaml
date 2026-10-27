@@ -1,0 +1,6 @@
+party: fgds
+display_name: FGDS
+color: '#E75480'
+alliance_of:
+  - sfio
+  - rad

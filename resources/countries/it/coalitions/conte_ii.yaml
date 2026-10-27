@@ -1,0 +1,21 @@
+# Conte II government, seats from the 2018 election
+name: Conte II
+inauguration: 2019-09-05
+coalition:
+  - m5s
+  - pd
+  - leu
+seats:
+  m5s: 227
+  lega: 125
+  pd: 112
+  fi2013: 104
+  fdi: 32
+  leu: 14
+  nci: 4
+  svp: 4
+  piu_europa: 3
+  civica_popolare: 2
+  insieme: 1
+  maie: 1
+  usei: 1

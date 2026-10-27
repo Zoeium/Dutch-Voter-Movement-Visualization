@@ -1,0 +1,6 @@
+party: unidos_podemos
+display_name: Unidos Podemos
+color: '#6B2E68'
+alliance_of:
+  - podemos
+  - iu

@@ -1,0 +1,25 @@
+# Sánchez III government, seats from the 2023 election
+name: Sánchez III
+inauguration: 2023-11-21
+coalition:
+  - psoe
+  - sumar
+support:
+  - erc
+  - junts
+  - bildu
+  - pnv
+  - bng
+  - cc
+seats:
+  pp: 137
+  psoe: 121
+  vox: 33
+  sumar: 31
+  erc: 7
+  junts: 7
+  bildu: 6
+  pnv: 5
+  bng: 1
+  cc: 1
+  upn: 1

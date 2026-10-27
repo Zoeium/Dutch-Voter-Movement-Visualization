@@ -1,0 +1,26 @@
+date: 2022-09-25
+source:
+  name: 'Wikipedia: 2022 Italian general election'
+  url: https://en.wikipedia.org/wiki/2022_Italian_general_election
+electorate: 46021956
+not_voted: 16636845
+total_votes: 29385111
+non_valid_votes: 1135210
+blanco_votes: 0
+valid_votes: 28249901
+parties_votes:
+  fdi: 7302517
+  pd: 5356180
+  m5s: 4333972
+  lega: 2464005
+  fi2013: 2278217
+  azione_iv: 2186669
+  other: 1599227
+  avs: 1018669
+  piu_europa: 793961
+  noi_moderati: 255505
+  scn: 212685
+  impegno_civico: 169165
+  maie: 141356
+  svp: 117010
+  vda: 20763

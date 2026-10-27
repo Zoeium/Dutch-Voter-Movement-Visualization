@@ -1,0 +1,20 @@
+# Raffarin II government, seats from the 2002 election
+name: Raffarin II
+inauguration: 2002-06-17
+coalition:
+  - ump
+  - udf
+seats:
+  ump: 357
+  ps: 140
+  udf: 27
+  pcf: 21
+  dvd: 9
+  prg: 7
+  dvg: 6
+  verts: 3
+  dl: 2
+  rpf: 2
+  mpf: 1
+  div: 1
+  reg: 1

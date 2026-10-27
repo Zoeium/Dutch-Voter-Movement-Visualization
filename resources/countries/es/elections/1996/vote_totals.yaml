@@ -1,0 +1,26 @@
+date: 1996-03-03
+source:
+  name: 'Wikipedia: 1996 Spanish general election'
+  url: https://en.wikipedia.org/wiki/1996_Spanish_general_election
+electorate: 32531833
+not_voted: 7359775
+total_votes: 25172058
+non_valid_votes: 125782
+blanco_votes: 243345
+valid_votes: 24802931
+parties_votes:
+  pp: 9716006
+  psoe: 9425678
+  iu: 2639774
+  ciu: 1151633
+  other: 324633
+  pnv: 318951
+  cc: 220418
+  bng: 220147
+  hb: 181304
+  erc: 167641
+  pa: 134800
+  ea: 115861
+  uv: 91575
+  cha: 49739
+  cds: 44771

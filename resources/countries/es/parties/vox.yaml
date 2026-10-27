@@ -1,0 +1,5 @@
+party: vox
+display_name: Vox
+color: '#63BE21'
+split_off:
+  - pp

@@ -1,0 +1,25 @@
+date: 1982-10-28
+source:
+  name: 'Wikipedia: 1982 Spanish general election'
+  url: https://en.wikipedia.org/wiki/1982_Spanish_general_election
+electorate: 26846940
+not_voted: 5377666
+total_votes: 21469274
+non_valid_votes: 419236
+blanco_votes: 98438
+valid_votes: 20951600
+parties_votes:
+  psoe: 10127392
+  ap_pdp: 5548107
+  ucd: 1425093
+  pce: 865272
+  ciu: 772726
+  other: 606076
+  cds: 604309
+  pnv: 395656
+  hb: 210601
+  erc: 138118
+  ee: 100326
+  pa: 84474
+  bng: 38437
+  upc: 35013

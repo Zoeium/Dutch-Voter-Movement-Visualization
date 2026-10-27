@@ -1,0 +1,5 @@
+party: mpf
+display_name: Mouvement pour la France
+color: '#4B6EAF'
+split_off:
+  - udf

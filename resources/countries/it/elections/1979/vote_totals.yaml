@@ -1,0 +1,24 @@
+date: 1979-06-03
+source:
+  name: 'Wikipedia: 1979 Italian general election'
+  url: https://en.wikipedia.org/wiki/1979_Italian_general_election
+electorate: 42203354
+not_voted: 3960436
+total_votes: 38242918
+non_valid_votes: 1571610
+blanco_votes: 0
+valid_votes: 36671308
+parties_votes:
+  dc: 14046290
+  pci: 11139231
+  psi: 3596802
+  msi: 1930639
+  psdi: 1407535
+  radicali: 1264870
+  pri: 1110209
+  pli: 712646
+  other: 657185
+  pdup: 502247
+  svp: 204899
+  lista_trieste: 65505
+  union_valdotaine: 33250

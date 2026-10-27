@@ -1,0 +1,25 @@
+date: 2013-02-25
+source:
+  name: 'Wikipedia: 2013 Italian general election'
+  url: https://en.wikipedia.org/wiki/2013_Italian_general_election
+electorate: 46905154
+not_voted: 11431066
+total_votes: 35474088
+non_valid_votes: 1265171
+blanco_votes: 0
+valid_votes: 34208917
+parties_votes:
+  m5s: 8691406
+  pd: 8646034
+  pdl: 7332134
+  scelta_civica: 2823842
+  other: 2443360
+  lega_nord: 1390534
+  sel: 1089231
+  fdi: 666765
+  udc: 608321
+  centro_democratico: 167328
+  svp: 146800
+  maie: 140868
+  usei: 43918
+  vda: 18376

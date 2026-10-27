@@ -1,0 +1,22 @@
+date: 1953-06-07
+source:
+  name: 'Wikipedia: 1953 Italian general election'
+  url: https://en.wikipedia.org/wiki/1953_Italian_general_election
+electorate: 30272236
+not_voted: 1865757
+total_votes: 28406479
+non_valid_votes: 1318778
+blanco_votes: 0
+valid_votes: 27087701
+parties_votes:
+  dc: 10862073
+  pci: 6120809
+  psi: 3441014
+  pnm: 1854850
+  msi: 1582154
+  psdi: 1222957
+  pli: 815929
+  other: 600061
+  pri: 438149
+  svp: 122474
+  psdaz: 27231

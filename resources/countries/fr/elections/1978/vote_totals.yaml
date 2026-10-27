@@ -1,0 +1,20 @@
+date: 1978-03-12
+source:
+  name: 'Wikipedia: 1978 French legislative election'
+  url: https://en.wikipedia.org/wiki/1978_French_legislative_election
+electorate: 35204152
+not_voted: 6062173
+total_votes: 29141979
+non_valid_votes: 581736
+blanco_votes: 0
+valid_votes: 28560243
+parties_votes:
+  rpr: 6462462
+  ps: 6451151
+  udf: 6128849
+  pcf: 5870402
+  exg: 953088
+  div: 793274
+  dvd: 684985
+  eco: 612100
+  prg: 603932

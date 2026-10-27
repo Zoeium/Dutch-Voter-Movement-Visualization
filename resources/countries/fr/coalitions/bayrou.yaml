@@ -1,0 +1,19 @@
+# Bayrou government, seats from the 2024 election
+name: Bayrou
+inauguration: 2024-12-23
+coalition:
+  - ensemble
+  - lr
+seats:
+  nfp: 180
+  ensemble: 159
+  rn: 125
+  lr: 39
+  dvd: 27
+  uxd: 17
+  dvg: 12
+  reg: 9
+  dvc: 6
+  eco: 1
+  div: 1
+  exd: 1

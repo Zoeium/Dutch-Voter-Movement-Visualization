@@ -1,0 +1,24 @@
+date: 1968-05-19
+source:
+  name: 'Wikipedia: 1968 Italian general election'
+  url: https://en.wikipedia.org/wiki/1968_Italian_general_election
+electorate: 35566493
+not_voted: 2564849
+total_votes: 33001644
+non_valid_votes: 1211216
+blanco_votes: 0
+valid_votes: 31790428
+parties_votes:
+  dc: 12437848
+  pci: 8551347
+  psu: 4603192
+  pli: 1850650
+  psiup: 1414697
+  msi: 1414036
+  pri: 626533
+  pdium: 414507
+  other: 264302
+  svp: 152991
+  union_valdotaine: 31557
+  psdaz: 27228
+  radicali: 1540

@@ -1,0 +1,18 @@
+date: 1967-03-05
+source:
+  name: 'Wikipedia: 1967 French legislative election'
+  url: https://en.wikipedia.org/wiki/1967_French_legislative_election
+electorate: 28291838
+not_voted: 5404687
+total_votes: 22887151
+non_valid_votes: 494834
+blanco_votes: 0
+valid_votes: 22392317
+parties_votes:
+  udr: 8453512
+  pcf: 5029808
+  fgds: 4207166
+  cd: 2864272
+  div: 1136191
+  psu: 506592
+  other: 194776

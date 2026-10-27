@@ -1,0 +1,19 @@
+# González III government, seats from the 1989 election
+name: González III
+inauguration: 1989-12-07
+coalition:
+  - psoe
+seats:
+  psoe: 175
+  pp: 107
+  ciu: 18
+  iu: 17
+  cds: 14
+  pnv: 5
+  hb: 4
+  pa: 2
+  uv: 2
+  ea: 2
+  ee: 2
+  par: 1
+  aic: 1

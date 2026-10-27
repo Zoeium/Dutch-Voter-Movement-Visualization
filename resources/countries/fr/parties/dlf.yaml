@@ -1,0 +1,5 @@
+party: dlf
+display_name: Debout la France
+color: '#4B6EAF'
+split_off:
+  - ump

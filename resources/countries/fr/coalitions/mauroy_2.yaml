@@ -1,0 +1,13 @@
+# Mauroy II government, seats from the 1981 election
+name: Mauroy II
+inauguration: 1981-06-22
+coalition:
+  - ps
+  - pcf
+seats:
+  ps: 283
+  rpr: 85
+  udf: 61
+  pcf: 44
+  dvd: 11
+  dvg: 7

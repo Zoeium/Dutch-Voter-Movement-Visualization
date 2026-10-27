@@ -1,0 +1,8 @@
+party: ensemble
+display_name: Ensemble
+color: '#FFD600'
+previous_names:
+  - lrem
+alliance_of:
+  - lrem
+  - modem

@@ -1,0 +1,29 @@
+date: 1993-06-06
+source:
+  name: 'Wikipedia: 1993 Spanish general election'
+  url: https://en.wikipedia.org/wiki/1993_Spanish_general_election
+electorate: 31030511
+not_voted: 7311695
+total_votes: 23718816
+non_valid_votes: 126952
+blanco_votes: 188679
+valid_votes: 23403185
+parties_votes:
+  psoe: 9150083
+  pp: 8201463
+  iu: 2253722
+  ciu: 1165783
+  other: 633235
+  cds: 414740
+  pnv: 291448
+  cc: 207077
+  hb: 206876
+  erc: 189632
+  par: 144544
+  ea: 129293
+  bng: 126965
+  uv: 112341
+  pa: 96513
+  ruiz_mateos: 54518
+  prc: 18608
+  cha: 6344

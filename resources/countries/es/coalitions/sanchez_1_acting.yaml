@@ -1,0 +1,19 @@
+# Sánchez I (acting) government, seats from the 2019-04 election
+name: Sánchez I (acting)
+inauguration: 2019-04-29
+coalition:
+  - psoe
+seats:
+  psoe: 123
+  pp: 66
+  cs: 57
+  unidas_podemos: 42
+  vox: 24
+  erc: 15
+  jxcat: 7
+  pnv: 6
+  bildu: 4
+  cc: 2
+  na_plus: 2
+  compromis: 1
+  prc: 1

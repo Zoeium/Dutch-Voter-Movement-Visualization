@@ -1,0 +1,5 @@
+party: prc
+display_name: Rifondazione Comunista
+color: '#8B0000'
+split_off:
+  - pci

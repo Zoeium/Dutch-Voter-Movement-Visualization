@@ -1,0 +1,15 @@
+# De Gasperi VIII government, seats from the 1953 election
+name: De Gasperi VIII
+inauguration: 1953-07-16
+coalition:
+  - dc
+seats:
+  dc: 263
+  pci: 143
+  psi: 75
+  pnm: 40
+  msi: 29
+  psdi: 19
+  pli: 13
+  pri: 5
+  svp: 3

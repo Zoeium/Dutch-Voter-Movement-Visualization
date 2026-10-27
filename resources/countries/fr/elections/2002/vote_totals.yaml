@@ -1,0 +1,31 @@
+date: 2002-06-09
+source:
+  name: 'Wikipedia: 2002 French legislative election'
+  url: https://en.wikipedia.org/wiki/2002_French_legislative_election
+electorate: 40968484
+not_voted: 14578609
+total_votes: 26389875
+non_valid_votes: 1143830
+blanco_votes: 0
+valid_votes: 25246045
+parties_votes:
+  ump: 8408023
+  ps: 6086599
+  rn: 2862960
+  udf: 1226462
+  pcf: 1216178
+  verts: 1138222
+  dvd: 921973
+  exg: 704009
+  cpnt: 422448
+  prg: 388891
+  mrc: 299897
+  eco: 295899
+  mnr: 276376
+  dvg: 275553
+  mpf: 202831
+  div: 194946
+  dl: 104767
+  rpf: 94222
+  reg: 66240
+  exd: 59549

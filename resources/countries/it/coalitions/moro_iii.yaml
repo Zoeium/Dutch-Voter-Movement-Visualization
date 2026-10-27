@@ -1,0 +1,19 @@
+# Moro III government, seats from the 1963 election
+name: Moro III
+inauguration: 1966-02-24
+coalition:
+  - dc
+  - psi
+  - psdi
+  - pri
+seats:
+  dc: 260
+  pci: 166
+  psi: 87
+  pli: 39
+  psdi: 33
+  msi: 27
+  pdium: 8
+  pri: 6
+  svp: 3
+  union_valdotaine: 1

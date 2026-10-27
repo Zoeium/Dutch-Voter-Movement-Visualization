@@ -1,0 +1,20 @@
+date: 1962-11-18
+source:
+  name: 'Wikipedia: 1962 French legislative election'
+  url: https://en.wikipedia.org/wiki/1962_French_legislative_election
+electorate: 27526358
+not_voted: 8608199
+total_votes: 18918159
+non_valid_votes: 584368
+blanco_votes: 0
+valid_votes: 18333791
+parties_votes:
+  unr: 5855744
+  pcf: 4003553
+  sfio: 2298729
+  mrp: 1665695
+  rad: 1429649
+  cnip: 1404177
+  ri: 1089348
+  psu: 427467
+  exd: 159429

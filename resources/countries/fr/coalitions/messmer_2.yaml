@@ -1,0 +1,13 @@
+# Messmer II government, seats from the 1973 election
+name: Messmer II
+inauguration: 1973-04-05
+coalition:
+  - urp
+seats:
+  urp: 262
+  ps: 101
+  pcf: 73
+  reformateurs: 32
+  dvd: 16
+  psu: 3
+  dvg: 3
