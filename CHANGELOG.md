@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-27
+
 ### Added
 
 - The app is usable on phones: a compact header, charts that scroll sideways instead of shrinking, and a comparison
@@ -44,5 +46,6 @@ All notable changes to this project are documented here. The format follows
 
 Initial release
 
-[Unreleased]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/releases/tag/v1.0.0
