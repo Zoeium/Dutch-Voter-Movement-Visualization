@@ -1,0 +1,5 @@
+party: fg
+display_name: Front de gauche
+color: '#C9462C'
+alliance_of:
+  - pcf

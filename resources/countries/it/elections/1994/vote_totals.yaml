@@ -1,0 +1,25 @@
+date: 1994-03-28
+source:
+  name: 'Wikipedia: 1994 Italian general election'
+  url: https://en.wikipedia.org/wiki/1994_Italian_general_election
+electorate: 48135041
+not_voted: 6588751
+total_votes: 41546290
+non_valid_votes: 5228129
+blanco_votes: 0
+valid_votes: 36318161
+parties_votes:
+  fi: 8136135
+  pds: 7881646
+  an: 5214133
+  ppi: 4287172
+  lega_nord: 3235248
+  prc: 2343946
+  patto_segni: 1811814
+  verdi: 1047268
+  psi: 849429
+  rete: 719841
+  ad: 456114
+  svp: 231842
+  lam: 59873
+  vda: 43700

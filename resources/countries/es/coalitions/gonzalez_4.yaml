@@ -1,0 +1,20 @@
+# González IV government, seats from the 1993 election
+name: González IV
+inauguration: 1993-07-13
+coalition:
+  - psoe
+support:
+  - ciu
+  - pnv
+seats:
+  psoe: 159
+  pp: 141
+  iu: 18
+  ciu: 17
+  pnv: 5
+  cc: 4
+  hb: 2
+  erc: 1
+  par: 1
+  ea: 1
+  uv: 1

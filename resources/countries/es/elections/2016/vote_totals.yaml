@@ -1,0 +1,26 @@
+date: 2016-06-26
+source:
+  name: 'Wikipedia: 2016 Spanish general election'
+  url: https://en.wikipedia.org/wiki/2016_Spanish_general_election
+electorate: 36520913
+not_voted: 12241654
+total_votes: 24279259
+non_valid_votes: 225504
+blanco_votes: 179081
+valid_votes: 23874674
+parties_votes:
+  pp: 7941236
+  psoe: 5443846
+  unidos_podemos: 5087538
+  cs: 3141570
+  erc: 639652
+  cdc: 483488
+  pnv: 287014
+  pacma: 286702
+  bildu: 184713
+  other: 143638
+  cc: 78253
+  upyd: 50247
+  vox: 47182
+  bng: 45252
+  gbai: 14343

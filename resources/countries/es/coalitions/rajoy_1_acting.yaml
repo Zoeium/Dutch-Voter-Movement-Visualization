@@ -1,0 +1,16 @@
+# Rajoy I (acting) government, seats from the 2015 election
+name: Rajoy I (acting)
+inauguration: 2015-12-21
+coalition:
+  - pp
+seats:
+  pp: 123
+  psoe: 90
+  podemos: 69
+  cs: 40
+  erc: 9
+  dil: 8
+  pnv: 6
+  iu: 2
+  bildu: 2
+  cc: 1

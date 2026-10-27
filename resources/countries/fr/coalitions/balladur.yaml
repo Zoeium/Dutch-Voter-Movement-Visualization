@@ -1,0 +1,14 @@
+# Balladur government, seats from the 1993 election
+name: Balladur
+inauguration: 1993-03-29
+coalition:
+  - rpr
+  - udf
+seats:
+  rpr: 247
+  udf: 213
+  ps: 54
+  dvd: 24
+  pcf: 23
+  dvg: 10
+  prg: 6

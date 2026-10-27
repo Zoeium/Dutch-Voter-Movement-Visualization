@@ -1,0 +1,17 @@
+# Scelba government, seats from the 1953 election
+name: Scelba
+inauguration: 1954-02-10
+coalition:
+  - dc
+  - psdi
+  - pli
+seats:
+  dc: 263
+  pci: 143
+  psi: 75
+  pnm: 40
+  msi: 29
+  psdi: 19
+  pli: 13
+  pri: 5
+  svp: 3

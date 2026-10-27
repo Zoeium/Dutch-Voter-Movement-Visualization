@@ -1,0 +1,16 @@
+# Berlusconi IV government, seats from the 2008 election
+name: Berlusconi IV
+inauguration: 2008-05-08
+coalition:
+  - pdl
+  - lega_nord
+seats:
+  pdl: 276
+  pd: 217
+  lega_nord: 60
+  udc: 36
+  idv: 29
+  mpa: 8
+  svp: 2
+  ald: 1
+  maie: 1

@@ -1,0 +1,28 @@
+date: 2012-06-10
+source:
+  name: 'Wikipedia: 2012 French legislative election'
+  url: https://en.wikipedia.org/wiki/2012_French_legislative_election
+electorate: 46082104
+not_voted: 19712978
+total_votes: 26369126
+non_valid_votes: 416267
+blanco_votes: 0
+valid_votes: 25952859
+parties_votes:
+  ps: 7618326
+  ump: 7037268
+  rn: 3528663
+  fg: 1793192
+  eelv: 1418264
+  dvd: 910034
+  dvg: 881555
+  nc: 569897
+  modem: 458098
+  prg: 428898
+  rad: 321124
+  exg: 253386
+  eco: 249068
+  ac: 156026
+  reg: 145809
+  other: 133752
+  exd: 49499

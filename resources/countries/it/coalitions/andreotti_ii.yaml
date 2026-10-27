@@ -1,0 +1,16 @@
+# Andreotti II government, seats from the 1972 election
+name: Andreotti II
+inauguration: 1972-06-26
+coalition:
+  - dc
+  - psdi
+  - pli
+seats:
+  dc: 267
+  pci: 179
+  psi: 61
+  msi: 56
+  psdi: 29
+  pli: 20
+  pri: 15
+  svp: 3

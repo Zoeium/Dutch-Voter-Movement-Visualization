@@ -1,0 +1,23 @@
+# Castex government, seats from the 2017 election
+name: Castex
+inauguration: 2020-07-06
+coalition:
+  - lrem
+  - modem
+seats:
+  lrem: 308
+  lr: 112
+  modem: 42
+  ps: 30
+  udi: 18
+  lfi: 17
+  dvg: 12
+  pcf: 10
+  rn: 8
+  dvd: 6
+  reg: 5
+  prg: 3
+  div: 3
+  eco: 1
+  dlf: 1
+  exd: 1

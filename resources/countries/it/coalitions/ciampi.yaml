@@ -1,0 +1,28 @@
+# Ciampi government, seats from the 1992 election
+name: Ciampi
+inauguration: 1993-04-28
+coalition:
+  - dc
+  - psi
+  - pds
+  - pli
+  - pri
+  - psdi
+  - verdi
+seats:
+  dc: 206
+  pds: 107
+  psi: 92
+  lega_nord: 55
+  prc: 35
+  msi: 34
+  pri: 27
+  pli: 17
+  verdi: 16
+  psdi: 16
+  rete: 12
+  lista_pannella: 7
+  svp: 3
+  union_valdotaine: 1
+  lav: 1
+  vda: 1

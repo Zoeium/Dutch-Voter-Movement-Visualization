@@ -1,0 +1,15 @@
+# Leone II government, seats from the 1968 election
+name: Leone II
+inauguration: 1968-06-25
+coalition:
+  - dc
+seats:
+  dc: 266
+  pci: 177
+  psu: 91
+  pli: 31
+  msi: 24
+  psiup: 23
+  pri: 9
+  pdium: 6
+  svp: 3

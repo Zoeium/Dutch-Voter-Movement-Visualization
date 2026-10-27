@@ -1,0 +1,25 @@
+date: 1993-03-21
+source:
+  name: 'Wikipedia: 1993 French legislative election'
+  url: https://en.wikipedia.org/wiki/1993_French_legislative_election
+electorate: 38968660
+not_voted: 12108483
+total_votes: 26860177
+non_valid_votes: 1417774
+blanco_votes: 0
+valid_votes: 25442403
+parties_votes:
+  rpr: 5188196
+  udf: 4855274
+  ps: 4476716
+  rn: 3159477
+  pcf: 2336254
+  dvd: 1199887
+  verts: 1022749
+  div: 957711
+  ge: 921925
+  dvg: 457193
+  exg: 451804
+  prg: 228758
+  reg: 116474
+  exd: 69985

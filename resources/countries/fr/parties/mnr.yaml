@@ -1,0 +1,5 @@
+party: mnr
+display_name: MNR
+color: '#3A3A6A'
+split_off:
+  - rn

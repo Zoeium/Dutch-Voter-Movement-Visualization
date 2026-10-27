@@ -1,0 +1,26 @@
+date: 2022-06-12
+source:
+  name: 'Wikipedia: 2022 French legislative election'
+  url: https://en.wikipedia.org/wiki/2022_French_legislative_election
+electorate: 48953748
+not_voted: 25697541
+total_votes: 23256207
+non_valid_votes: 149306
+blanco_votes: 362193
+valid_votes: 22744708
+parties_votes:
+  ensemble: 5857364
+  nupes: 5836079
+  rn: 4248537
+  udc: 2568502
+  rec: 964775
+  dvg: 713574
+  eco: 608314
+  dvd: 530782
+  reg: 291384
+  dvc: 283612
+  exg: 266412
+  souv: 249603
+  div: 192624
+  prg: 126689
+  exd: 6457

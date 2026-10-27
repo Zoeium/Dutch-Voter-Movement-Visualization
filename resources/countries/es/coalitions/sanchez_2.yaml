@@ -1,0 +1,23 @@
+# Sánchez II government, seats from the 2019-11 election
+name: Sánchez II
+inauguration: 2020-01-13
+coalition:
+  - psoe
+  - unidas_podemos
+seats:
+  psoe: 120
+  pp: 89
+  vox: 52
+  unidas_podemos: 35
+  erc: 13
+  cs: 10
+  jxcat: 8
+  pnv: 6
+  bildu: 5
+  mas_pais: 3
+  cup: 2
+  cc: 2
+  na_plus: 2
+  bng: 1
+  prc: 1
+  teruel: 1

@@ -1,0 +1,22 @@
+date: 1963-04-28
+source:
+  name: 'Wikipedia: 1963 Italian general election'
+  url: https://en.wikipedia.org/wiki/1963_Italian_general_election
+electorate: 34199184
+not_voted: 2433175
+total_votes: 31766009
+non_valid_votes: 1013138
+blanco_votes: 0
+valid_votes: 30752871
+parties_votes:
+  dc: 11773182
+  pci: 7767601
+  psi: 4255836
+  pli: 2144270
+  psdi: 1876271
+  msi: 1570282
+  pdium: 536948
+  pri: 420213
+  other: 240967
+  svp: 135457
+  union_valdotaine: 31844

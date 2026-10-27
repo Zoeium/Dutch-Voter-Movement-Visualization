@@ -1,0 +1,29 @@
+date: 2008-03-09
+source:
+  name: 'Wikipedia: 2008 Spanish general election'
+  url: https://en.wikipedia.org/wiki/2008_Spanish_general_election
+electorate: 35073179
+not_voted: 9172737
+total_votes: 25900442
+non_valid_votes: 165576
+blanco_votes: 286182
+valid_votes: 25448684
+parties_votes:
+  psoe: 11289335
+  pp: 10278010
+  iu: 969946
+  ciu: 779425
+  other: 521195
+  pnv: 306128
+  upyd: 306079
+  erc: 298139
+  bng: 212543
+  cc: 174629
+  nabai: 62398
+  ea: 50371
+  cs: 46313
+  pacma: 44795
+  par: 40054
+  cha: 38202
+  bloc: 29760
+  cds: 1362

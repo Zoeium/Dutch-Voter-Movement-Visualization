@@ -1,0 +1,5 @@
+party: psiup
+display_name: PSIUP
+color: '#B71C1C'
+split_off:
+  - psi

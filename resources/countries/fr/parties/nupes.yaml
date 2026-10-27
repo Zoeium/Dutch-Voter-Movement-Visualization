@@ -1,0 +1,9 @@
+party: nupes
+display_name: NUPES
+color: '#BB1840'
+alliance_of:
+  - lfi
+  - ps
+  - pcf
+  - eco
+  - eelv

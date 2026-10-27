@@ -1,0 +1,5 @@
+party: pdci
+display_name: Comunisti Italiani
+color: '#8B0000'
+split_off:
+  - prc

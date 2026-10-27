@@ -1,0 +1,18 @@
+# Suárez II government, seats from the 1977 election
+name: Suárez II
+inauguration: 1977-07-05
+coalition:
+  - ucd
+seats:
+  ucd: 165
+  psoe: 118
+  pce: 20
+  ap: 16
+  pdc: 11
+  pnv: 8
+  psp: 6
+  edc: 2
+  erc: 1
+  ee: 1
+  caic: 1
+  cic: 1

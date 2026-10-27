@@ -109,8 +109,9 @@ describe.each(countries.map((country) => [country.id, country] as const))('%s', 
       expect(seatParties.filter((party) => !partyIds.has(party))).toEqual([]);
       expect(Object.values(coalition.seats).every((seats) => Number.isInteger(seats) && seats > 0)).toBe(true);
 
-      // Every governing and supporting party holds seats.
-      expect(coalition.coalition.length).toBeGreaterThan(0);
+      // Every governing and supporting party holds seats. A technocratic government (e.g.
+      // Monti in Italy) has no governing parties of its own, only supporting ones.
+      expect(coalition.coalition.length + (coalition.support?.length ?? 0)).toBeGreaterThan(0);
       const seatless = [...coalition.coalition, ...(coalition.support ?? [])].filter((party) => !coalition.seats[party]);
       expect(seatless).toEqual([]);
 

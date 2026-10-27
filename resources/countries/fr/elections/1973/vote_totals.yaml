@@ -1,0 +1,18 @@
+date: 1973-03-04
+source:
+  name: 'Wikipedia: 1973 French legislative election'
+  url: https://en.wikipedia.org/wiki/1973_French_legislative_election
+electorate: 29865345
+not_voted: 5608523
+total_votes: 24256822
+non_valid_votes: 541877
+blanco_votes: 0
+valid_votes: 23714945
+parties_votes:
+  urp: 8242661
+  pcf: 5063981
+  ps: 4899965
+  reformateurs: 2967481
+  dvd: 1458943
+  psu: 781976
+  dvg: 299938

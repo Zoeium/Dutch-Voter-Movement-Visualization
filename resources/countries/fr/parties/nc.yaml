@@ -1,0 +1,5 @@
+party: nc
+display_name: Nouveau Centre
+color: '#00B4D8'
+split_off:
+  - udf

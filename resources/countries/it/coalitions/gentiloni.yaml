@@ -1,0 +1,19 @@
+# Gentiloni government, seats from the 2013 election
+name: Gentiloni
+inauguration: 2016-12-12
+coalition:
+  - pd
+seats:
+  pd: 297
+  m5s: 109
+  pdl: 98
+  scelta_civica: 39
+  sel: 37
+  lega_nord: 18
+  fdi: 9
+  udc: 8
+  centro_democratico: 6
+  svp: 5
+  maie: 2
+  usei: 1
+  vda: 1

@@ -1,0 +1,22 @@
+date: 1976-06-20
+source:
+  name: 'Wikipedia: 1976 Italian general election'
+  url: https://en.wikipedia.org/wiki/1976_Italian_general_election
+electorate: 40426658
+not_voted: 2673568
+total_votes: 37753090
+non_valid_votes: 1045512
+blanco_votes: 0
+valid_votes: 36707578
+parties_votes:
+  dc: 14209519
+  pci: 12641398
+  psi: 3540309
+  msi: 2238339
+  psdi: 1239492
+  pri: 1135546
+  dp: 557025
+  pli: 480122
+  radicali: 394439
+  svp: 184375
+  other: 87014

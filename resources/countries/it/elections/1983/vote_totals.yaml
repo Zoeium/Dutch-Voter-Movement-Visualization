@@ -1,0 +1,28 @@
+date: 1983-06-26
+source:
+  name: 'Wikipedia: 1983 Italian general election'
+  url: https://en.wikipedia.org/wiki/1983_Italian_general_election
+electorate: 44526357
+not_voted: 5338175
+total_votes: 39188182
+non_valid_votes: 2282177
+blanco_votes: 0
+valid_votes: 36906005
+parties_votes:
+  dc: 12153081
+  pci: 11032318
+  psi: 4223362
+  msi: 2511487
+  pri: 1874512
+  psdi: 1508234
+  pli: 1071219
+  radicali: 809810
+  dp: 542039
+  pensionati: 503461
+  svp: 184940
+  other: 140548
+  liga_veneta: 125311
+  lista_trieste: 92101
+  psdaz: 91923
+  vda: 28086
+  pnm: 13573

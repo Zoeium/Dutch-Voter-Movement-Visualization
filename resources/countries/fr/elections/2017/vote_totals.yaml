@@ -1,0 +1,28 @@
+date: 2017-06-11
+source:
+  name: 'Wikipedia: 2017 French legislative election'
+  url: https://en.wikipedia.org/wiki/2017_French_legislative_election
+electorate: 47570988
+not_voted: 24403480
+total_votes: 23167508
+non_valid_votes: 156326
+blanco_votes: 357018
+valid_votes: 22654164
+parties_votes:
+  lrem: 6391269
+  lr: 3573427
+  rn: 2990454
+  lfi: 2497622
+  ps: 1685677
+  eco: 973527
+  modem: 932227
+  udi: 687225
+  dvd: 625345
+  pcf: 615487
+  div: 500309
+  dvg: 362281
+  dlf: 265420
+  reg: 204049
+  exg: 175214
+  prg: 106311
+  exd: 68320

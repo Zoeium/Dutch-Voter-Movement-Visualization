@@ -1,0 +1,20 @@
+date: 1968-06-23
+source:
+  name: 'Wikipedia: 1968 French legislative election'
+  url: https://en.wikipedia.org/wiki/1968_French_legislative_election
+electorate: 28181848
+not_voted: 5649801
+total_votes: 22532047
+non_valid_votes: 385192
+blanco_votes: 0
+valid_votes: 22146855
+parties_votes:
+  udr: 9667532
+  pcf: 4434832
+  fgds: 3660250
+  pdm: 2289489
+  dvd: 917758
+  psu: 873581
+  dvg: 163482
+  other: 111195
+  exd: 28736

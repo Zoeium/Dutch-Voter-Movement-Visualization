@@ -1,0 +1,5 @@
+party: ri
+display_name: Républicains indépendants
+color: '#5DA5DA'
+split_off:
+  - cnip

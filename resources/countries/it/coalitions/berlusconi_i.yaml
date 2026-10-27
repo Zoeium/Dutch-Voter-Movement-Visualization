@@ -1,0 +1,22 @@
+# Berlusconi I government, seats from the 1994 election
+name: Berlusconi I
+inauguration: 1994-05-11
+coalition:
+  - fi
+  - lega_nord
+  - an
+seats:
+  fi: 138
+  pds: 125
+  lega_nord: 118
+  an: 110
+  prc: 38
+  ppi: 33
+  ad: 16
+  psi: 15
+  patto_segni: 13
+  verdi: 11
+  rete: 8
+  svp: 3
+  lam: 1
+  vda: 1

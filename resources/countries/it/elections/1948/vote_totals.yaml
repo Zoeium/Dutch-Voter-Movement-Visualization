@@ -1,0 +1,22 @@
+date: 1948-04-18
+source:
+  name: 'Wikipedia: 1948 Italian general election'
+  url: https://en.wikipedia.org/wiki/1948_Italian_general_election
+electorate: 29117270
+not_voted: 2261529
+total_votes: 26855741
+non_valid_votes: 591283
+blanco_votes: 0
+valid_votes: 26264458
+parties_votes:
+  dc: 12740042
+  fdp: 8136637
+  unita_socialista: 1858116
+  blocco_nazionale: 1003727
+  pnm: 729078
+  pri: 651875
+  msi: 526882
+  other: 336016
+  svp: 124243
+  contadini: 95914
+  psdaz: 61928

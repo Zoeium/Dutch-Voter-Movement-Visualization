@@ -1,0 +1,5 @@
+party: uxd
+display_name: 'Union de l''extrême droite'
+color: '#1F3A7A'
+split_off:
+  - lr

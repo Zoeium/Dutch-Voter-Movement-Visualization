@@ -1,0 +1,11 @@
+party: nfp
+display_name: Nouveau Front populaire
+color: '#E4032E'
+previous_names:
+  - nupes
+alliance_of:
+  - lfi
+  - ps
+  - pcf
+  - eco
+  - eelv

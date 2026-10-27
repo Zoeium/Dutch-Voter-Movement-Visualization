@@ -1,0 +1,23 @@
+# Andreotti VII government, seats from the 1987 election
+name: Andreotti VII
+inauguration: 1991-04-13
+coalition:
+  - dc
+  - psi
+  - psdi
+  - pli
+seats:
+  dc: 234
+  pci: 177
+  psi: 94
+  msi: 35
+  pri: 21
+  psdi: 17
+  radicali: 13
+  liste_verdi: 13
+  pli: 11
+  dp: 8
+  svp: 3
+  psdaz: 2
+  lega_lombarda: 1
+  vda: 1

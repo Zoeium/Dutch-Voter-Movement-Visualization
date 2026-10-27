@@ -1,0 +1,6 @@
+party: psu
+display_name: PSU (PSI–PSDI)
+color: '#F06292'
+alliance_of:
+  - psi
+  - psdi

@@ -1,0 +1,18 @@
+# Aznar II government, seats from the 2000 election
+name: Aznar II
+inauguration: 2000-04-28
+coalition:
+  - pp
+seats:
+  pp: 183
+  psoe: 125
+  ciu: 15
+  iu: 8
+  pnv: 7
+  cc: 4
+  bng: 3
+  pa: 1
+  erc: 1
+  icv: 1
+  ea: 1
+  cha: 1

@@ -1,0 +1,15 @@
+# Pompidou I government, seats from the 1958 election
+name: Pompidou I
+inauguration: 1962-04-14
+coalition:
+  - unr
+  - mrp
+  - cnip
+seats:
+  unr: 189
+  cnip: 132
+  mrp: 57
+  sfio: 40
+  rad: 37
+  pcf: 10
+  exd: 1

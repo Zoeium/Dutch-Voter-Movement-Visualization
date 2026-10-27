@@ -1,0 +1,21 @@
+date: 1972-05-07
+source:
+  name: 'Wikipedia: 1972 Italian general election'
+  url: https://en.wikipedia.org/wiki/1972_Italian_general_election
+electorate: 37049351
+not_voted: 2523664
+total_votes: 34525687
+non_valid_votes: 1122139
+blanco_votes: 0
+valid_votes: 33403548
+parties_votes:
+  dc: 12946549
+  pci: 9068961
+  psi: 3208497
+  msi: 2894722
+  psdi: 1718142
+  pli: 1300439
+  pri: 954357
+  psiup: 648591
+  other: 509616
+  svp: 153674

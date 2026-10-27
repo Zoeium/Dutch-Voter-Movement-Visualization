@@ -1,0 +1,14 @@
+# Barre I government, seats from the 1973 election
+name: Barre I
+inauguration: 1976-08-27
+coalition:
+  - urp
+  - reformateurs
+seats:
+  urp: 262
+  ps: 101
+  pcf: 73
+  reformateurs: 32
+  dvd: 16
+  psu: 3
+  dvg: 3

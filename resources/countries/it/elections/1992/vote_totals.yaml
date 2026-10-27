@@ -1,0 +1,29 @@
+date: 1992-04-06
+source:
+  name: 'Wikipedia: 1992 Italian general election'
+  url: https://en.wikipedia.org/wiki/1992_Italian_general_election
+electorate: 47435689
+not_voted: 5996745
+total_votes: 41438944
+non_valid_votes: 2195438
+blanco_votes: 0
+valid_votes: 39243506
+parties_votes:
+  dc: 11668293
+  pds: 6317962
+  psi: 5343808
+  lega_nord: 3395384
+  prc: 2201428
+  msi: 2107272
+  pri: 1723756
+  other: 1386192
+  pli: 1121854
+  verdi: 1093037
+  psdi: 1066672
+  rete: 730293
+  lista_pannella: 486344
+  svp: 198431
+  union_valdotaine: 154987
+  lav: 152396
+  lam: 53993
+  vda: 41404

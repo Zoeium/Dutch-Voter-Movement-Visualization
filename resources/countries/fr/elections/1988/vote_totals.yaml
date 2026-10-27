@@ -1,0 +1,23 @@
+date: 1988-06-05
+source:
+  name: 'Wikipedia: 1988 French legislative election'
+  url: https://en.wikipedia.org/wiki/1988_French_legislative_election
+electorate: 37945582
+not_voted: 13000790
+total_votes: 24944792
+non_valid_votes: 512697
+blanco_votes: 0
+valid_votes: 24432095
+parties_votes:
+  ps: 8493702
+  rpr: 4687047
+  udf: 4519459
+  pcf: 2765761
+  rn: 2359528
+  dvd: 697272
+  dvg: 403690
+  prg: 279316
+  exg: 89065
+  eco: 86312
+  exd: 32445
+  reg: 18498

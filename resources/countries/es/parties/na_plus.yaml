@@ -1,0 +1,9 @@
+party: na_plus
+display_name: Navarra Suma
+color: '#0C3B7C'
+previous_names:
+  - upn
+alliance_of:
+  - upn
+  - pp
+  - cs

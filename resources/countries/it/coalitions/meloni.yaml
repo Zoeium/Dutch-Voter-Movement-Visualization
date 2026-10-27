@@ -1,0 +1,22 @@
+# Meloni government, seats from the 2022 election
+name: Meloni
+inauguration: 2022-10-22
+coalition:
+  - fdi
+  - lega
+  - fi2013
+seats:
+  fdi: 119
+  pd: 69
+  lega: 66
+  m5s: 52
+  fi2013: 45
+  azione_iv: 21
+  avs: 12
+  noi_moderati: 7
+  svp: 3
+  piu_europa: 2
+  impegno_civico: 1
+  scn: 1
+  vda: 1
+  maie: 1

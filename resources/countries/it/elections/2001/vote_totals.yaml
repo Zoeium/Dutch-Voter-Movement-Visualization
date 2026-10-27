@@ -1,0 +1,25 @@
+date: 2001-05-13
+source:
+  name: 'Wikipedia: 2001 Italian general election'
+  url: https://en.wikipedia.org/wiki/2001_Italian_general_election
+electorate: 49256295
+not_voted: 9145321
+total_votes: 40110974
+non_valid_votes: 2825692
+blanco_votes: 0
+valid_votes: 37285282
+parties_votes:
+  fi: 10923431
+  ds: 6151154
+  dl: 5391827
+  an: 4463205
+  other: 3745277
+  prc: 1868659
+  lega_nord: 1464301
+  biancofiore: 1194040
+  girasole: 805340
+  pdci: 620859
+  npsi: 353269
+  svp: 200059
+  illy: 78284
+  vda: 25577

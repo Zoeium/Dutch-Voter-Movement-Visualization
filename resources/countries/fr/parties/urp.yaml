@@ -1,0 +1,9 @@
+party: urp
+display_name: 'URP (UDR, RI, CDP)'
+color: '#2E5FA8'
+previous_names:
+  - udr
+alliance_of:
+  - udr
+  - ri
+  - pdm

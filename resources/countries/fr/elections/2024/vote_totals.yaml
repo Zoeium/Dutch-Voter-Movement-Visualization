@@ -1,0 +1,27 @@
+date: 2024-06-30
+source:
+  name: 'Wikipedia: 2024 French legislative election'
+  url: https://en.wikipedia.org/wiki/2024_French_legislative_election
+electorate: 49332709
+not_voted: 16424054
+total_votes: 32908655
+non_valid_votes: 267803
+blanco_votes: 582908
+valid_votes: 32057944
+parties_votes:
+  rn: 9379092
+  nfp: 9042485
+  ensemble: 6820446
+  lr: 2106166
+  uxd: 1268822
+  dvd: 1154785
+  dvg: 490898
+  dvc: 391423
+  exg: 366594
+  reg: 310727
+  rec: 238934
+  eco: 182478
+  div: 142871
+  souv: 90110
+  exd: 59679
+  prg: 12434

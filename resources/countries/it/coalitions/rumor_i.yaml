@@ -1,0 +1,17 @@
+# Rumor I government, seats from the 1968 election
+name: Rumor I
+inauguration: 1968-12-13
+coalition:
+  - dc
+  - psu
+  - pri
+seats:
+  dc: 266
+  pci: 177
+  psu: 91
+  pli: 31
+  msi: 24
+  psiup: 23
+  pri: 9
+  pdium: 6
+  svp: 3

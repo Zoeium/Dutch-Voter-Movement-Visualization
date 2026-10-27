@@ -1,0 +1,16 @@
+# Leone I government, seats from the 1963 election
+name: Leone I
+inauguration: 1963-06-22
+coalition:
+  - dc
+seats:
+  dc: 260
+  pci: 166
+  psi: 87
+  pli: 39
+  psdi: 33
+  msi: 27
+  pdium: 8
+  pri: 6
+  svp: 3
+  union_valdotaine: 1

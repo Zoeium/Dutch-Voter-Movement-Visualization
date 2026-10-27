@@ -1,0 +1,11 @@
+# Couve de Murville government, seats from the 1968 election
+name: Couve de Murville
+inauguration: 1968-07-10
+coalition:
+  - udr
+seats:
+  udr: 359
+  fgds: 57
+  pcf: 34
+  pdm: 28
+  dvd: 9

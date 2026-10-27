@@ -1,0 +1,16 @@
+# Zapatero II government, seats from the 2008 election
+name: Zapatero II
+inauguration: 2008-04-14
+coalition:
+  - psoe
+seats:
+  psoe: 169
+  pp: 154
+  ciu: 10
+  pnv: 6
+  erc: 3
+  iu: 2
+  bng: 2
+  cc: 2
+  upyd: 1
+  nabai: 1

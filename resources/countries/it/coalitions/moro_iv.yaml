@@ -1,0 +1,15 @@
+# Moro IV government, seats from the 1972 election
+name: Moro IV
+inauguration: 1974-11-23
+coalition:
+  - dc
+  - pri
+seats:
+  dc: 267
+  pci: 179
+  psi: 61
+  msi: 56
+  psdi: 29
+  pli: 20
+  pri: 15
+  svp: 3

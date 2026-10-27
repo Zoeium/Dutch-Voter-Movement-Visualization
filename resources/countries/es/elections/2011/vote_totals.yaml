@@ -1,0 +1,28 @@
+date: 2011-11-20
+source:
+  name: 'Wikipedia: 2011 Spanish general election'
+  url: https://en.wikipedia.org/wiki/2011_Spanish_general_election
+electorate: 35779491
+not_voted: 11113050
+total_votes: 24666441
+non_valid_votes: 317555
+blanco_votes: 333461
+valid_votes: 24015425
+parties_votes:
+  pp: 10866566
+  psoe: 7003511
+  iu: 1686040
+  upyd: 1143225
+  ciu: 1015691
+  other: 566327
+  amaiur: 334498
+  pnv: 324317
+  erc: 256985
+  bng: 184037
+  cc: 143881
+  bloc: 125306
+  pacma: 102144
+  foro: 99473
+  pa: 76999
+  prc: 44010
+  gbai: 42415

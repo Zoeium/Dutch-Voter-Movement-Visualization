@@ -1,0 +1,5 @@
+party: cds
+display_name: CDS
+color: '#2E8B57'
+split_off:
+  - ucd

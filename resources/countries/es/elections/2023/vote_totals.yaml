@@ -1,0 +1,25 @@
+date: 2023-07-23
+source:
+  name: 'Wikipedia: 2023 Spanish general election'
+  url: https://en.wikipedia.org/wiki/2023_Spanish_general_election
+electorate: 37469458
+not_voted: 12517011
+total_votes: 24952447
+non_valid_votes: 264360
+blanco_votes: 200673
+valid_votes: 24487414
+parties_votes:
+  pp: 8160837
+  psoe: 7821718
+  vox: 3057000
+  sumar: 3044996
+  other: 592339
+  erc: 466020
+  junts: 395429
+  bildu: 335129
+  pnv: 277289
+  bng: 153995
+  cc: 116363
+  upn: 52188
+  gbai: 9938
+  par: 4173

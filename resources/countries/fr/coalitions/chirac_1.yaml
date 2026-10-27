@@ -1,0 +1,14 @@
+# Chirac I government, seats from the 1973 election
+name: Chirac I
+inauguration: 1974-05-28
+coalition:
+  - urp
+  - reformateurs
+seats:
+  urp: 262
+  ps: 101
+  pcf: 73
+  reformateurs: 32
+  dvd: 16
+  psu: 3
+  dvg: 3

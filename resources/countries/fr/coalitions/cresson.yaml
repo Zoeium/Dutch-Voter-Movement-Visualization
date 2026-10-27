@@ -1,0 +1,15 @@
+# Cresson government, seats from the 1988 election
+name: Cresson
+inauguration: 1991-05-15
+coalition:
+  - ps
+  - prg
+seats:
+  ps: 262
+  udf: 130
+  rpr: 128
+  pcf: 27
+  dvd: 12
+  prg: 9
+  dvg: 6
+  rn: 1

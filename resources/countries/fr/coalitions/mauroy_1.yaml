@@ -1,0 +1,14 @@
+# Mauroy I government, seats from the 1978 election
+name: Mauroy I
+inauguration: 1981-05-22
+coalition:
+  - ps
+  - prg
+seats:
+  rpr: 150
+  udf: 124
+  ps: 104
+  pcf: 86
+  dvd: 16
+  prg: 10
+  div: 1

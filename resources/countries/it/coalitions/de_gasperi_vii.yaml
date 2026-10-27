@@ -1,0 +1,17 @@
+# De Gasperi VII government, seats from the 1948 election
+name: De Gasperi VII
+inauguration: 1951-07-26
+coalition:
+  - dc
+  - pri
+seats:
+  dc: 305
+  fdp: 183
+  unita_socialista: 33
+  blocco_nazionale: 19
+  pnm: 14
+  pri: 9
+  msi: 6
+  svp: 3
+  contadini: 1
+  psdaz: 1

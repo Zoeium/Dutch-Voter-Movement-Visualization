@@ -1,0 +1,21 @@
+# Aznar I government, seats from the 1996 election
+name: Aznar I
+inauguration: 1996-05-06
+coalition:
+  - pp
+support:
+  - ciu
+  - pnv
+  - cc
+seats:
+  pp: 156
+  psoe: 141
+  iu: 21
+  ciu: 16
+  pnv: 5
+  cc: 4
+  bng: 2
+  hb: 2
+  erc: 1
+  ea: 1
+  uv: 1

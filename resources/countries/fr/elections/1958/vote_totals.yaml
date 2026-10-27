@@ -1,0 +1,18 @@
+date: 1958-11-23
+source:
+  name: 'Wikipedia: 1958 French legislative election'
+  url: https://en.wikipedia.org/wiki/1958_French_legislative_election
+electorate: 27244992
+not_voted: 6212108
+total_votes: 21032884
+non_valid_votes: 534175
+blanco_votes: 0
+valid_votes: 20498709
+parties_votes:
+  cnip: 4092600
+  pcf: 3882204
+  unr: 3603958
+  sfio: 3167354
+  rad: 2695287
+  mrp: 2387788
+  exd: 669518

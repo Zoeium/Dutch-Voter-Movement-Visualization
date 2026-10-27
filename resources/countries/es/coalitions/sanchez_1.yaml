@@ -1,0 +1,21 @@
+# Sánchez I government, seats from the 2016 election
+name: Sánchez I
+inauguration: 2018-06-07
+coalition:
+  - psoe
+support:
+  - unidos_podemos
+  - erc
+  - pnv
+  - cdc
+  - bildu
+seats:
+  pp: 137
+  psoe: 85
+  unidos_podemos: 71
+  cs: 32
+  erc: 9
+  cdc: 8
+  pnv: 5
+  bildu: 2
+  cc: 1

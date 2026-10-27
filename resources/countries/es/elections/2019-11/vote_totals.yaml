@@ -1,0 +1,31 @@
+date: 2019-11-10
+source:
+  name: 'Wikipedia: November 2019 Spanish general election'
+  url: https://en.wikipedia.org/wiki/November_2019_Spanish_general_election
+electorate: 37001379
+not_voted: 12493664
+total_votes: 24507715
+non_valid_votes: 249487
+blanco_votes: 217227
+valid_votes: 24041001
+parties_votes:
+  psoe: 6792199
+  pp: 5047040
+  vox: 3656979
+  unidas_podemos: 3119364
+  cs: 1650318
+  erc: 880734
+  mas_pais: 582306
+  jxcat: 530225
+  pnv: 379002
+  bildu: 277621
+  cup: 246971
+  pacma: 228856
+  other: 202263
+  cc: 124289
+  bng: 120456
+  na_plus: 99078
+  prc: 68830
+  teruel: 19761
+  gbai: 12709
+  cha: 2000

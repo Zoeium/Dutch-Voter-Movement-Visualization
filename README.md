@@ -33,7 +33,7 @@ available in English and Dutch, in a light and a dark theme.
 
 ## The data
 
-The app covers four countries, chosen with the "Election data" selector in the header.
+The app covers seven countries, chosen with the "Election data" selector in the header.
 
 **Netherlands**
 
@@ -65,8 +65,29 @@ The app covers four countries, chosen with the "Election data" selector in the h
 - **Governments** from Erlander I (1948) to the caretaker government after the 2026 election, including governments
   that continued after an election.
 
-For Germany and Sweden, parties that never won a seat or 1% of the vote are grouped as "other parties", and no voter
-movements are available.
+**France**
+
+- **Election results** for every National Assembly election of the Fifth Republic, from 1958 to 2024: first-round
+  votes and the seats after both rounds. Since 2017, alliances (Ensemble, NUPES, New Popular Front) are counted as
+  one list, as in the official results. For 1958 and 1962 the seats cover metropolitan France.
+- **Governments** from Debré (1959) to Lecornu (2025).
+
+**Spain**
+
+- **Election results** for every Congress of Deputies election since the return to democracy, from 1977 to 2023,
+  including both elections of 2019.
+- **Governments** from Suárez II (1977) to Sánchez III (2023), including the acting governments after the 2015 and
+  April 2019 elections.
+
+**Italy**
+
+- **Election results** for every Chamber of Deputies election from 1948 to 2022. Since 1994: proportional-list votes
+  and total seats. In 1994, votes for small lists are counted together with blank and invalid votes.
+- **Governments**: all 65 from De Gasperi V (1948) to Meloni (2022). A party founded during a parliamentary term
+  holds no seats of its own until the next election, so it is not shown in that term's governments.
+
+For Germany, Sweden, France, Spain and Italy, parties that never won a seat or 1% of the vote are grouped as "other
+parties", and no voter movements are available.
 
 Every source is listed in the app itself, under "Sources" at the bottom of the page.
 

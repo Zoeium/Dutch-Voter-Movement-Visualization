@@ -1,0 +1,20 @@
+# Cossiga I government, seats from the 1979 election
+name: Cossiga I
+inauguration: 1979-08-05
+coalition:
+  - dc
+  - psdi
+  - pli
+seats:
+  dc: 262
+  pci: 201
+  psi: 62
+  msi: 30
+  psdi: 20
+  radicali: 18
+  pri: 16
+  pli: 9
+  pdup: 6
+  svp: 4
+  lista_trieste: 1
+  union_valdotaine: 1

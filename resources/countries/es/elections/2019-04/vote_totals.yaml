@@ -1,0 +1,28 @@
+date: 2019-04-28
+source:
+  name: 'Wikipedia: April 2019 Spanish general election'
+  url: https://en.wikipedia.org/wiki/April_2019_Spanish_general_election
+electorate: 36898883
+not_voted: 10420743
+total_votes: 26478140
+non_valid_votes: 276769
+blanco_votes: 199836
+valid_votes: 26001535
+parties_votes:
+  psoe: 7513142
+  pp: 4373653
+  cs: 4155665
+  unidas_podemos: 3751145
+  vox: 2688092
+  erc: 1024628
+  jxcat: 500787
+  other: 422481
+  pnv: 395884
+  pacma: 328299
+  bildu: 259647
+  compromis: 173821
+  cc: 137664
+  na_plus: 107619
+  bng: 94433
+  prc: 52266
+  gbai: 22309

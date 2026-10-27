@@ -1,0 +1,27 @@
+date: 1986-06-22
+source:
+  name: 'Wikipedia: 1986 Spanish general election'
+  url: https://en.wikipedia.org/wiki/1986_Spanish_general_election
+electorate: 29117613
+not_voted: 8592755
+total_votes: 20524858
+non_valid_votes: 321939
+blanco_votes: 121186
+valid_votes: 20081733
+parties_votes:
+  psoe: 8901718
+  cp: 5247677
+  cds: 1861912
+  reformistas: 1288768
+  iu: 935504
+  other: 559318
+  pnv: 309610
+  hb: 231722
+  muc: 229695
+  ee: 107053
+  pa: 94008
+  erc: 84628
+  par: 73004
+  aic: 65664
+  uv: 64403
+  bng: 27049

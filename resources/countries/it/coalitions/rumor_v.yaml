@@ -1,0 +1,16 @@
+# Rumor V government, seats from the 1972 election
+name: Rumor V
+inauguration: 1974-03-15
+coalition:
+  - dc
+  - psi
+  - psdi
+seats:
+  dc: 267
+  pci: 179
+  psi: 61
+  msi: 56
+  psdi: 29
+  pli: 20
+  pri: 15
+  svp: 3

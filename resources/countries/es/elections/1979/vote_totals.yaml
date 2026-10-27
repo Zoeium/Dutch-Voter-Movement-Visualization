@@ -1,0 +1,27 @@
+date: 1979-03-01
+source:
+  name: 'Wikipedia: 1979 Spanish general election'
+  url: https://en.wikipedia.org/wiki/1979_Spanish_general_election
+electorate: 26836490
+not_voted: 8577298
+total_votes: 18259192
+non_valid_votes: 268277
+blanco_votes: 57267
+valid_votes: 17933648
+parties_votes:
+  ucd: 6268593
+  psoe: 5469813
+  pce: 1938487
+  cd: 1094438
+  other: 978281
+  ciu: 483353
+  un: 378964
+  pa: 325842
+  pnv: 296597
+  pte: 192798
+  hb: 172110
+  erc: 123452
+  ee: 85677
+  upc: 58953
+  par: 38042
+  upn: 28248

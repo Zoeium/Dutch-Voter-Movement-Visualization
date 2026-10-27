@@ -1,0 +1,19 @@
+# Ayrault I government, seats from the 2007 election
+name: Ayrault I
+inauguration: 2012-05-16
+coalition:
+  - ps
+  - prg
+seats:
+  ump: 313
+  ps: 186
+  nc: 22
+  pcf: 15
+  dvg: 15
+  dvd: 9
+  prg: 7
+  verts: 4
+  udf: 3
+  mpf: 1
+  div: 1
+  reg: 1

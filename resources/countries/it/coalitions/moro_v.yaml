@@ -1,0 +1,14 @@
+# Moro V government, seats from the 1972 election
+name: Moro V
+inauguration: 1976-02-12
+coalition:
+  - dc
+seats:
+  dc: 267
+  pci: 179
+  psi: 61
+  msi: 56
+  psdi: 29
+  pli: 20
+  pri: 15
+  svp: 3

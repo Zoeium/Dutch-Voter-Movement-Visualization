@@ -1,0 +1,16 @@
+# González I government, seats from the 1982 election
+name: González I
+inauguration: 1982-12-02
+coalition:
+  - psoe
+seats:
+  psoe: 202
+  ap_pdp: 107
+  ciu: 12
+  ucd: 11
+  pnv: 8
+  pce: 4
+  cds: 2
+  hb: 2
+  erc: 1
+  ee: 1

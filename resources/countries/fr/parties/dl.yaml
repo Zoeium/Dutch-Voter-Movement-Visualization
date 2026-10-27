@@ -1,0 +1,5 @@
+party: dl
+display_name: Démocratie libérale
+color: '#5DA5DA'
+split_off:
+  - udf
