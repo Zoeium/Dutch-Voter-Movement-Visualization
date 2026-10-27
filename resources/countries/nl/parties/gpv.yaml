@@ -1,3 +1,5 @@
 party: gpv
 display_name: GPV
 color: '#2C5AA8'
+split_off:
+  - arp

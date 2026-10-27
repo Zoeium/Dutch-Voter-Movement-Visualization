@@ -1,3 +1,7 @@
 party: medborgerlig_samling
 display_name: Medborgerlig samling (Malmö)
 color: '#7A9CC6'
+alliance_of:
+  - m
+  - l
+  - c

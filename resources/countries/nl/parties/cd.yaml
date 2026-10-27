@@ -1,3 +1,5 @@
 party: cd
 display_name: Centrumdemocraten
 color: '#0047AB'
+split_off:
+  - cp

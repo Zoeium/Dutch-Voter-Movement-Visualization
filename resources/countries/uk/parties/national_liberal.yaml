@@ -1,3 +1,5 @@
 party: national_liberal
 display_name: National Liberal
 color: '#7FA7D9'
+split_off:
+  - liberal

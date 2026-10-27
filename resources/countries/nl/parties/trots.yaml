@@ -1,3 +1,5 @@
 party: trots
-display_name: 'Trots op Nederland (TROTS)'
+display_name: Trots op Nederland (TROTS)
 color: '#9ca3af'
+split_off:
+  - vvd

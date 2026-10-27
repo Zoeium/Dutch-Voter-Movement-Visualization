@@ -1,3 +1,5 @@
 party: lpf
 display_name: LPF
 color: '#FCE11F'
+split_off:
+  - leefbaar_nederland

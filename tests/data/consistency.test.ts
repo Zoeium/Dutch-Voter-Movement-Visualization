@@ -58,9 +58,14 @@ describe.each(countries.map((country) => [country.id, country] as const))('%s', 
       expect(partyIds.size).toBe(parties.length);
     });
 
-    it('only names existing parties as predecessors', () => {
-      const unknown = parties.flatMap((party) => (party.previous_names ?? []).filter((name) => !partyIds.has(name)));
-      expect(unknown).toEqual([]);
+    it('only relates parties to existing parties, and never to themselves', () => {
+      const relations = parties.flatMap((party) =>
+        (['previous_names', 'split_off', 'alliance_of', 'rejoined'] as const).flatMap((field) =>
+          (party[field] ?? []).map((other) => ({party: party.party, field, other}))
+        )
+      );
+      const broken = relations.filter(({party, other}) => !partyIds.has(other) || other === party);
+      expect(broken.map(({party, field, other}) => `${party}.${field}: ${other}`)).toEqual([]);
     });
   });
 

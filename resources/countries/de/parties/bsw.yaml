@@ -1,3 +1,5 @@
 party: bsw
 display_name: BSW
 color: '#7D254F'
+split_off:
+  - linke
