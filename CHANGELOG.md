@@ -10,6 +10,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Voter movements for the United Kingdom (2015–2017, 2017–2019 and 2019–2024), Sweden (2014–2018 and 2018–2022),
+  Germany (2002–2005 and 2005–2009), Spain (every election from 2015 to 2023) and Italy (2013–2018 and 2018–2022).
+
 ## [1.1.0] - 2026-10-27
 
 ### Added

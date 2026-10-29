@@ -18,7 +18,7 @@ To put the Dutch results in perspective, the app also covers the United Kingdom,
 ## What the app shows
 
 - **Voter movements:** where each party's voters came from and went to between elections, for all parties at once or
-  focused on a single party. Available for the Netherlands, the only country with voter movement data so far.
+  focused on a single party. Available for every country except France, for the elections listed below.
 - **Turnout:** for every election, how the electorate splits into valid votes, blank and invalid votes, and people who
   did not vote.
 - **Parliament:** how the seats in parliament were divided under each cabinet or government, and how parties merged,
@@ -50,13 +50,19 @@ The app covers seven countries, chosen with the "Election data" selector in the 
   including both elections of 1974: electorate, turnout, and votes and seats per party. Small parties are grouped as
   "Other parties". Spoilt ballots are not part of the published national totals, so turnout shows valid votes only.
 - **Governments** from Attlee I (1945) to Burnham (2026), including changes of prime minister between elections.
-- **No voter movements** are available, so the voter movement diagram is not shown for the United Kingdom.
+- **Voter movements** for 2015 to 2017, 2017 to 2019 and 2019 to 2024, for Great Britain. 2017 comes from YouGov's
+  post-election survey and 2019 from YouGov's final pre-election projection (MRP), both adjusted to match the official
+  results; these tables are in whole percentages, so parties under 2% of the vote are left out. 2024 comes from Lord
+  Ashcroft's post-vote poll: each party's 2024 voters by their 2019 vote, as published.
 
 **Germany**
 
 - **Election results** for every Bundestag election from 1949 to 2025 (West Germany until 1987): party-list votes
   (Zweitstimmen) and seats. Seats before 1990 exclude West Berlin's non-voting delegates.
 - **Governments** from Adenauer I (1949) to Merz (2025).
+- **Voter movements** for 2002 to 2005 and 2005 to 2009, from Infratest dimap's estimates for the ARD: how many voters
+  each party kept and won from or lost to each other party and the non-voters. For later elections only net balances
+  between parties are published, which hide voters moving both ways, so they are not used.
 
 **Sweden**
 
@@ -64,6 +70,9 @@ The app covers seven countries, chosen with the "Election data" selector in the 
   chamber; since 1970 the Riksdag has had a single chamber. The 2026 figures are the election-night count.
 - **Governments** from Erlander I (1948) to the caretaker government after the 2026 election, including governments
   that continued after an election.
+- **Voter movements** for 2014 to 2018 and 2018 to 2022, from the Swedish National Election Studies (University of
+  Gothenburg). 2018 is the study's own table of where each party's voters came from; for 2022 the study's table of
+  where each party's 2018 voters went is adjusted to match the official results of both elections.
 
 **France**
 
@@ -78,6 +87,9 @@ The app covers seven countries, chosen with the "Election data" selector in the 
   including both elections of 2019.
 - **Governments** from Suárez II (1977) to Sánchez III (2023), including the acting governments after the 2015 and
   April 2019 elections.
+- **Voter movements** for every election from 2015 to 2023, from the CIS post-election surveys: each voter's vote by
+  their vote at the previous election, adjusted to match the official results of both elections. Parties with fewer
+  than 20 respondents in a survey are left out.
 
 **Italy**
 
@@ -85,9 +97,12 @@ The app covers seven countries, chosen with the "Election data" selector in the 
   and total seats. In 1994, votes for small lists are counted together with blank and invalid votes.
 - **Governments**: all 65 from De Gasperi V (1948) to Meloni (2022). A party founded during a parliamentary term
   holds no seats of its own until the next election, so it is not shown in that term's governments.
+- **Voter movements** for 2013 to 2018 (Ipsos) and 2018 to 2022 (Istituto Ixè): how each party's voters at one
+  election voted at the next, adjusted to match the official results of both elections.
 
 For Germany, Sweden, France, Spain and Italy, parties that never won a seat or 1% of the vote are grouped as "other
-parties", and no voter movements are available.
+parties". No voter movements are available for France: the published figures compare a legislative election with
+a presidential or European one, or are voting intentions before the election.
 
 Every source is listed in the app itself, under "Sources" at the bottom of the page.
 
