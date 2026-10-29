@@ -1,0 +1,12 @@
+party: pd
+vote_last_election_in_percentile:
+  pd: 70.3
+  scelta_civica: 12.9
+  not_voted: 5.9
+  udc: 2.8
+  m5s: 2.7
+  other: 2.4
+  pdl: 2.3
+  lega_nord: 0.4
+  fdi: 0.2
+  maie: 0.1

@@ -1,0 +1,8 @@
+# Gross vote transitions from a post-election survey: for each previous-election group, the
+# share that voted for each party or did not vote. Weighted by the official results of the
+# previous election; first-time voters are not included.
+source:
+  name: >-
+    Ipsos, flussi di voto Camera 2013–2018 (Elezioni politiche 2018, analisi
+    post-voto)
+  url: https://www.ipsos.com/it-it/node/398876

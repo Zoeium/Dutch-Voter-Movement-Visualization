@@ -1,0 +1,16 @@
+party: azione_iv
+vote_last_election_in_percentile:
+  pd: 32.1
+  not_voted: 17
+  m5s: 16.3
+  fi2013: 15.7
+  lega: 5
+  leu: 4.2
+  other: 2.9
+  piu_europa: 2.8
+  nci: 1.6
+  insieme: 0.6
+  civica_popolare: 0.6
+  svp: 0.4
+  maie: 0.4
+  usei: 0.3

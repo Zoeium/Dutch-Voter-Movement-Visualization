@@ -1,0 +1,11 @@
+party: svp
+vote_last_election_in_percentile:
+  m5s: 31.3
+  other: 24.5
+  not_voted: 21.7
+  lega: 8.2
+  pd: 5.2
+  maie: 3.4
+  svp: 2.3
+  fi2013: 2.1
+  fdi: 1.3

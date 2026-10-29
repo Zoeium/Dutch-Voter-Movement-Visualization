@@ -1,0 +1,16 @@
+party: m5s
+vote_last_election_in_percentile:
+  m5s: 61.3
+  pd: 11.6
+  not_voted: 8.2
+  pdl: 5.4
+  other: 5.3
+  scelta_civica: 3.5
+  sel: 1.5
+  lega_nord: 1
+  udc: 0.8
+  fdi: 0.5
+  maie: 0.3
+  centro_democratico: 0.2
+  svp: 0.2
+  usei: 0.1

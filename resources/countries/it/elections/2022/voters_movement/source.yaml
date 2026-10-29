@@ -1,0 +1,8 @@
+# Gross vote transitions from a post-election survey: for each previous-election group, the
+# share that voted for each party or did not vote. Weighted by the official results of the
+# previous election; first-time voters are not included.
+source:
+  name: >-
+    Istituto Ixè, flussi di voto politiche 2018–2022 (Osservatorio politico,
+    analisi del voto)
+  url: https://istitutoixe.it/wp-content/uploads/2024/07/Ixe-25set2022_AnalisiVoto.pdf

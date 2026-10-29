@@ -1,0 +1,16 @@
+party: pd
+vote_last_election_in_percentile:
+  pd: 62.3
+  m5s: 16.3
+  not_voted: 10
+  piu_europa: 3.9
+  lega: 1.6
+  fi2013: 1.1
+  leu: 1.1
+  insieme: 0.9
+  civica_popolare: 0.8
+  other: 0.8
+  svp: 0.6
+  nci: 0.4
+  maie: 0.1
+  usei: 0.1

@@ -1,0 +1,16 @@
+party: lega
+vote_last_election_in_percentile:
+  pdl: 40.2
+  lega_nord: 24.4
+  m5s: 9.4
+  not_voted: 9
+  scelta_civica: 4.2
+  other: 4.1
+  fdi: 3.7
+  pd: 3.2
+  udc: 0.9
+  sel: 0.4
+  maie: 0.2
+  centro_democratico: 0.1
+  svp: 0.1
+  usei: 0.1

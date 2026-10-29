@@ -1,0 +1,17 @@
+party: m5s
+vote_last_election_in_percentile:
+  m5s: 76.8
+  not_voted: 9.6
+  pd: 3.2
+  fi2013: 2.6
+  lega: 2.5
+  leu: 1.4
+  piu_europa: 1.2
+  other: 0.9
+  nci: 0.5
+  insieme: 0.3
+  fdi: 0.3
+  civica_popolare: 0.2
+  svp: 0.2
+  maie: 0.1
+  usei: 0.1

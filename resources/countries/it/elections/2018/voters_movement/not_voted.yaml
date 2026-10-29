@@ -1,0 +1,16 @@
+party: not_voted
+vote_last_election_in_percentile:
+  not_voted: 69
+  pd: 13.7
+  m5s: 5.4
+  other: 3.5
+  scelta_civica: 3.3
+  sel: 1.7
+  pdl: 1.5
+  udc: 0.7
+  centro_democratico: 0.3
+  lega_nord: 0.3
+  svp: 0.2
+  maie: 0.2
+  fdi: 0.1
+  usei: 0.1

@@ -1,0 +1,15 @@
+party: fdi
+vote_last_election_in_percentile:
+  fdi: 46.6
+  scelta_civica: 15.9
+  pdl: 11.6
+  not_voted: 6.8
+  pd: 4.9
+  m5s: 4.7
+  udc: 3.4
+  other: 2.7
+  lega_nord: 2.2
+  sel: 0.6
+  maie: 0.2
+  centro_democratico: 0.1
+  svp: 0.1

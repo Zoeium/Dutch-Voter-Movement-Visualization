@@ -1,0 +1,11 @@
+party: avs
+vote_last_election_in_percentile:
+  not_voted: 24.7
+  m5s: 18
+  leu: 17.2
+  piu_europa: 14.6
+  pd: 11.5
+  lega: 5.3
+  insieme: 3.3
+  civica_popolare: 3.1
+  svp: 2.3

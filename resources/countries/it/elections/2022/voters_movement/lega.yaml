@@ -1,0 +1,17 @@
+party: lega
+vote_last_election_in_percentile:
+  lega: 62
+  not_voted: 16.3
+  m5s: 8.9
+  fi2013: 7.6
+  fdi: 1.1
+  leu: 1.1
+  pd: 0.9
+  other: 0.7
+  piu_europa: 0.4
+  nci: 0.4
+  insieme: 0.1
+  civica_popolare: 0.1
+  svp: 0.1
+  maie: 0.1
+  usei: 0.1
