@@ -1,0 +1,9 @@
+party: erc
+vote_last_election_in_percentile:
+  erc: 83.2
+  jxcat: 8.1
+  unidas_podemos: 2.8
+  psoe: 2.3
+  cup: 2
+  pp: 0.8
+  other: 0.8

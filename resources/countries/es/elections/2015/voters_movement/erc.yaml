@@ -1,0 +1,11 @@
+party: erc
+vote_last_election_in_percentile:
+  erc: 39.5
+  ciu: 30.4
+  not_voted: 15.5
+  psoe: 10.9
+  other: 1.7
+  iu: 1.4
+  pacma: 0.3
+  pa: 0.2
+  prc: 0.1

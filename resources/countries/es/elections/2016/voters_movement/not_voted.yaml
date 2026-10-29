@@ -1,0 +1,18 @@
+party: not_voted
+vote_last_election_in_percentile:
+  not_voted: 73.4
+  podemos: 6.9
+  psoe: 6.4
+  pp: 4.2
+  cs: 4.2
+  iu: 1.1
+  dil: 0.8
+  other: 0.7
+  pnv: 0.6
+  pacma: 0.4
+  bildu: 0.4
+  erc: 0.3
+  upyd: 0.3
+  cc: 0.2
+  vox: 0.1
+  gbai: 0.1

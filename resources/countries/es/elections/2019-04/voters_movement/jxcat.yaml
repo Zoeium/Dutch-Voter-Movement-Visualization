@@ -1,0 +1,12 @@
+party: jxcat
+vote_last_election_in_percentile:
+  cdc: 67.7
+  erc: 11.4
+  unidos_podemos: 10.4
+  not_voted: 7.1
+  psoe: 1.8
+  other: 0.8
+  upyd: 0.3
+  vox: 0.3
+  bng: 0.2
+  gbai: 0.1

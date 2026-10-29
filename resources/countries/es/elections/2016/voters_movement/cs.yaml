@@ -1,0 +1,10 @@
+party: cs
+vote_last_election_in_percentile:
+  cs: 69.1
+  not_voted: 11.2
+  pp: 7.5
+  psoe: 5.5
+  podemos: 4.8
+  iu: 1.6
+  dil: 0.2
+  erc: 0.1

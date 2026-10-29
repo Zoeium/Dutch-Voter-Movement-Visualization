@@ -1,0 +1,14 @@
+party: psoe
+vote_last_election_in_percentile:
+  psoe: 78.1
+  not_voted: 7
+  podemos: 6.9
+  iu: 3.5
+  cs: 2.6
+  pp: 1.4
+  erc: 0.1
+  dil: 0.1
+  other: 0.1
+  pnv: 0.1
+  pacma: 0.1
+  bildu: 0.1

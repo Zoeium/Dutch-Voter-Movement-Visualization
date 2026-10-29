@@ -1,0 +1,5 @@
+# Gross vote transitions from a CIS post-election survey (vote now by recalled previous vote),
+# weighted to the official results of both elections. First-time voters are not included.
+source:
+  name: 'CIS, estudio 3126 (postelectoral 2015): tabulación por recuerdo de voto 2011'
+  url: https://www.cis.es/documents/d/cis/es3126rei_a

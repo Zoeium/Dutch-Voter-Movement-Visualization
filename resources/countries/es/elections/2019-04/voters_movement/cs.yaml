@@ -1,0 +1,9 @@
+party: cs
+vote_last_election_in_percentile:
+  cs: 49.4
+  pp: 26.4
+  not_voted: 16.7
+  psoe: 5.6
+  unidos_podemos: 1.5
+  pacma: 0.2
+  other: 0.1

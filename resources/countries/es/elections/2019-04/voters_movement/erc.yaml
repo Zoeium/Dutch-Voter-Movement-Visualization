@@ -1,0 +1,13 @@
+party: erc
+vote_last_election_in_percentile:
+  erc: 52.3
+  unidos_podemos: 15.2
+  not_voted: 14.8
+  cdc: 12.7
+  psoe: 2.1
+  pp: 1.7
+  other: 0.4
+  bildu: 0.2
+  upyd: 0.2
+  vox: 0.1
+  bng: 0.1

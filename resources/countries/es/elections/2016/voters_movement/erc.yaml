@@ -1,0 +1,15 @@
+party: erc
+vote_last_election_in_percentile:
+  erc: 77.9
+  dil: 9
+  not_voted: 7.5
+  psoe: 1.7
+  podemos: 1.1
+  other: 0.7
+  pnv: 0.6
+  pacma: 0.4
+  bildu: 0.4
+  upyd: 0.3
+  cc: 0.2
+  vox: 0.1
+  gbai: 0.1

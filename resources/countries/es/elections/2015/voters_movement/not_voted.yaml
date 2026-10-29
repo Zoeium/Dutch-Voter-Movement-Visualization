@@ -1,0 +1,18 @@
+party: not_voted
+vote_last_election_in_percentile:
+  not_voted: 70.8
+  pp: 15.7
+  psoe: 7.8
+  ciu: 1.4
+  upyd: 1
+  other: 1
+  iu: 0.9
+  cc: 0.5
+  pnv: 0.2
+  pacma: 0.2
+  amaiur: 0.1
+  erc: 0.1
+  bng: 0.1
+  bloc: 0.1
+  pa: 0.1
+  prc: 0.1

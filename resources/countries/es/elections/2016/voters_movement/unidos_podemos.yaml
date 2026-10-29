@@ -1,0 +1,17 @@
+party: unidos_podemos
+vote_last_election_in_percentile:
+  podemos: 73.6
+  iu: 9.9
+  not_voted: 8.6
+  psoe: 3.8
+  cs: 1.1
+  pp: 0.5
+  erc: 0.5
+  other: 0.4
+  pnv: 0.4
+  pacma: 0.3
+  bildu: 0.3
+  upyd: 0.2
+  dil: 0.1
+  cc: 0.1
+  vox: 0.1

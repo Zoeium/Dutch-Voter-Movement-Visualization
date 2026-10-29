@@ -1,0 +1,11 @@
+party: unidas_podemos
+vote_last_election_in_percentile:
+  unidos_podemos: 80.3
+  not_voted: 11.4
+  psoe: 4.5
+  cs: 2
+  pacma: 1.1
+  pp: 0.6
+  erc: 0.1
+  cdc: 0.1
+  bildu: 0.1

@@ -1,0 +1,13 @@
+party: vox
+vote_last_election_in_percentile:
+  pp: 58.3
+  not_voted: 19.1
+  cs: 14.2
+  psoe: 2.7
+  vox: 1.8
+  unidos_podemos: 1.5
+  other: 1.2
+  upyd: 0.4
+  bng: 0.4
+  pacma: 0.3
+  gbai: 0.1

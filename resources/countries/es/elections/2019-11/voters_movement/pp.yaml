@@ -1,0 +1,11 @@
+party: pp
+vote_last_election_in_percentile:
+  pp: 69.9
+  cs: 17
+  not_voted: 6
+  vox: 2.9
+  psoe: 2.8
+  other: 0.5
+  pacma: 0.4
+  cc: 0.3
+  compromis: 0.2

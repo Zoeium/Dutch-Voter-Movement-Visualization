@@ -1,0 +1,18 @@
+party: pp
+vote_last_election_in_percentile:
+  pp: 50.5
+  not_voted: 16.7
+  cs: 12.6
+  vox: 10.6
+  psoe: 6.7
+  unidas_podemos: 0.5
+  na_plus: 0.5
+  mas_pais: 0.3
+  cc: 0.3
+  pacma: 0.3
+  other: 0.3
+  pnv: 0.2
+  prc: 0.2
+  erc: 0.1
+  cup: 0.1
+  teruel: 0.1

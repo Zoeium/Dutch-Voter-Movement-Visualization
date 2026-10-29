@@ -1,0 +1,18 @@
+party: psoe
+vote_last_election_in_percentile:
+  psoe: 60.5
+  not_voted: 16.9
+  unidas_podemos: 12.1
+  erc: 2.6
+  cs: 1.9
+  mas_pais: 1.7
+  pp: 1.3
+  pacma: 0.7
+  pnv: 0.5
+  vox: 0.4
+  jxcat: 0.3
+  prc: 0.3
+  other: 0.3
+  bng: 0.2
+  bildu: 0.1
+  cc: 0.1

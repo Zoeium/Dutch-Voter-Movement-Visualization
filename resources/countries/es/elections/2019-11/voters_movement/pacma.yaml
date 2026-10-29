@@ -1,0 +1,8 @@
+party: pacma
+vote_last_election_in_percentile:
+  pacma: 66.6
+  not_voted: 16.3
+  cs: 8.1
+  unidas_podemos: 4.4
+  psoe: 3.1
+  pp: 1.4

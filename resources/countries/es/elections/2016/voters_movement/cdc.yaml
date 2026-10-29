@@ -1,0 +1,5 @@
+party: cdc
+vote_last_election_in_percentile:
+  dil: 83.4
+  not_voted: 10.5
+  erc: 6.1

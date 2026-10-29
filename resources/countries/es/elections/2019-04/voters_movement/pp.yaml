@@ -1,0 +1,9 @@
+party: pp
+vote_last_election_in_percentile:
+  pp: 90.6
+  not_voted: 5.1
+  cs: 2.8
+  psoe: 1.1
+  unidos_podemos: 0.2
+  cc: 0.1
+  other: 0.1

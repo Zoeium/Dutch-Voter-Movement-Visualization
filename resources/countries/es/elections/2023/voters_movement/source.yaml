@@ -1,0 +1,8 @@
+# Gross vote transitions from a post-election survey: for each previous-election group, the
+# share that voted for each party or did not vote. Weighted by the official results of the
+# previous election; first-time voters are not included.
+source:
+  name: >-
+    CIS, estudio 3420 (barómetro postelectoral 2023): voto 2023 por recuerdo de
+    voto 2019
+  url: https://www.cis.es/documents/d/cis/es3420vpMT_a

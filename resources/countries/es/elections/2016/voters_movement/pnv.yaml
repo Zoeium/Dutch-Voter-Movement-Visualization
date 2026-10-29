@@ -1,0 +1,5 @@
+party: pnv
+vote_last_election_in_percentile:
+  pnv: 95.7
+  not_voted: 3.6
+  cs: 0.7

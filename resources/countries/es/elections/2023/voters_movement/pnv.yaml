@@ -1,0 +1,6 @@
+party: pnv
+vote_last_election_in_percentile:
+  pnv: 89.5
+  not_voted: 7
+  psoe: 2.4
+  unidas_podemos: 1.1

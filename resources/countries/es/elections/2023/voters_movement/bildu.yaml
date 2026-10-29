@@ -1,0 +1,9 @@
+party: bildu
+vote_last_election_in_percentile:
+  bildu: 65.3
+  unidas_podemos: 16.4
+  pnv: 9.6
+  not_voted: 6.1
+  erc: 1.3
+  other: 1.2
+  gbai: 0.1

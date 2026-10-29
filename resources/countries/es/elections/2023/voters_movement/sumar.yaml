@@ -1,0 +1,19 @@
+party: sumar
+vote_last_election_in_percentile:
+  unidas_podemos: 51.8
+  psoe: 14.8
+  not_voted: 12.6
+  mas_pais: 12
+  erc: 2.5
+  other: 1.6
+  cs: 1.2
+  cup: 1
+  vox: 0.5
+  jxcat: 0.5
+  bng: 0.4
+  pp: 0.3
+  pnv: 0.3
+  bildu: 0.2
+  cc: 0.1
+  pacma: 0.1
+  gbai: 0.1
