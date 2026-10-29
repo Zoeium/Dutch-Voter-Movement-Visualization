@@ -1,0 +1,6 @@
+# Gross vote transitions from a post-election survey: for each previous-election group, the
+# share that voted for each party or did not vote. Weighted by the official results of the
+# previous election; first-time voters are not included.
+source:
+  name: 'YouGov, post-election survey June 2017: 2017 vote by 2015 vote'
+  url: https://d3nkl3psvxxpe9.cloudfront.net/documents/InternalResults_170615_VoteSwitchers_W.pdf

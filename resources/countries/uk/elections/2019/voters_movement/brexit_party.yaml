@@ -1,0 +1,10 @@
+party: brexit_party
+vote_last_election_in_percentile:
+  conservative: 39.2
+  labour: 24.7
+  not_voted: 16.4
+  ukip: 13.5
+  lib_dem: 2.3
+  other: 1.7
+  plaid_cymru: 1.1
+  green: 1

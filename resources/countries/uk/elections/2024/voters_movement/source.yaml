@@ -1,0 +1,7 @@
+# Inflow composition from a post-vote poll: for each party, its 2024 voters by their 2019 vote,
+# as published ('prefer not to say' and 'can't remember' left out). Great Britain only.
+source:
+  name: >-
+    Lord Ashcroft Polls, post-vote poll 4 July 2024: vote in 2019 by vote in
+    2024
+  url: https://lordashcroftpolls.com/wp-content/uploads/2024/07/Post-vote-poll-tables-4-July-2024.xlsx

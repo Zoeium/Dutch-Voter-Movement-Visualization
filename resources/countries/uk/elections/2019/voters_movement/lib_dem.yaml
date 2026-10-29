@@ -1,0 +1,11 @@
+party: lib_dem
+vote_last_election_in_percentile:
+  lib_dem: 36.2
+  conservative: 25.7
+  labour: 24.3
+  not_voted: 10.5
+  green: 1.8
+  other: 0.8
+  ukip: 0.5
+  snp: 0.2
+  plaid_cymru: 0.1

@@ -1,0 +1,11 @@
+party: not_voted
+vote_last_election_in_percentile:
+  not_voted: 75.4
+  labour: 12.6
+  conservative: 8.6
+  lib_dem: 1.6
+  snp: 0.6
+  green: 0.5
+  other: 0.4
+  ukip: 0.3
+  plaid_cymru: 0.1

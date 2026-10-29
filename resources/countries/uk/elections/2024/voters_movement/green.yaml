@@ -1,0 +1,10 @@
+party: green
+vote_last_election_in_percentile:
+  labour: 45.9
+  green: 19.4
+  conservative: 14.3
+  lib_dem: 8.2
+  not_voted: 8.2
+  snp: 2
+  brexit_party: 1
+  other: 1

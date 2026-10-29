@@ -1,0 +1,9 @@
+party: labour
+vote_last_election_in_percentile:
+  labour: 63.3
+  conservative: 14.3
+  lib_dem: 9.2
+  not_voted: 7.1
+  green: 3.1
+  snp: 2
+  other: 1

@@ -1,0 +1,8 @@
+party: conservative
+vote_last_election_in_percentile:
+  conservative: 89.8
+  lib_dem: 3.1
+  not_voted: 3.1
+  labour: 2
+  brexit_party: 1
+  green: 1

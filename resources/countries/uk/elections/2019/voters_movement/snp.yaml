@@ -1,0 +1,7 @@
+party: snp
+vote_last_election_in_percentile:
+  snp: 67.2
+  not_voted: 15.4
+  labour: 14.4
+  lib_dem: 2.7
+  other: 0.3

@@ -1,0 +1,10 @@
+party: reform_uk
+vote_last_election_in_percentile:
+  conservative: 70.1
+  brexit_party: 10.3
+  labour: 7.2
+  not_voted: 7.2
+  lib_dem: 2.1
+  snp: 1
+  green: 1
+  other: 1

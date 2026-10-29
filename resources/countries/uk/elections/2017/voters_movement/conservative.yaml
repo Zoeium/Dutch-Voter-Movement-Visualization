@@ -1,0 +1,10 @@
+party: conservative
+vote_last_election_in_percentile:
+  conservative: 63.7
+  ukip: 15.2
+  not_voted: 9.3
+  labour: 6.6
+  lib_dem: 3.4
+  snp: 1.2
+  green: 0.5
+  plaid_cymru: 0.1

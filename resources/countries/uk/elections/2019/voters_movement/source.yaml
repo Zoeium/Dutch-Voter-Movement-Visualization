@@ -1,0 +1,8 @@
+# Gross vote transitions from a post-election survey: for each previous-election group, the
+# share that voted for each party or did not vote. Weighted by the official results of the
+# previous election; first-time voters are not included.
+source:
+  name: >-
+    YouGov, final MRP projection for the 2019 general election: vote by 2017
+    vote
+  url: https://d3nkl3psvxxpe9.cloudfront.net/documents/MRP_Tables_2019_Election_Public_Release_5.pdf
