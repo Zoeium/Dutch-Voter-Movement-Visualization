@@ -1,0 +1,13 @@
+party: spd
+vote_last_election_in_percentile:
+  spd: 70.7
+  not_voted: 8.7
+  gruene: 5.2
+  cdu: 4.5
+  fdp: 2
+  csu: 1.4
+  pds: 1.4
+  other: 0.5
+  rep: 0.2
+  npd: 0.1
+  tierschutz: 0.1

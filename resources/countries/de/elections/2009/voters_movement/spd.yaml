@@ -1,0 +1,12 @@
+party: spd
+vote_last_election_in_percentile:
+  spd: 76.6
+  not_voted: 5.6
+  gruene: 5
+  cdu: 3.6
+  fdp: 1.9
+  linke: 1.8
+  csu: 1
+  npd: 0.2
+  other: 0.1
+  rep: 0.1

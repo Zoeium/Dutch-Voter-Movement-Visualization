@@ -1,0 +1,13 @@
+party: not_voted
+vote_last_election_in_percentile:
+  not_voted: 59.5
+  spd: 14.3
+  cdu: 8.9
+  linke: 4
+  fdp: 3
+  csu: 2.4
+  gruene: 1.8
+  npd: 0.8
+  other: 0.7
+  rep: 0.3
+  tierschutz: 0.1

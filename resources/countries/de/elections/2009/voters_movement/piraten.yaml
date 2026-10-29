@@ -1,0 +1,15 @@
+party: piraten
+vote_last_election_in_percentile:
+  npd: 14.5
+  spd: 13.8
+  other: 13.4
+  not_voted: 11.5
+  gruene: 8.1
+  cdu: 6.4
+  rep: 5.2
+  fdp: 5
+  linke: 5
+  tierschutz: 2.1
+  csu: 1.7
+  bp: 0.7
+  zentrum: 0.1

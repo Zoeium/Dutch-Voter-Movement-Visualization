@@ -1,0 +1,13 @@
+party: fdp
+vote_last_election_in_percentile:
+  fdp: 42
+  cdu: 23.6
+  spd: 11.4
+  not_voted: 7.6
+  csu: 6.3
+  gruene: 1.7
+  linke: 1.3
+  npd: 0.6
+  other: 0.6
+  rep: 0.2
+  tierschutz: 0.1

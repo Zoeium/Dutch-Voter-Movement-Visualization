@@ -1,0 +1,13 @@
+party: gruene
+vote_last_election_in_percentile:
+  gruene: 46.3
+  spd: 29.5
+  not_voted: 6.2
+  cdu: 3.7
+  linke: 2.8
+  fdp: 1.7
+  csu: 1
+  npd: 0.3
+  other: 0.3
+  rep: 0.1
+  tierschutz: 0.1

@@ -1,0 +1,13 @@
+party: csu
+vote_last_election_in_percentile:
+  cdu: 56.8
+  csu: 15.1
+  spd: 9.1
+  not_voted: 6.5
+  fdp: 5.1
+  gruene: 1.2
+  linke: 0.8
+  npd: 0.5
+  other: 0.5
+  rep: 0.2
+  tierschutz: 0.1

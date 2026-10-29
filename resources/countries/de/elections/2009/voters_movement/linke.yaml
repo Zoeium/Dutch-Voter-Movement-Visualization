@@ -1,0 +1,13 @@
+party: linke
+vote_last_election_in_percentile:
+  linke: 49.8
+  spd: 24.8
+  not_voted: 8.3
+  gruene: 5.2
+  cdu: 2.5
+  fdp: 1.2
+  npd: 1
+  other: 0.9
+  csu: 0.7
+  rep: 0.4
+  tierschutz: 0.2

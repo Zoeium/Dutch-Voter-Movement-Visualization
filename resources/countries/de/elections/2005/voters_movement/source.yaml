@@ -1,0 +1,7 @@
+# Gross voter flows (inflows and loyal voters per party) estimated by Infratest dimap for
+# the ARD. First-time voters and people who moved are not assigned to a previous vote.
+source:
+  name: >-
+    Infratest dimap, Wählerstromkonten 2002–2005 (Konrad-Adenauer-Stiftung,
+    Wahlanalyse der Bundestagswahl 2005)
+  url: https://www.kas.de/de/arbeitspapiere/detail/-/content/analyse-der-bundestagswahl-2005
