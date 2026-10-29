@@ -9,5 +9,5 @@ vote_last_election_in_percentile:
   pvda: 1
   pvdd: 1
   sgp: 1
-  denk: 0
+  denk: 1
 
