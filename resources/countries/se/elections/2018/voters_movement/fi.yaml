@@ -1,0 +1,11 @@
+party: fi
+vote_last_election_in_percentile:
+  fi: 37.5
+  mp: 19.9
+  s: 15
+  v: 12.5
+  not_voted: 5
+  c: 2.5
+  l: 2.5
+  kd: 2.5
+  sd: 2.5

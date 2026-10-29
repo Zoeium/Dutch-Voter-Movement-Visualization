@@ -1,0 +1,7 @@
+# Inflow composition from the Swedish National Election Study 2018: each party's 2018 voters by
+# their 2014 vote, weighted to the official 2018 result (first-time voters left out).
+source:
+  name: >-
+    Valforskningsprogrammet, Rapport 2020:10 (Flytande väljare 2018), tabell 6:
+    varifrån kom 2018 års väljare?
+  url: https://www.gu.se/sites/default/files/2021-02/2020%2010%20Oscarsson%20-%20Flytande%20va%CC%88ljare%202018.pdf

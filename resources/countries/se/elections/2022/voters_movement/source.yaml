@@ -1,0 +1,8 @@
+# Gross vote transitions from the Swedish National Election Study 2022 (2022 vote by 2018 vote,
+# among 2022 voters), raked to the official results of both elections. First-time voters and
+# 2018 blank voters are left out.
+source:
+  name: >-
+    Valforskningsprogrammet, Väljarna och valet 2022, tabell 30.1: vart tog 2018
+    års väljare vägen 2022?
+  url: https://gu.se/sites/default/files/2024-05/VoV_kap30.pdf

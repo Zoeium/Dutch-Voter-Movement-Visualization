@@ -1,0 +1,13 @@
+party: m
+vote_last_election_in_percentile:
+  m: 72.7
+  s: 7
+  l: 5.4
+  c: 4
+  sd: 3.9
+  kd: 3.3
+  mp: 1.7
+  not_voted: 1.5
+  other: 0.4
+  v: 0.1
+  fi: 0.1
