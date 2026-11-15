@@ -399,14 +399,6 @@ function Dashboard({
   const [compareYearB, setCompareYearB] = useState<string>(initialState.compareYearB);
 
   const turnoutYears = useMemo(() => allElectionsForTurnout.map((e) => e.year), [allElectionsForTurnout]);
-  const electionDates = useMemo(
-    () => Object.fromEntries(allElectionsForTurnout.map((e) => [e.year, String(e.voteTotals.date)])),
-    [allElectionsForTurnout]
-  );
-  const electionVotes = useMemo(
-    () => Object.fromEntries(allElectionsForTurnout.map((e) => [e.year, e.voteTotals.parties_votes ?? {}])),
-    [allElectionsForTurnout]
-  );
   const [turnoutYearStart, setTurnoutYearStart] = useState<number>(initialState.turnoutYearStart);
   const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(initialState.turnoutYearEnd);
 
@@ -721,8 +713,7 @@ function Dashboard({
               <ParliamentDiagram
                 coalitions={coalitions}
                 parties={parties}
-                electionDates={electionDates}
-                electionVotes={electionVotes}
+                elections={allElectionsForTurnout}
               />
             </div>
 

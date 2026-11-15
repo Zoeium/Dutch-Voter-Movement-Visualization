@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
-import type {CoalitionData, PartyInfo} from '@/types';
-import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
+import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
+import {getCoalitionForElection, getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
 import {DualRangeSlider, RibbonGradient} from '@/components/shared';
 import {buildGradientId, buildRibbonPath, formatElectionLabel, toggleButtonClass} from '@/components/diagramUtils';
 import {useI18n} from '@/theme';
@@ -9,13 +9,14 @@ import {collectMergeEdges, collectSplitEdges} from '@/components/lineage';
 interface ParliamentDiagramProps {
   coalitions: CoalitionData[];
   parties: PartyInfo[];
-  /** Election date (YYYY-MM-DD) per election id, for the election markers above the columns. */
-  electionDates?: Record<string, string>;
-  /** Votes per party per election id, to divide a merged party between its predecessors. */
-  electionVotes?: Record<string, Record<string, number>>;
+  /**
+   * The country's elections: their dates label the election markers above the columns,
+   * and their votes divide a merged party between its predecessors.
+   */
+  elections?: ElectionYear[];
 }
 
-const NO_VOTES: Record<string, Record<string, number>> = {};
+const NO_ELECTIONS: ElectionYear[] = [];
 
 const ELECTION_MARKER_COLOR = '#10b981';
 
@@ -628,25 +629,27 @@ function buildParliamentLayout(
 export default function ParliamentDiagram({
   coalitions,
   parties,
-  electionDates = {},
-  electionVotes = NO_VOTES,
+  elections = NO_ELECTIONS,
 }: Readonly<ParliamentDiagramProps>) {
   const {lang, t} = useI18n();
+
+  const electionsById = useMemo(
+    () => new Map(elections.map((election) => [election.year, election])),
+    [elections]
+  );
 
   // The first cabinet after an election starts a new parliament: the seats changed there
   // because of the vote, not because of a cabinet change mid-term.
   const electionStarts = useMemo(() => {
-    const firstCabinet = new Map<string, CoalitionData>();
-    for (const coalition of coalitions) {
-      if (coalition.electionYear && !firstCabinet.has(coalition.electionYear)) {
-        firstCabinet.set(coalition.electionYear, coalition);
-      }
-    }
-    return new Set(firstCabinet.values());
+    const electionYears = new Set(coalitions.map((coalition) => coalition.electionYear));
+    return new Set(
+      [...electionYears].map((electionYear) => electionYear && getCoalitionForElection(electionYear, coalitions))
+    );
   }, [coalitions]);
 
   const electionLabel = (electionYear: string): string => {
-    const date = electionDates[electionYear];
+    const rawDate: unknown = electionsById.get(electionYear)?.voteTotals.date;
+    const date = rawDate ? String(rawDate) : '';
     if (!date) return `${t('election')} ${formatElectionLabel(electionYear)}`;
     const formatted = new Intl.DateTimeFormat(lang === 'nl' ? 'nl-NL' : 'en-GB', {month: 'short', year: 'numeric'})
       .format(new Date(`${date}T12:00:00`));
@@ -688,10 +691,10 @@ export default function ParliamentDiagram({
     // A block's votes at the election its column's seats come from.
     const votesOf = (block: PartyBlock) => {
       const electionYear = selected[block.columnIndex]?.electionYear;
-      return electionYear ? electionVotes[electionYear]?.[block.party] : undefined;
+      return electionYear ? electionsById.get(electionYear)?.voteTotals.parties_votes?.[block.party] : undefined;
     };
     return buildLineageRibbons(edges, mergeEdges, splitEdges, votesOf);
-  }, [edges, mergeEdges, splitEdges, selected, electionVotes]);
+  }, [edges, mergeEdges, splitEdges, selected, electionsById]);
   const continuityRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'continuity');
   const mergeRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'merge');
   const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
