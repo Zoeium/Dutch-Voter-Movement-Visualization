@@ -1,0 +1,7 @@
+party: sd
+vote_last_election_in_percentile:
+  sd: 48.1
+  s: 25
+  not_voted: 13
+  mp: 8.9
+  v: 5

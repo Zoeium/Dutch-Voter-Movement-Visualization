@@ -1,0 +1,10 @@
+# Gross vote transitions from the Swedish National Election Study 2006 (2006 vote by 2002 vote,
+# whole per cent), raked to the official results of both elections, including blank votes and
+# non-voters. First-time voters and 2002 blank voters are left out. Folkpartiet is listed as l;
+# "other" 2002 voters are split over the other parties by their votes. Sverigedemokraterna and
+# other parties of 2002 rest on 20 and 17 respondents.
+source:
+  name: >-
+    SCB, Allmänna valen 2006, del 4: Specialundersökningar, tabell 4:
+    vart gick 2002 års väljare?
+  url: https://scb.se/contentassets/282db06c9d7f4e8aa46cb429b6e3c934/me0106_2006a01_br_00_me04br0801.pdf

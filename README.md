@@ -70,9 +70,10 @@ The app covers seven countries, chosen with the "Election data" selector in the 
   chamber; since 1970 the Riksdag has had a single chamber. The 2026 figures are the election-night count.
 - **Governments** from Erlander I (1948) to the caretaker government after the 2026 election, including governments
   that continued after an election.
-- **Voter movements** for 2014 to 2018 and 2018 to 2022, from the Swedish National Election Studies (University of
-  Gothenburg). 2018 is the study's own table of where each party's voters came from; for 2022 the study's table of
-  where each party's 2018 voters went is adjusted to match the official results of both elections.
+- **Voter movements** for every election from 2002 to 2022, from the Swedish National Election Studies (University of
+  Gothenburg, published by Statistics Sweden until 2010). 2014 and 2018 are the study's own tables of where each
+  party's voters came from; for 2006, 2010 and 2022 the study's table of where each party's previous voters went is
+  adjusted to match the official results of both elections.
 
 **France**
 

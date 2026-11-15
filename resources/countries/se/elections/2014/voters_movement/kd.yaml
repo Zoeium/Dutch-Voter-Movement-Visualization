@@ -1,0 +1,9 @@
+party: kd
+vote_last_election_in_percentile:
+  kd: 52.6
+  m: 24
+  l: 9.8
+  c: 5.2
+  s: 3.2
+  not_voted: 3.2
+  mp: 2
