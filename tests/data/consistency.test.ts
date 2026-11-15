@@ -101,8 +101,9 @@ describe.each(countries.map((country) => [country.id, country] as const))('%s', 
       expect(Object.keys(cabinet?.seats ?? {}).length).toBeGreaterThan(0);
     });
 
-    it.each(coalitions.map((coalition) => [`${coalition.name} (${coalition.year})`, coalition] as const))('%s', (_, coalition) => {
+    it.each(coalitions.map((coalition) => [`${coalition.name} (${coalition.inauguration})`, coalition] as const))('%s', (_, coalition) => {
       expect(coalition.name.trim()).not.toBe('');
+      expect(coalition.inauguration, 'inauguration is not a YYYY-MM-DD date').toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(coalition.electionYear, 'not linked to an election').toBeDefined();
 
       const seatParties = Object.keys(coalition.seats);

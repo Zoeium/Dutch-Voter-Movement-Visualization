@@ -45,7 +45,7 @@ const movement = (party: string, origins: Record<string, number>): VoterMovement
 
 const cabinet = (name: string, electionYear: string, seats: Record<string, number>): CoalitionData => ({
   name,
-  year: electionYear,
+  inauguration: `${electionYear}-06-01`,
   electionYear,
   coalition: ['a'],
   seats,

@@ -67,8 +67,8 @@ export interface DiagramLink {
 
 export interface CoalitionData {
   name: string;
-  /** Inauguration year of the cabinet. */
-  year: string;
+  /** Inauguration date of the cabinet (YYYY-MM-DD). */
+  inauguration: string;
   /** Year of the election whose result the seats reflect. */
   electionYear?: string;
   coalition: string[];

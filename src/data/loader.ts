@@ -713,17 +713,7 @@ export function loadCoalitions(country: string): CoalitionData[] {
     return preceding[preceding.length - 1]?.year;
   };
 
-  type CoalitionEntry = {
-    sortKey: string;
-    name: string;
-    year: string;
-    coalition: string[];
-    support: string[];
-    seats: Record<string, number>;
-  };
-
-  const entries: CoalitionEntry[] = Object.entries(modulesForCountry(allCoalitionModules, country)).map(([path, raw]) => {
-    const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
+  const entries = Object.entries(modulesForCountry(allCoalitionModules, country)).map(([path, raw]) => {
     const data = yaml.load(raw) as {
       inauguration?: unknown;
       name?: unknown;
@@ -731,14 +721,14 @@ export function loadCoalitions(country: string): CoalitionData[] {
       support?: unknown;
       seats?: Record<string, number>;
     } | null;
-    const inauguration = typeof data?.inauguration === 'string' ? data.inauguration : '';
-    const inaugurationMatch = /^(\d{4})/.exec(inauguration);
-    const year = inaugurationMatch ? inaugurationMatch[1] : filenameYear;
+    // Without an inauguration date, fall back to 1 January of the year in the filename.
+    const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1];
+    const fallback = filenameYear ? `${filenameYear}-01-01` : '';
+    const inauguration = typeof data?.inauguration === 'string' ? data.inauguration : fallback;
 
     return {
-      sortKey: inauguration || year,
       name: typeof data?.name === 'string' ? data.name : '',
-      year,
+      inauguration,
       coalition: data?.coalition || [],
       support: Array.isArray(data?.support)
         ? data.support.filter((party): party is string => typeof party === 'string')
@@ -747,18 +737,9 @@ export function loadCoalitions(country: string): CoalitionData[] {
     };
   });
 
-  const sortedEntries = [...entries].sort(
-    (a, b) => a.sortKey.localeCompare(b.sortKey) || a.name.localeCompare(b.name)
-  );
-
-  return sortedEntries.map((entry) => ({
-    name: entry.name,
-    year: entry.year,
-    electionYear: findElectionYear(entry.sortKey),
-    coalition: entry.coalition,
-    support: entry.support,
-    seats: entry.seats,
-  }));
+  return entries
+    .sort((a, b) => a.inauguration.localeCompare(b.inauguration) || a.name.localeCompare(b.name))
+    .map((entry): CoalitionData => ({...entry, electionYear: findElectionYear(entry.inauguration)}));
 }
 
 /**
