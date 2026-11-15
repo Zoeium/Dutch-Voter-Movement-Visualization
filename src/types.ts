@@ -51,7 +51,9 @@ export interface Flow {
 }
 
 export interface DiagramNode {
+  /** Unique per column: the same party has a node in every column. */
   id: string;
+  party: string;
   label: string;
   color: string;
   columnIndex: number;

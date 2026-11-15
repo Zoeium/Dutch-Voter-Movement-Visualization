@@ -1,7 +1,7 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {DiagramNode, DiagramLink} from '@/types';
 import {RibbonGradient} from './shared';
-import {buildGradientId, buildRibbonPath} from './diagramUtils';
+import {buildGradientId, buildRibbonPath, formatNumber, sumFlowValues} from './diagramUtils';
 import {useI18n} from '@/theme';
 
 export type SortMode = 'votes' | 'alphabetical';
@@ -9,7 +9,7 @@ export type SortMode = 'votes' | 'alphabetical';
 interface AlluvialDiagramProps {
   nodes: DiagramNode[];
   links: DiagramLink[];
-  numColumns: number;
+  /** One label per column. */
   electionLabels: string[];
   selectedParty: string | null;
   sortMode?: SortMode;
@@ -43,12 +43,6 @@ const LABEL_SPACE = 130;
 const DIAGRAM_HEIGHT = 620;
 const DEFAULT_CONTAINER_WIDTH = 1200;
 
-/** Remove a column prefix from a diagram node identifier. */
-function getBaseId(id: string): string {
-  const idx = id.indexOf(':');
-  return idx >= 0 ? id.slice(idx + 1) : id;
-}
-
 /** Build a stable React key for a positioned ribbon. */
 function getRibbonKey(ribbon: PositionedRibbon): string {
   return `${ribbon.source.id}-${ribbon.target.id}-${ribbon.value}`;
@@ -63,23 +57,20 @@ function getColumnSpacing(numColumns: number, svgWidth: number): number {
 /** Sort one column while keeping selected and synthetic nodes prominent. */
 function sortNodesInColumn(
   column: PositionedNode[],
-  selectedBase: string | null,
+  selectedParty: string | null,
   sortMode: SortMode
 ): PositionedNode[] {
   return [...column].sort((a, b) => {
-    const aBase = getBaseId(a.id);
-    const bBase = getBaseId(b.id);
-
-    if (selectedBase) {
-      const aMatch = aBase === selectedBase;
-      const bMatch = bBase === selectedBase;
+    if (selectedParty) {
+      const aMatch = a.party === selectedParty;
+      const bMatch = b.party === selectedParty;
       if (aMatch && !bMatch) return -1;
       if (bMatch && !aMatch) return 1;
     }
-    if (aBase === 'not_voted') return 1;
-    if (bBase === 'not_voted') return -1;
-    if (aBase === 'other') return 1;
-    if (bBase === 'other') return -1;
+    if (a.party === 'not_voted') return 1;
+    if (b.party === 'not_voted') return -1;
+    if (a.party === 'other') return 1;
+    if (b.party === 'other') return -1;
     if (sortMode === 'alphabetical') {
       return a.label.localeCompare(b.label);
     }
@@ -130,10 +121,8 @@ function positionNodes(
   selectedParty: string | null,
   sortMode: SortMode
 ): PositionedNode[] {
-  const selectedBase = selectedParty ? getBaseId(selectedParty) : null;
-
   for (let columnIndex = 0; columnIndex < numColumns; columnIndex += 1) {
-    columns[columnIndex] = sortNodesInColumn(columns[columnIndex], selectedBase, sortMode);
+    columns[columnIndex] = sortNodesInColumn(columns[columnIndex], selectedParty, sortMode);
   }
 
   const allNodesFlat: PositionedNode[] = [];
@@ -272,23 +261,17 @@ function computeDiagramLayout(
   const availableWidth = Math.max(containerWidth, 600);
   const columns: PositionedNode[][] = Array.from({length: numColumns}, () => []);
 
-  // compute raw incoming/outgoing sums per node id from links (links use node ids like 'col:party')
-  const outgoingRaw: Record<string, number> = {};
-  const incomingRaw: Record<string, number> = {};
-  for (const link of links) {
-    outgoingRaw[link.source] = (outgoingRaw[link.source] ?? 0) + link.value;
-    incomingRaw[link.target] = (incomingRaw[link.target] ?? 0) + link.value;
-  }
+  // A node is drawn tall enough for its own votes and for every flow in or out of it.
+  const {outgoing, incoming} = sumFlowValues(links);
 
   for (const node of nodes) {
-    const requiredValue = Math.max(node.value, outgoingRaw[node.id] ?? 0, incomingRaw[node.id] ?? 0);
+    const requiredValue = Math.max(node.value, outgoing[node.id] ?? 0, incoming[node.id] ?? 0);
     columns[node.columnIndex].push({
       ...node,
       x: 0,
       y: 0,
       width: NODE_WIDTH,
       nodeHeight: 0,
-      value: node.value,
       requiredValue,
     });
   }
@@ -478,12 +461,12 @@ const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. 
 export default function AlluvialDiagram({
                                           nodes,
                                           links,
-                                          numColumns,
                                           electionLabels,
                                           selectedParty,
                                           sortMode = 'votes',
                                         }: Readonly<AlluvialDiagramProps>) {
   const {t} = useI18n();
+  const numColumns = electionLabels.length;
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredRibbonKey, setHoveredRibbonKey] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -605,7 +588,7 @@ export default function AlluvialDiagram({
             centerX={svgWidth / 2}
             y={contentHeight - 44}
             width={280}
-            text={`${hoveredRibbon.source.label} → ${hoveredRibbon.target.label}: ${hoveredRibbon.value.toLocaleString()} ${t('votes')}`}
+            text={`${hoveredRibbon.source.label} → ${hoveredRibbon.target.label}: ${formatNumber(hoveredRibbon.value)} ${t('votes')}`}
           />
         )}
 
@@ -618,7 +601,7 @@ export default function AlluvialDiagram({
               centerX={svgWidth / 2}
               y={contentHeight - 80}
               width={280}
-              text={`${node.label}: ${node.value.toLocaleString()} ${t('votes')}`}
+              text={`${node.label}: ${formatNumber(node.value)} ${t('votes')}`}
             />
           );
         })()}

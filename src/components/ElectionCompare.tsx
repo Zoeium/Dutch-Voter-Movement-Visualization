@@ -1,8 +1,14 @@
 import {useMemo, useState} from 'react';
 import {ArrowUp, ArrowDown, ArrowDownUp, ChevronDown, Minus} from 'lucide-react';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
-import {buildComparisonRows} from '@/data/loader';
-import {formatElectionLabel} from '@/components/diagramUtils';
+import {buildComparison} from '@/data/loader';
+import {
+  formatElectionLabel,
+  formatNumber,
+  formatPct,
+  formatSignedNumber,
+  formatSignedPP,
+} from '@/components/diagramUtils';
 import {useI18n} from '@/theme';
 
 interface ElectionCompareProps {
@@ -16,16 +22,6 @@ interface ElectionCompareProps {
 }
 
 type SortKey = 'label' | 'votesA' | 'votesB' | 'voteChange' | 'shareA' | 'shareB' | 'shareChange' | 'seatsA' | 'seatsB' | 'seatChange';
-
-function formatSigned(n: number): string {
-  const sign = n > 0 ? '+' : '';
-  return `${sign}${n.toLocaleString('en-US')}`;
-}
-
-function formatSignedPP(n: number): string {
-  const sign = n > 0 ? '+' : '';
-  return `${sign}${n.toFixed(1)}pp`;
-}
 
 function ChangeIcon({value}: Readonly<{ value: number }>) {
   if (value > 0) return <ArrowUp className="w-3.5 h-3.5 text-emerald-500"/>;
@@ -61,8 +57,8 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const years = elections.map((e) => e.year);
 
-  const rows = useMemo(
-    () => buildComparisonRows(elections, yearA, yearB, coalitions, parties),
+  const {rows, totals} = useMemo(
+    () => buildComparison(elections, yearA, yearB, coalitions, parties),
     [elections, coalitions, parties, yearA, yearB]
   );
 
@@ -70,9 +66,6 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
   let emptyMessage: string | null = null;
   if (isSameYear) emptyMessage = t('compareSameElection');
   else if (rows.length === 0) emptyMessage = t('compareSelectTwo');
-
-  const totalValidA = elections.find((e) => e.year === yearA)?.voteTotals.valid_votes ?? 0;
-  const totalValidB = elections.find((e) => e.year === yearB)?.voteTotals.valid_votes ?? 0;
 
   const biggestGainers = useMemo(
     () => rows.filter((r) => r.shareChange > 0).sort((a, b) => b.shareChange - a.shareChange).slice(0, 3),
@@ -212,14 +205,14 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
               <tbody>
                 <tr className="border-b border-app-border text-app-muted">
                   <td className={`py-2 px-3 italic ${STICKY_COLUMN}`}>{t('compareTotalVotes')}</td>
-                  <td className="text-right py-2 px-3">{totalValidA.toLocaleString('en-US')}</td>
-                  <td className="text-right py-2 px-3">{totalValidB.toLocaleString('en-US')}</td>
-                  <td className="text-right py-2 px-3">{formatSigned(totalValidB - totalValidA)}</td>
-                  <td className="text-right py-2 px-3">100.0%</td>
-                  <td className="text-right py-2 px-3">100.0%</td>
+                  <td className="text-right py-2 px-3">{formatNumber(totals.validVotesA)}</td>
+                  <td className="text-right py-2 px-3">{formatNumber(totals.validVotesB)}</td>
+                  <td className="text-right py-2 px-3">{formatSignedNumber(totals.validVotesB - totals.validVotesA)}</td>
+                  <td className="text-right py-2 px-3">{formatPct(100)}</td>
+                  <td className="text-right py-2 px-3">{formatPct(100)}</td>
                   <td className="text-right py-2 px-3">—</td>
-                  <td className="text-right py-2 px-3">{rows.reduce((s, r) => s + (r.seatsA ?? 0), 0) || '—'}</td>
-                  <td className="text-right py-2 px-3">{rows.reduce((s, r) => s + (r.seatsB ?? 0), 0) || '—'}</td>
+                  <td className="text-right py-2 px-3">{totals.seatsA ?? '—'}</td>
+                  <td className="text-right py-2 px-3">{totals.seatsB ?? '—'}</td>
                   <td className="text-right py-2 px-3">—</td>
                 </tr>
                 {sortedRows.map((row) => (
@@ -230,18 +223,18 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                         <span className="text-app-text font-medium">{row.label}</span>
                       </div>
                     </td>
-                    <td className="text-right py-2 px-3 text-app-muted">{row.votesA.toLocaleString('en-US')}</td>
-                    <td className="text-right py-2 px-3 text-app-muted">{row.votesB.toLocaleString('en-US')}</td>
+                    <td className="text-right py-2 px-3 text-app-muted">{formatNumber(row.votesA)}</td>
+                    <td className="text-right py-2 px-3 text-app-muted">{formatNumber(row.votesB)}</td>
                     <td className="text-right py-2 px-3">
                       <span className="inline-flex items-center gap-1 font-medium">
                         <ChangeIcon value={row.voteChange}/>
                         <span className={changeClass(row.voteChange)}>
-                          {formatSigned(row.voteChange)}
+                          {formatSignedNumber(row.voteChange)}
                         </span>
                       </span>
                     </td>
-                    <td className="text-right py-2 px-3 text-app-muted">{row.shareA.toFixed(1)}%</td>
-                    <td className="text-right py-2 px-3 text-app-muted">{row.shareB.toFixed(1)}%</td>
+                    <td className="text-right py-2 px-3 text-app-muted">{formatPct(row.shareA)}</td>
+                    <td className="text-right py-2 px-3 text-app-muted">{formatPct(row.shareB)}</td>
                     <td className="text-right py-2 px-3">
                       <span className="inline-flex items-center gap-1 font-medium">
                         <ChangeIcon value={row.shareChange}/>
@@ -257,7 +250,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                         <span className="inline-flex items-center gap-1 font-medium">
                           <ChangeIcon value={row.seatChange}/>
                           <span className={changeClass(row.seatChange)}>
-                            {formatSigned(row.seatChange)}
+                            {formatSignedNumber(row.seatChange)}
                           </span>
                         </span>
                       ) : (

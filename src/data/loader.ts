@@ -9,6 +9,7 @@ import type {
   VoteTotals,
   CoalitionData,
 } from '@/types';
+import {sumFlowValues} from '@/components/diagramUtils';
 
 // Every country lives in resources/countries/<id>/ with the same layout:
 // country.yaml, parties/*.yaml, coalitions/*.yaml and
@@ -508,6 +509,11 @@ function buildPairFlows(
   return flows;
 }
 
+/** Id of a party's block in one column of the flow diagram (a party appears in every column). */
+function nodeId(columnIndex: number, party: string): string {
+  return `${columnIndex}:${party}`;
+}
+
 /** Build diagram nodes for one source or target election column. */
 function buildColumnNodes(
   ids: Set<string>,
@@ -519,12 +525,7 @@ function buildColumnNodes(
   isSource: boolean
 ): DiagramNode[] {
   // Sum outgoing/incoming flow values once instead of filtering `flows` per node.
-  const outgoingSums: Record<string, number> = {};
-  const incomingSums: Record<string, number> = {};
-  for (const flow of flows) {
-    outgoingSums[flow.source] = (outgoingSums[flow.source] ?? 0) + flow.value;
-    incomingSums[flow.target] = (incomingSums[flow.target] ?? 0) + flow.value;
-  }
+  const {outgoing, incoming} = sumFlowValues(flows);
 
   return Array.from(ids)
     .sort((a, b) => (totals[b] ?? 0) - (totals[a] ?? 0))
@@ -532,11 +533,12 @@ function buildColumnNodes(
       let value = totals[id] ?? 0;
 
       if (selectedParty) {
-        value = isSource ? (outgoingSums[id] ?? 0) : (incomingSums[id] ?? 0);
+        value = isSource ? (outgoing[id] ?? 0) : (incoming[id] ?? 0);
       }
 
       return {
-        id: `${columnIndex}:${id}`,
+        id: nodeId(columnIndex, id),
+        party: id,
         label: getPartyDisplayName(id, parties),
         color: getPartyColor(id, parties),
         columnIndex,
@@ -553,8 +555,8 @@ function buildLinks(
   parties: PartyInfo[]
 ): DiagramLink[] {
   return flows.map((f) => ({
-    source: `${fromCol}:${f.source}`,
-    target: `${toCol}:${f.target}`,
+    source: nodeId(fromCol, f.source),
+    target: nodeId(toCol, f.target),
     value: f.value,
     color: getPartyColor(f.target, parties),
   }));
@@ -776,27 +778,54 @@ export interface ComparisonRow {
   seatChange: number | null;
 }
 
+/** Totals of the two compared elections; seats are null when an election has no cabinet. */
+export interface ComparisonTotals {
+  validVotesA: number;
+  validVotesB: number;
+  seatsA: number | null;
+  seatsB: number | null;
+}
+
+export interface Comparison {
+  rows: ComparisonRow[];
+  totals: ComparisonTotals;
+}
+
+const EMPTY_COMPARISON: Comparison = {
+  rows: [],
+  totals: {validVotesA: 0, validVotesB: 0, seatsA: null, seatsB: null},
+};
+
 /**
- * Per-party vote, share and seat changes between two elections. Shared by the
- * compare table and its CSV export so both always show the same numbers.
+ * Per-party vote, share and seat changes between two elections, plus their totals.
+ * Shared by the compare table and its CSV export so both always show the same numbers.
  */
-export function buildComparisonRows(
+export function buildComparison(
   elections: ElectionYear[],
   yearA: string,
   yearB: string,
   coalitions: CoalitionData[],
   parties: PartyInfo[]
-): ComparisonRow[] {
+): Comparison {
   const elA = elections.find((e) => e.year === yearA);
   const elB = elections.find((e) => e.year === yearB);
-  if (!elA || !elB || yearA === yearB) return [];
+  if (!elA || !elB || yearA === yearB) return EMPTY_COMPARISON;
 
   const votesA = elA.voteTotals.parties_votes ?? {};
   const votesB = elB.voteTotals.parties_votes ?? {};
-  const totalValidA = elA.voteTotals.valid_votes || 1;
-  const totalValidB = elB.voteTotals.valid_votes || 1;
   const seatsA = getElectionSeats(yearA, coalitions);
   const seatsB = getElectionSeats(yearB, coalitions);
+  const sumSeats = (seats: Record<string, number> | null) =>
+    seats ? Object.values(seats).reduce((sum, count) => sum + count, 0) : null;
+  const totals: ComparisonTotals = {
+    validVotesA: elA.voteTotals.valid_votes,
+    validVotesB: elB.voteTotals.valid_votes,
+    seatsA: sumSeats(seatsA),
+    seatsB: sumSeats(seatsB),
+  };
+  // Guard the shares against an election without a valid-vote count.
+  const totalValidA = totals.validVotesA || 1;
+  const totalValidB = totals.validVotesB || 1;
 
   const rows: ComparisonRow[] = [];
   for (const partyId of new Set([...Object.keys(votesA), ...Object.keys(votesB)])) {
@@ -827,5 +856,5 @@ export function buildComparisonRows(
     });
   }
 
-  return rows;
+  return {rows, totals};
 }

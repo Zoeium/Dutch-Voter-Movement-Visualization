@@ -42,32 +42,21 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
     }));
   }, [coalitionForYear, parties]);
 
-  const totalSeats = useMemo(
-    () => allPartiesWithSeats.reduce((sum, p) => sum + p.seats, 0),
-    [allPartiesWithSeats]
-  );
-  const majority = Math.floor(totalSeats / 2) + 1;
-
-  const selectedTotal = useMemo(() => {
+  // Seats of a group of parties in the selected election.
+  const seatsOf = (partyIds: Iterable<string>): number => {
     let total = 0;
-    for (const p of allPartiesWithSeats) {
-      if (selectedParties.has(p.partyId)) {
-        total += p.seats;
-      }
-    }
+    for (const partyId of partyIds) total += coalitionForYear?.seats[partyId] ?? 0;
     return total;
-  }, [allPartiesWithSeats, selectedParties]);
+  };
+
+  const totalSeats = seatsOf(allPartiesWithSeats.map((p) => p.partyId));
+  const majority = Math.floor(totalSeats / 2) + 1;
+  const selectedTotal = seatsOf(selectedParties);
 
   const actualCoalitionParties = coalitionForYear?.coalition ?? [];
   const actualSupportParties = coalitionForYear?.support ?? [];
-  const actualTotal = actualCoalitionParties.reduce((sum, partyId) => {
-    const seats = coalitionForYear?.seats[partyId] ?? 0;
-    return sum + seats;
-  }, 0);
-  const actualWithSupport = actualTotal + actualSupportParties.reduce((sum, partyId) => {
-    const seats = coalitionForYear?.seats[partyId] ?? 0;
-    return sum + seats;
-  }, 0);
+  const actualTotal = seatsOf(actualCoalitionParties);
+  const supportSeats = seatsOf(actualSupportParties);
 
   const hasReachedMajority = selectedTotal >= majority;
   const surplus = Math.max(0, selectedTotal - majority);
@@ -96,11 +85,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
 
   const selectActualCoalition = () => {
     if (!coalitionForYear) return;
-    const set = new Set<string>();
-    for (const partyId of coalitionForYear.coalition) {
-      set.add(partyId);
-    }
-    setSelectedParties(set);
+    setSelectedParties(new Set(coalitionForYear.coalition));
   };
 
   const selectClass = 'app-select';
@@ -207,11 +192,12 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {actualCoalitionParties.map((partyId) => {
               const seats = coalitionForYear?.seats[partyId] ?? 0;
+              const color = getPartyColor(partyId, parties);
               return (
                 <span
                   key={partyId}
                   className="px-2 py-1 rounded text-xs font-medium"
-                  style={{backgroundColor: getPartyColor(partyId, parties) + '33', color: getPartyColor(partyId, parties)}}
+                  style={{backgroundColor: color + '33', color}}
                 >
                   {getPartyDisplayName(partyId, parties)} ({seats})
                 </span>
@@ -223,7 +209,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
               </span>
             )}
             <span className="text-app-muted ml-2">
-              {actualTotal}{actualSupportParties.length > 0 ? ` (+${actualWithSupport - actualTotal})` : ''} {t('coalitionSeatsLabel')}
+              {actualTotal}{actualSupportParties.length > 0 ? ` (+${supportSeats})` : ''} {t('coalitionSeatsLabel')}
             </span>
           </div>
         </div>

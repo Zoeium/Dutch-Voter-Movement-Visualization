@@ -16,7 +16,7 @@ import {
   loadDataSources,
   loadCoalitions,
   buildMultiElectionFlows,
-  buildComparisonRows,
+  buildComparison,
   type CountryInfo,
   type DataSourceEntry,
 } from '@/data/loader';
@@ -487,7 +487,7 @@ function Dashboard({
 
   const handleExportData = useCallback(() => {
     const headers = ['Party', `Votes ${compareYearA}`, `Votes ${compareYearB}`, 'Vote change', `Share ${compareYearA}`, `Share ${compareYearB}`, 'Share change pp', `Seats ${compareYearA}`, `Seats ${compareYearB}`, 'Seat change'];
-    const comparisonRows = buildComparisonRows(allElectionsForTurnout, compareYearA, compareYearB, coalitions, parties);
+    const comparisonRows = buildComparison(allElectionsForTurnout, compareYearA, compareYearB, coalitions, parties).rows;
     if (comparisonRows.length === 0) return;
     const rows = comparisonRows.map((row) => [
       row.label, row.votesA, row.votesB, row.voteChange,
@@ -669,7 +669,6 @@ function Dashboard({
                 <AlluvialDiagram
                   nodes={nodes}
                   links={links}
-                  numColumns={elections.length}
                   electionLabels={electionLabels}
                   selectedParty={activeParty}
                   sortMode={sortMode}

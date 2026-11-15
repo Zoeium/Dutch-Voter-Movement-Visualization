@@ -18,7 +18,43 @@ export const partyButtonClass = (selected: boolean, ringOffsetClass: string): st
   return `${stateClass} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 };
 
-const MONTH_ABBREVIATIONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Every diagram formats numbers the same way: English thousands separators.
+const NUMBER_LOCALE = 'en-US';
+
+/** A count with thousands separators: 1,234,567. */
+export function formatNumber(n: number): string {
+  return n.toLocaleString(NUMBER_LOCALE);
+}
+
+/** A count with an explicit sign for gains: +1,234 / -1,234 / 0. */
+export function formatSignedNumber(n: number): string {
+  return `${n > 0 ? '+' : ''}${formatNumber(n)}`;
+}
+
+/** A percentage with one decimal: 12.3%. */
+export function formatPct(n: number): string {
+  return `${n.toFixed(1)}%`;
+}
+
+/** A change in percentage points with an explicit sign for gains: +1.2pp. */
+export function formatSignedPP(n: number): string {
+  return `${n > 0 ? '+' : ''}${n.toFixed(1)}pp`;
+}
+
+/** Sum the flow values leaving and entering every source and target id. */
+export function sumFlowValues(
+  flows: readonly {source: string; target: string; value: number}[]
+): {outgoing: Record<string, number>; incoming: Record<string, number>} {
+  const outgoing: Record<string, number> = {};
+  const incoming: Record<string, number> = {};
+  for (const flow of flows) {
+    outgoing[flow.source] = (outgoing[flow.source] ?? 0) + flow.value;
+    incoming[flow.target] = (incoming[flow.target] ?? 0) + flow.value;
+  }
+  return {outgoing, incoming};
+}
+
+const MONTH_ABBREVIATIONS =['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
  * Display label for an election id. Ids are years, or YYYY-MM when a country held

@@ -1,7 +1,13 @@
 import {useMemo, useRef, useState} from 'react';
 import {Info} from 'lucide-react';
 import type {ElectionYear} from '@/types';
-import {buildStripeId, formatElectionLabel, toggleButtonClass} from '@/components/diagramUtils';
+import {
+  buildStripeId,
+  formatElectionLabel,
+  formatNumber,
+  formatPct,
+  toggleButtonClass,
+} from '@/components/diagramUtils';
 import {useI18n, type TranslationKey} from '@/theme';
 
 interface TurnoutDiagramProps {
@@ -23,11 +29,13 @@ interface TurnoutBar {
   year: string;
   electorate: number;
   notVoted: number;
+  totalVotes: number;
   validVotes: number;
   blancoVotes: number;
   nonValidVotes: number;
-  turnoutPct: number;
-  validPct: number;
+  turnoutPct: number;   // of the electorate
+  notVotedPct: number;  // of the electorate
+  validPct: number;     // of the votes cast
   isCombined: boolean; // true if blanco and invalid are combined
 }
 
@@ -43,16 +51,6 @@ const RED = '#ef4444';
 const SLATE = '#475569';
 const EMERALD = '#10b981';
 
-/** Format a vote count with locale-aware thousands separators. */
-function formatNumber(n: number): string {
-  return n.toLocaleString('en-US');
-}
-
-/** Format a percentage with one decimal place. */
-function formatPct(n: number): string {
-  return `${n.toFixed(1)}%`;
-}
-
 /** Format a scaled axis value into a compact label. */
 function formatAxisValue(value: number, scaleMode: ScaleMode): string {
   if (scaleMode === 'percentage') {
@@ -66,34 +64,29 @@ function formatAxisValue(value: number, scaleMode: ScaleMode): string {
   return `${(value / 1000).toFixed(0)}K`;
 }
 
-/** Convert raw election totals into reusable turnout bars independent from the React tree. */
+/**
+ * Convert raw election totals into reusable turnout bars independent from the React tree.
+ * Only elections with an electorate get a bar, so every share below can divide by it.
+ */
 function buildTurnoutBars(elections: ElectionYear[]): TurnoutBar[] {
   return elections
-    .filter((e) => e.voteTotals && e.voteTotals.electorate > 0)
+    .filter((e) => e.voteTotals.electorate > 0)
     .map((e) => {
       const t = e.voteTotals;
-      const turnoutPct = t.electorate > 0 ? (t.total_votes / t.electorate) * 100 : 0;
-      const validPct = t.total_votes > 0 ? (t.valid_votes / t.total_votes) * 100 : 0;
-
-      let blancoVotes = t.blanco_votes || 0;
-      let nonValidVotes = t.non_valid_votes || 0;
-      let isCombined = false;
-
-      if (typeof t.non_valid_votes_and_blanco_votes === 'number') {
-        blancoVotes = Math.round(t.non_valid_votes_and_blanco_votes);
-        nonValidVotes = 0;
-        isCombined = true;
-      }
+      const isCombined = typeof t.non_valid_votes_and_blanco_votes === 'number';
 
       return {
         year: e.year,
-        electorate: t.electorate || 0,
-        notVoted: t.not_voted || 0,
-        validVotes: t.valid_votes || 0,
-        blancoVotes,
-        nonValidVotes,
-        turnoutPct,
-        validPct,
+        electorate: t.electorate,
+        notVoted: t.not_voted,
+        totalVotes: t.total_votes,
+        validVotes: t.valid_votes,
+        // A combined count is drawn in the blanco segment.
+        blancoVotes: isCombined ? Math.round(t.non_valid_votes_and_blanco_votes ?? 0) : t.blanco_votes,
+        nonValidVotes: isCombined ? 0 : t.non_valid_votes,
+        turnoutPct: (t.total_votes / t.electorate) * 100,
+        notVotedPct: (t.not_voted / t.electorate) * 100,
+        validPct: t.total_votes > 0 ? (t.valid_votes / t.total_votes) * 100 : 0,
         isCombined,
       };
     });
@@ -102,7 +95,7 @@ function buildTurnoutBars(elections: ElectionYear[]): TurnoutBar[] {
 /** Normalise a bar once into the four category values for the active scale mode. */
 function getSegmentValues(bar: TurnoutBar, scaleMode: ScaleMode): SegmentValues {
   if (scaleMode === 'percentage') {
-    const pct = (value: number) => (bar.electorate > 0 ? (value / bar.electorate) * 100 : 0);
+    const pct = (value: number) => (value / bar.electorate) * 100;
     return {
       valid: pct(bar.validVotes),
       blanco: pct(bar.blancoVotes),
@@ -190,8 +183,6 @@ function getTooltipDetail(
 ): React.ReactNode {
   if (!hoveredSegment) return null;
 
-  const notVotedPct = bar.electorate > 0 ? Math.min(100, Math.max(0, (bar.notVoted / bar.electorate) * 100)) : 0;
-
   switch (hoveredSegment.segment) {
     case 'valid':
       return (
@@ -214,7 +205,7 @@ function getTooltipDetail(
     case 'notVoted':
       return (
         <div className="mt-1 pt-1 border-t text-app-muted" style={{borderColor: 'var(--c-tooltip-border)'}}>
-          {t('didNotVote')}: {formatNumber(bar.notVoted)} ({formatPct(notVotedPct)})
+          {t('didNotVote')}: {formatNumber(bar.notVoted)} ({formatPct(bar.notVotedPct)})
         </div>
       );
     default:
@@ -566,7 +557,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
         <Tooltip x={tooltipPosition.x} y={tooltipPosition.y} visible={true}>
           <div className="font-semibold mb-1" style={{color: 'var(--c-tooltip-text)'}}>{formatElectionLabel(hoveredBar.year)} {t('election')}</div>
           <div style={{color: 'var(--c-text-muted)'}}>{t('electorate')}: {formatNumber(hoveredBar.electorate)}</div>
-          <div style={{color: 'var(--c-text-muted)'}}>{t('turnoutLabel')}: {formatNumber(hoveredBar.validVotes + hoveredBar.blancoVotes + hoveredBar.nonValidVotes)} ({formatPct(hoveredBar.turnoutPct)})</div>
+          <div style={{color: 'var(--c-text-muted)'}}>{t('turnoutLabel')}: {formatNumber(hoveredBar.totalVotes)} ({formatPct(hoveredBar.turnoutPct)})</div>
           {hoveredSegment ? (
             getTooltipDetail(hoveredBar, hoveredSegment, t)
           ) : (

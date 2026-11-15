@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import type {CoalitionData, ElectionYear, PartyInfo, VoteTotals, VoterMovement} from '@/types';
 import {
-  buildComparisonRows,
+  buildComparison,
   buildMultiElectionFlows,
   getCoalitionForElection,
   getElectionSeats,
@@ -88,12 +88,12 @@ describe('buildMultiElectionFlows', () => {
   });
 });
 
-describe('buildComparisonRows', () => {
+describe('buildComparison', () => {
   const elections = [election('2020', {a: 600, b: 400}), election('2024', {a: 500, b: 500}), election('2028', {a: 1})];
   const coalitions = [cabinet('One', '2020', {a: 6}), cabinet('Two', '2024', {a: 5, b: 5})];
 
   it('compares votes, shares and seats per party', () => {
-    const rows = buildComparisonRows(elections, '2020', '2024', coalitions, parties);
+    const {rows} = buildComparison(elections, '2020', '2024', coalitions, parties);
     const b = rows.find((row) => row.partyId === 'b');
     expect(b).toMatchObject({label: 'Party B', votesA: 400, votesB: 500, voteChange: 100, seatsB: 5});
     expect(b?.shareA).toBeCloseTo(40);
@@ -101,18 +101,28 @@ describe('buildComparisonRows', () => {
   });
 
   it('counts a party missing from a seat map as 0 seats, not unknown', () => {
-    const b = buildComparisonRows(elections, '2020', '2024', coalitions, parties).find((row) => row.partyId === 'b');
+    const b = buildComparison(elections, '2020', '2024', coalitions, parties).rows.find((row) => row.partyId === 'b');
     expect(b).toMatchObject({seatsA: 0, seatChange: 5});
   });
 
   it('marks seats unknown when the election has no cabinet', () => {
-    const a = buildComparisonRows(elections, '2024', '2028', coalitions, parties).find((row) => row.partyId === 'a');
+    const a = buildComparison(elections, '2024', '2028', coalitions, parties).rows.find((row) => row.partyId === 'a');
     expect(a).toMatchObject({seatsA: 5, seatsB: null, seatChange: null});
   });
 
+  it('totals the valid votes and seats of both elections', () => {
+    expect(buildComparison(elections, '2020', '2024', coalitions, parties).totals).toEqual({
+      validVotesA: elections[0].voteTotals.valid_votes,
+      validVotesB: elections[1].voteTotals.valid_votes,
+      seatsA: 6,
+      seatsB: 10,
+    });
+    expect(buildComparison(elections, '2024', '2028', coalitions, parties).totals.seatsB).toBeNull();
+  });
+
   it('returns no rows for the same election twice or an unknown election', () => {
-    expect(buildComparisonRows(elections, '2020', '2020', coalitions, parties)).toEqual([]);
-    expect(buildComparisonRows(elections, '2020', '1999', coalitions, parties)).toEqual([]);
+    expect(buildComparison(elections, '2020', '2020', coalitions, parties).rows).toEqual([]);
+    expect(buildComparison(elections, '2020', '1999', coalitions, parties).rows).toEqual([]);
   });
 });
 
