@@ -595,7 +595,7 @@ function buildParliamentLayout(
   const maxColHeight = Math.max(
     0,
     ...colBlocks.map((list) => {
-      const last = list[list.length - 1];
+      const last = list.at(-1);
       return last ? last.y + last.height : 0;
     })
   );

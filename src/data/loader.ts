@@ -688,7 +688,7 @@ export function loadCoalitions(country: string): CoalitionData[] {
   // The election that produced a cabinet's seats is the latest one held before its inauguration.
   const findElectionYear = (inaugurationDate: string): string | undefined => {
     const preceding = electionDates.filter((election) => election.date <= inaugurationDate);
-    return preceding[preceding.length - 1]?.year;
+    return preceding.at(-1)?.year;
   };
 
   const entries = Object.entries(modulesForCountry(allCoalitionModules, country)).map(([path, raw]) => {

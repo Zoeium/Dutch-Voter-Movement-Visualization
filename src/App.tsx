@@ -125,7 +125,7 @@ function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElection
 
   const sort = (params.get('sort') as SortMode) || 'votes';
   const defaultCompareYearA = comparisonYears[Math.max(0, comparisonYears.length - 2)] ?? '';
-  const defaultCompareYearB = comparisonYears[comparisonYears.length - 1] ?? '';
+  const defaultCompareYearB = comparisonYears.at(-1) ?? '';
   const requestedCompareYearA = params.get('cmpA');
   const requestedCompareYearB = params.get('cmpB');
 

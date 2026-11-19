@@ -31,7 +31,7 @@ function Stat({value, label}: Readonly<{ value: string; label: string }>) {
 export default function HomePage({countryName, electionYears, governmentCount, views, onOpen}: Readonly<HomePageProps>) {
   const {t} = useI18n();
   const first = electionYears[0];
-  const last = electionYears[electionYears.length - 1];
+  const last = electionYears.at(-1);
 
   return (
     <div className="space-y-8 sm:space-y-10">
@@ -46,7 +46,7 @@ export default function HomePage({countryName, electionYears, governmentCount, v
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
           <Stat value={String(electionYears.length)} label={t('homeElections')}/>
-          <Stat value={first ? `${formatElectionLabel(first)}–${formatElectionLabel(last)}` : '—'} label={t('homePeriod')}/>
+          <Stat value={first && last ? `${formatElectionLabel(first)}–${formatElectionLabel(last)}` : '—'} label={t('homePeriod')}/>
           <Stat value={String(governmentCount)} label={t('homeGovernments')}/>
         </div>
       </section>
