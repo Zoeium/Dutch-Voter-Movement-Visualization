@@ -54,6 +54,26 @@ export function sumFlowValues(
   return {outgoing, incoming};
 }
 
+/**
+ * The scale (pixels per seat) at which a column of blocks is exactly `target` tall, when
+ * every block is drawn `seats * scale` tall but never less than `minHeight`.
+ *
+ * Sorted by seats, the blocks raised to `minHeight` are always the smallest ones. So try
+ * raising none, then the smallest, then the two smallest, and so on: the scale that fills
+ * the rest of the column is the answer as soon as the next block is tall enough by itself.
+ * Returns 0 when there is nothing to scale.
+ */
+export function scaleToFill(seats: readonly number[], target: number, minHeight: number): number {
+  const sorted = seats.filter((count) => count > 0).sort((a, b) => a - b);
+  let remainingSeats = sorted.reduce((sum, count) => sum + count, 0);
+  for (let raised = 0; raised < sorted.length; raised += 1) {
+    const scale = (target - raised * minHeight) / remainingSeats;
+    if (sorted[raised] * scale >= minHeight) return scale;
+    remainingSeats -= sorted[raised];
+  }
+  return 0;
+}
+
 const MONTH_ABBREVIATIONS =['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**

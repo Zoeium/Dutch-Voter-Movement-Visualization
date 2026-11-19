@@ -219,13 +219,10 @@ export function loadParties(country: string): PartyInfo[] {
  * parsed a single time.
  */
 function buildElections(country: string, years: string[]): ElectionYear[] {
-  const totalsPathByYear = new Map<string, string>();
-  for (const path of Object.keys(modulesForCountry(allTotalsModules, country))) {
-    const year = extractYear(path);
-    if (year && !totalsPathByYear.has(year)) {
-      totalsPathByYear.set(year, path);
-    }
-  }
+  // Every election directory holds one vote_totals.yaml.
+  const totalsPathByYear = new Map(
+    Object.keys(modulesForCountry(allTotalsModules, country)).map((path) => [extractYear(path), path] as const)
+  );
 
   return years.map((year) => {
     const totalsPath = totalsPathByYear.get(year);
@@ -352,16 +349,15 @@ export function loadDataSources(country: string): DataSourceEntry[] {
     const year = extractYear(path);
     if (!year || !visibleYearSet.has(year)) continue;
 
-    const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
+    const doc = yaml.load(raw) as { source?: unknown } | null;
     const source = normalizeDataSource(doc?.source);
     if (!source) {
       console.warn(`[loader] Skipping movement source with no resolvable source block: ${path}`);
       continue;
     }
 
-    const fromYear = doc?.from_year ?? previousYearByYear.get(year) ?? year;
-    const toYear = doc?.to_year ?? year;
-    addUniqueSource(year, 'movement', source, fromYear, toYear);
+    // Movement data describes voters moving from the previous election into this one.
+    addUniqueSource(year, 'movement', source, previousYearByYear.get(year) ?? year, year);
   }
 
   // Load totals for all years (not just visible years)
@@ -381,67 +377,48 @@ export function loadDataSources(country: string): DataSourceEntry[] {
   return sources.sort((a, b) => a.year.localeCompare(b.year));
 }
 
-export interface PartyIndex {
+interface PartyIndex {
+  /** Each party by its own id. */
   byKey: Map<string, PartyInfo>;
-  byPreviousName: Map<string, PartyInfo>;
-  resolveMap: Map<string, string>;
+  /**
+   * The party a name belongs to: a party id or one of its previous names. The first
+   * party in the list that uses a name wins, so a name that is both a party of its own
+   * and a previous name of an earlier party (ppr, before GroenLinks) resolves to the
+   * earlier party.
+   */
+  byName: Map<string, PartyInfo>;
 }
 
-/** Build a reusable party lookup index for a dataset without shared module state. */
-export function createPartyIndex(parties: PartyInfo[]): PartyIndex {
+/** Build a party lookup index for a dataset without shared module state. */
+function createPartyIndex(parties: PartyInfo[]): PartyIndex {
   const byKey = new Map<string, PartyInfo>();
-  const byPreviousName = new Map<string, PartyInfo>();
-  const resolveMap = new Map<string, string>();
+  const byName = new Map<string, PartyInfo>();
+  const addFirst = (map: Map<string, PartyInfo>, name: string, party: PartyInfo) => {
+    if (!map.has(name)) map.set(name, party);
+  };
 
   for (const party of parties) {
-    if (!byKey.has(party.party)) {
-      byKey.set(party.party, party);
-    }
-    if (!resolveMap.has(party.party)) {
-      resolveMap.set(party.party, party.party);
-    }
-
-    for (const previousName of party.previous_names ?? []) {
-      if (!byPreviousName.has(previousName)) {
-        byPreviousName.set(previousName, party);
-      }
-      if (!resolveMap.has(previousName)) {
-        resolveMap.set(previousName, party.party);
-      }
-    }
+    addFirst(byKey, party.party, party);
+    addFirst(byName, party.party, party);
+    for (const previousName of party.previous_names ?? []) addFirst(byName, previousName, party);
   }
 
-  return {byKey, byPreviousName, resolveMap};
+  return {byKey, byName};
+}
+
+/** Resolve a raw party name to its canonical party id, for matching parties over time. */
+export function resolvePartyName(name: string, parties: PartyInfo[]): string {
+  return getPartyIndex(parties).byName.get(name)?.party ?? name;
 }
 
 /**
- * Resolve a raw party name to its canonical party ID for color/lookup.
- */
-export function resolvePartyName(
-  name: string,
-  parties: PartyInfo[]
-): string {
-  const index = getPartyIndex(parties);
-  return index.resolveMap.get(name) ?? name;
-}
-
-/**
- * Get color for a party name. Resolves through previous_names for color matching.
+ * Colour for a party name: the party's own colour, else that of the party that took
+ * the name over (previous_names).
  */
 export function getPartyColor(name: string, parties: PartyInfo[]): string {
   const index = getPartyIndex(parties);
-
-  const exact = index.byKey.get(name);
-  if (exact) return exact.color || DEFAULT_PARTY_COLOR;
-
-  const withPreviousName = index.byPreviousName.get(name);
-  if (withPreviousName) return withPreviousName.color || DEFAULT_PARTY_COLOR;
-
-  const resolved = index.resolveMap.get(name);
-  const party = resolved ? index.byKey.get(resolved) : undefined;
-  if (party) return party.color || DEFAULT_PARTY_COLOR;
-
-  return DEFAULT_PARTY_COLOR;
+  const party = index.byKey.get(name) ?? index.byName.get(name);
+  return party?.color || DEFAULT_PARTY_COLOR;
 }
 
 /**
@@ -459,8 +436,7 @@ export function getPartyDisplayName(name: string, parties: PartyInfo[]): string 
  * Check if two party names refer to the same party (for selectedParty filtering).
  */
 function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolean {
-  const index = getPartyIndex(parties);
-  return (index.resolveMap.get(nameA) ?? nameA) === (index.resolveMap.get(nameB) ?? nameB);
+  return resolvePartyName(nameA, parties) === resolvePartyName(nameB, parties);
 }
 
 /** Decide whether a flow matches the optional selected-party filter. */
@@ -740,7 +716,7 @@ export function loadCoalitions(country: string): CoalitionData[] {
   });
 
   return entries
-    .sort((a, b) => a.inauguration.localeCompare(b.inauguration) || a.name.localeCompare(b.name))
+    .toSorted((a, b) => a.inauguration.localeCompare(b.inauguration) || a.name.localeCompare(b.name))
     .map((entry): CoalitionData => ({...entry, electionYear: findElectionYear(entry.inauguration)}));
 }
 

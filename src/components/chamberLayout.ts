@@ -29,35 +29,49 @@ const CHAMBER_INNER_RADIUS = 76;
 const CHAMBER_OUTER_RADIUS = 238;
 const MAX_SEAT_RADIUS = 5;
 
+const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
+
+/**
+ * The rows of a hemicycle with `rows` rows between the inner and outer radius: their
+ * radius, the spacing between them, and how many seats fit on each arc at that spacing.
+ */
+function rowGeometry(rows: number): { radii: number[]; capacities: number[]; spacing: number } {
+  const spacing = (CHAMBER_OUTER_RADIUS - CHAMBER_INNER_RADIUS) / (rows - 1);
+  const radii = Array.from({length: rows}, (_, row) => CHAMBER_INNER_RADIUS + row * spacing);
+  const capacities = radii.map((radius) => Math.floor((Math.PI * radius) / spacing) + 1);
+  return {radii, capacities, spacing};
+}
+
 /**
  * Seats per row of a hemicycle holding `total` seats: the fewest rows whose arcs fit
  * every seat at the row spacing, with seats spread over the rows in proportion to
  * their length. Works for any chamber size (150 Dutch seats, 736 in the Bundestag).
  */
 export function chamberRows(total: number): { radii: number[]; counts: number[]; spacing: number } {
-  for (let rows = 2; ; rows++) {
-    const spacing = (CHAMBER_OUTER_RADIUS - CHAMBER_INNER_RADIUS) / (rows - 1);
-    const radii = Array.from({length: rows}, (_, row) => CHAMBER_INNER_RADIUS + row * spacing);
-    const capacities = radii.map((radius) => Math.floor((Math.PI * radius) / spacing) + 1);
-    if (capacities.reduce((sum, capacity) => sum + capacity, 0) < total) continue;
+  // More rows means a tighter spacing and more room, so this finds the fewest that fit.
+  let rows = 2;
+  while (sum(rowGeometry(rows).capacities) < total) rows += 1;
+  const {radii, capacities, spacing} = rowGeometry(rows);
 
-    // Largest-remainder share of the seats, never more than a row can hold.
-    const radiusSum = radii.reduce((sum, radius) => sum + radius, 0);
-    const exact = radii.map((radius) => (total * radius) / radiusSum);
-    const counts = exact.map((share, row) => Math.min(capacities[row], Math.floor(share)));
-    const byRemainder = exact.map((share, row) => ({row, remainder: share - Math.floor(share)}))
-      .sort((a, b) => b.remainder - a.remainder);
-    let missing = total - counts.reduce((sum, count) => sum + count, 0);
-    while (missing > 0) {
-      for (const {row} of byRemainder) {
-        if (missing > 0 && counts[row] < capacities[row]) {
-          counts[row]++;
-          missing--;
-        }
-      }
-    }
-    return {radii, counts, spacing};
+  // Largest-remainder share of the seats, never more than a row can hold.
+  const radiusSum = sum(radii);
+  const exact = radii.map((radius) => (total * radius) / radiusSum);
+  const counts = exact.map((share, row) => Math.min(capacities[row], Math.floor(share)));
+  const byRemainder = exact
+    .map((share, row) => ({row, remainder: share - Math.floor(share)}))
+    .sort((a, b) => b.remainder - a.remainder)
+    .map(({row}) => row);
+
+  // Hand out the seats still missing, one per row in order of remainder, skipping rows
+  // that are full. The rows hold at least `total` seats, so while seats are missing there
+  // is always a row with room, and every round places at least one seat.
+  let missing = total - sum(counts);
+  while (missing > 0) {
+    const open = byRemainder.filter((row) => counts[row] < capacities[row]);
+    for (const row of open.slice(0, missing)) counts[row] += 1;
+    missing = total - sum(counts);
   }
+  return {radii, counts, spacing};
 }
 
 export function createChamberLayout(parties: PartySeat[], selectedParties: Set<string>): ChamberLayout {

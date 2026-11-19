@@ -15,16 +15,6 @@ export function stateToSearchParams(state: UrlState): string {
   return params.toString();
 }
 
-/** Parse URL search params into a string record. */
-export function searchParamsToState(): Record<string, string> {
-  const params = new URLSearchParams(window.location.search);
-  const result: Record<string, string> = {};
-  for (const [key, value] of params.entries()) {
-    result[key] = value;
-  }
-  return result;
-}
-
 /** Update the browser URL with new state without a full page reload. */
 export function updateUrl(state: UrlState): void {
   const qs = stateToSearchParams(state);
@@ -132,7 +122,7 @@ function downloadBlob(blob: Blob, filename: string): void {
   link.download = filename;
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  link.remove();
   // Some browsers start the download asynchronously; revoking right away can cancel it.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -2,7 +2,13 @@ import {useMemo, useState} from 'react';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {getCoalitionForElection, getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
 import {DualRangeSlider, RibbonGradient} from '@/components/shared';
-import {buildGradientId, buildRibbonPath, formatElectionLabel, toggleButtonClass} from '@/components/diagramUtils';
+import {
+  buildGradientId,
+  buildRibbonPath,
+  formatElectionLabel,
+  scaleToFill,
+  toggleButtonClass,
+} from '@/components/diagramUtils';
 import {useI18n} from '@/theme';
 import {collectMergeEdges, collectSplitEdges} from '@/components/lineage';
 
@@ -154,11 +160,7 @@ function allocateRibbonGroup(
   }
 }
 
-/**
- * Readable text colour for a filled block, picked from the party colour's relative
- * luminance. Light parties (GL-PvdA's bright green, GroenLinks) get dark text instead of
- * the white-on-light outline that made the labels look smeared.
- */
+// Canvas used to measure label widths, created on first use.
 let measureContext: CanvasRenderingContext2D | null | undefined;
 const labelWidthCache = new Map<string, number>();
 
@@ -211,6 +213,11 @@ function fitBlockLabel(
   return {lines: [`${truncateToWidth(name, fontPx, room)} ${seatText}`], fontPx};
 }
 
+/**
+ * Readable text colour for a filled block, picked from the party colour's relative
+ * luminance. Light parties (GL-PvdA's bright green, GroenLinks) get dark text instead of
+ * the white-on-light outline that made the labels look smeared.
+ */
 function getLabelColor(background: string): string {
   const hex = background.replace('#', '');
   const expanded = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
@@ -245,7 +252,6 @@ const RANGE_PRESETS = [
   {labelKey: 'last5' as const, size: 5},
 ];
 
-/** Return the parties from which a literal party entry split. */
 /**
  * Directed merge lineage of a party: the party itself plus every party it merged FROM
  * and every party it merged INTO (transitively). Sibling predecessors of the same merge
@@ -396,10 +402,7 @@ interface ParliamentLayout {
   svgHeight: number;
 }
 
-/**
- * Build every derived item for the currently selected range. Kept pure and
- * module-level so the component can memoize it and hover updates stay cheap.
- */
+/** How a party relates to the cabinet of a column. */
 function getPartyRole(
   coalitionSet: Set<string>,
   supportSet: Set<string>,
@@ -426,41 +429,25 @@ function buildColumnBlocks(
   const coalitionSet = new Set(coalition.coalition);
   const supportSet = new Set(coalition.support ?? []);
 
-  const grouped = new Map<string, { seats: number; role: PartyRole }>();
-  Object.entries(coalition.seats).forEach(([key, seats]) => {
-    if (seats <= 0) return;
+  // One block per party with seats (the keys of a seat map are unique).
+  const list = Object.entries(coalition.seats)
+    .filter(([, seats]) => seats > 0)
+    .map(([key, seats]): PartyBlock => ({
+      party: key,
+      canonical: resolvePartyName(key, parties),
+      displayName: getPartyDisplayName(key, parties),
+      color: getPartyColor(key, parties),
+      seats,
+      role: getPartyRole(coalitionSet, supportSet, key),
+      columnIndex: colIndex,
+      height: 0,
+      width,
+      x,
+      y: 0,
+    }));
 
-    const entry = grouped.get(key) ?? {seats: 0, role: 'opposition' as PartyRole};
-    entry.seats += seats;
-
-    const role = getPartyRole(coalitionSet, supportSet, key);
-    if (ROLE_ORDER[role] < ROLE_ORDER[entry.role]) {
-      entry.role = role;
-    }
-
-    grouped.set(key, entry);
-  });
-
-  const list = Array.from(grouped.entries()).map(([key, g]) => ({
-    party: key,
-    canonical: resolvePartyName(key, parties),
-    displayName: getPartyDisplayName(key, parties),
-    color: getPartyColor(key, parties),
-    seats: g.seats,
-    role: g.role,
-    columnIndex: colIndex,
-    height: 0,
-    width,
-    x,
-    y: 0,
-  }) as PartyBlock);
-
-  list.sort((a, b) => {
-    if (a.role !== b.role) return ROLE_ORDER[a.role] - ROLE_ORDER[b.role];
-    return b.seats - a.seats;
-  });
-
-  return list;
+  // Coalition first, then a tolerating party, then the opposition; largest first in each.
+  return list.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || b.seats - a.seats);
 }
 
 /** Total block height at `pxPerSeat`, with every block at least MIN_BLOCK_HEIGHT. */
@@ -478,16 +465,8 @@ function totalSeatsOf(list: PartyBlock[]): number {
  * proportion to their seats, so they never shrink below `minPxPerSeat` per seat.
  */
 function sizeColumnBlocks(list: PartyBlock[], target: number, minPxPerSeat: number): void {
-  let pxPerSeat = minPxPerSeat;
-  // Raising pxPerSeat can only lift blocks above the minimum, so this settles quickly.
-  for (let pass = 0; pass < list.length; pass += 1) {
-    const large = list.filter((block) => block.seats * pxPerSeat >= MIN_BLOCK_HEIGHT);
-    const largeSeats = large.reduce((sum, block) => sum + block.seats, 0);
-    if (largeSeats === 0) break;
-    const next = (target - (list.length - large.length) * MIN_BLOCK_HEIGHT) / largeSeats;
-    if (next <= pxPerSeat) break;
-    pxPerSeat = next;
-  }
+  const fill = scaleToFill(list.map((block) => block.seats), target, MIN_BLOCK_HEIGHT);
+  const pxPerSeat = Math.max(minPxPerSeat, fill);
   for (const block of list) block.height = Math.max(MIN_BLOCK_HEIGHT, block.seats * pxPerSeat);
 }
 
@@ -572,6 +551,10 @@ function cabinetColumnWidth(coalitions: CoalitionData[], index: number, now: num
   return Number.isFinite(years) ? Math.max(MIN_BLOCK_WIDTH, years * PX_PER_YEAR) : MIN_BLOCK_WIDTH;
 }
 
+/**
+ * Build every derived item for the currently selected range. Kept pure and
+ * module-level so the component can memoize it and hover updates stay cheap.
+ */
 function buildParliamentLayout(
   coalitions: CoalitionData[],
   parties: PartyInfo[],
