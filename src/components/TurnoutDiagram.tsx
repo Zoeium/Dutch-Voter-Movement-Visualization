@@ -279,7 +279,7 @@ export default function TurnoutDiagram({elections, view: initialView, onViewChan
                 item.active ? 'opacity-100' : 'opacity-40'
               } hover:bg-app-btn`}
             >
-              <span className="w-3 h-3 rounded-sm" style={{backgroundColor: item.color}}/>
+              <span className="w-3 h-3 rounded-xs" style={{backgroundColor: item.color}}/>
               <span className={item.active ? 'text-app-text' : 'text-app-subtle line-through'}>{item.label}</span>
             </button>
           ))}

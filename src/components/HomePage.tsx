@@ -62,7 +62,7 @@ export default function HomePage({countryName, electionYears, governmentCount, v
               className="group text-left rounded-2xl border border-app-border bg-app-card p-5 transition-all hover:border-emerald-500 hover:shadow-xl"
             >
               <div className="flex items-center gap-3 mb-2">
-                <span className="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center flex-shrink-0">
+                <span className="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
                   {view.icon}
                 </span>
                 <span className="text-lg font-semibold text-app-heading">{view.title}</span>

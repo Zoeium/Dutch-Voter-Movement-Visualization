@@ -56,7 +56,7 @@ function loadAppData(country: string): AppData {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to load election data: ${message}`);
+    throw new Error(`Failed to load election data: ${message}`, {cause: error});
   }
 }
 
@@ -185,7 +185,7 @@ function getInitialStateFromUrl(
 }
 
 export default function App() {
-  const countries = useMemo(loadCountries, []);
+  const countries = useMemo(() => loadCountries(), []);
   const initialAppState = useMemo(() => getInitialAppStateFromUrl(countries), [countries]);
 
   const [country, setCountry] = useState<string>(initialAppState.country);
@@ -543,7 +543,7 @@ function Dashboard({
     <div className="min-h-screen bg-app-bg text-app-text">
       {/* Header. Phones: brand and action icons on the first row, data and language on the
           second, scrolling away with the page. Wider screens: one sticky row. */}
-      <header className="border-b border-app-border bg-app-header backdrop-blur-sm sm:sticky top-0 z-10">
+      <header className="border-b border-app-border bg-app-header backdrop-blur-xs sm:sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center gap-x-4 gap-y-3">
           {/* Logo and title lead back to the front page. */}
           <button
@@ -554,7 +554,7 @@ function Dashboard({
             className="flex items-center gap-3 min-w-0 flex-1 lg:flex-none text-left rounded-lg"
           >
             <span
-              className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <Users className="w-5 h-5 text-white"/>
             </span>
             <h1 className="text-base sm:text-lg font-bold leading-tight tracking-tight text-app-heading">{t('appTitle')}</h1>

@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           style={{backgroundColor: 'var(--c-bg)', color: 'var(--c-text)'}}>
           <div className="max-w-xl text-center">
             <h1 className="text-xl font-bold mb-2">{translations[getPageLanguage()].somethingWrong}</h1>
-            <p className="text-sm break-words" style={{color: 'var(--c-text-muted)'}}>{this.state.error.message}</p>
+            <p className="text-sm wrap-break-word" style={{color: 'var(--c-text-muted)'}}>{this.state.error.message}</p>
           </div>
         </div>
       );

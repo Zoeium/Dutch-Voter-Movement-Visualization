@@ -202,7 +202,7 @@ export default function CoalitionExplorer({coalitions, parties, selection, onSel
               return (
                 <span
                   key={partyId}
-                  className="px-2 py-1 rounded text-xs font-medium"
+                  className="px-2 py-1 rounded-sm text-xs font-medium"
                   style={{backgroundColor: color + '33', color}}
                 >
                   {getPartyDisplayName(partyId, parties)} ({seats})

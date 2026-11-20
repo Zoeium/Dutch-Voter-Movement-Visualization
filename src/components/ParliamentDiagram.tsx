@@ -628,11 +628,15 @@ export default function ParliamentDiagram({
   const start = Math.max(0, Math.min(selectedRange.start, cabinetCount - 1));
   const end = Math.max(start, Math.min(selectedRange.end, cabinetCount - 1));
 
+  // The sitting cabinet's column runs until now: taken once, so a re-render does not
+  // change its width.
+  const [now] = useState(() => Date.now());
+
   // Derived layout is memoized so hover updates (local state) do not re-run the
   // effectively O(columns x blocks^2) edge/split computation on every mouse move.
   const {columns, edges, mergeEdges, splitEdges, svgWidth, svgHeight} = useMemo(
-    () => buildParliamentLayout(coalitions, parties, start, end, Date.now()),
-    [coalitions, parties, start, end]
+    () => buildParliamentLayout(coalitions, parties, start, end, now),
+    [coalitions, parties, start, end, now]
   );
 
   // Hover highlight set: the hovered party plus its merge lineage. `null` (nothing

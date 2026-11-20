@@ -10,12 +10,12 @@ interface CountrySelectProps {
 }
 
 function Flag({country}: Readonly<{ country: CountryInfo }>) {
-  if (!country.flagUrl) return <span className="inline-block w-6 h-4 rounded-sm bg-app-btn-hover"/>;
+  if (!country.flagUrl) return <span className="inline-block w-6 h-4 rounded-xs bg-app-btn-hover"/>;
   return (
     <img
       src={country.flagUrl}
       alt=""
-      className="w-6 h-4 rounded-sm object-cover ring-1 ring-black/10 flex-shrink-0"
+      className="w-6 h-4 rounded-xs object-cover ring-1 ring-black/10 shrink-0"
     />
   );
 }

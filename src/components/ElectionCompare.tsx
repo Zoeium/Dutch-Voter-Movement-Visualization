@@ -219,7 +219,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                   <tr key={row.partyId} className="group border-b border-app-border hover:bg-app-btn transition-colors">
                     <td className={`py-2 px-3 ${STICKY_COLUMN} group-hover:bg-app-btn transition-colors`}>
                       <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{backgroundColor: row.color}}/>
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{backgroundColor: row.color}}/>
                         <span className="text-app-text font-medium">{row.label}</span>
                       </div>
                     </td>
