@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {fireEvent, screen} from '@testing-library/react';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
 import {loadAllElections} from '@/data/loader';
@@ -44,42 +44,49 @@ describe('TurnoutDiagram', () => {
     expect(segments(container, EMERALD).length).toBeGreaterThan(0);
   });
 
-  it('shows a tooltip for the hovered bar and segment', () => {
+  it('names each segment in its tooltip, and highlights the hovered bar and segment', () => {
     const {container} = renderWithLanguage(<TurnoutDiagram elections={loadAllElections('nl')}/>);
     // The latest election reports blank and invalid votes separately.
     const valid = segments(container, EMERALD).at(-1) as SVGRectElement;
-    const bar = valid.parentElement as Element;
+    const bar = valid.closest('g') as SVGGElement;
+    const title = (color: string) => bar.querySelector(`rect[fill="${color}"] > title`)?.textContent ?? '';
+
+    expect(title(EMERALD)).toMatch(new RegExp(String.raw`^2025 ${en('election')}\n${en('electorate')}: [\d,]+\n`));
+    expect(title(EMERALD)).toContain(en('validOfCast'));
+    expect(title(AMBER)).toMatch(new RegExp(String.raw`\n${en('blanco')}: [\d,]+$`));
+    expect(title(RED)).toMatch(new RegExp(String.raw`\n${en('invalid')}: [\d,]+$`));
+    expect(title(SLATE)).toMatch(new RegExp(String.raw`\n${en('didNotVote')}: [\d,]+ \(`));
 
     fireEvent.mouseEnter(bar);
-    expect(screen.getByText(new RegExp(`${en('electorate')}:`))).toBeTruthy();
-    expect(screen.getByText(new RegExp(`^${en('blanco')}:`))).toBeTruthy();
-
-    const details: [string, string][] = [
-      [EMERALD, en('validOfCast')],
-      [AMBER, `${en('blanco')}:`],
-      [RED, `${en('invalid')}:`],
-      [SLATE, `${en('didNotVote')}:`],
-    ];
-    for (const [color, text] of details) {
-      const segment = [...bar.querySelectorAll(`rect[fill="${color}"]`)][0] as Element;
-      fireEvent.mouseEnter(segment);
-      expect(screen.getAllByText(new RegExp(text)).length).toBeGreaterThan(0);
-    }
-
+    fireEvent.mouseEnter(valid);
+    expect(valid.getAttribute('fill-opacity')).toBe('1');
+    const otherBar = segments(container, EMERALD)[0]?.closest('g') as SVGGElement;
+    expect(otherBar.style.opacity).toBe('0.4');
     fireEvent.mouseLeave(bar);
-    expect(screen.queryByText(new RegExp(`${en('electorate')}:`))).toBeNull();
+    expect(otherBar.style.opacity).toBe('1');
   });
 
   it('marks elections where blank and invalid votes were counted together', () => {
     const {container} = renderWithLanguage(<TurnoutDiagram elections={loadAllElections('de')}/>);
     expect(screen.getByText(en('blancoBeforeNote'))).toBeTruthy();
     expect(container.querySelectorAll('pattern').length).toBeGreaterThan(0);
-
     const combined = segments(container, AMBER)[0] as SVGRectElement;
-    const bar = combined.parentElement as Element;
-    fireEvent.mouseEnter(bar);
-    expect(screen.getByText(`${en('blancoInvalid')}:`, {exact: false})).toBeTruthy();
-    fireEvent.mouseEnter(combined);
-    expect(screen.getByText(en('blancoInvalidCombined'), {exact: false})).toBeTruthy();
+    expect(combined.querySelector('title')?.textContent).toContain(en('blancoInvalidCombined'));
+  });
+
+  it('starts with a given view and reports changes to it', () => {
+    const onViewChange = vi.fn();
+    const {container} = renderWithLanguage(
+      <TurnoutDiagram elections={loadAllElections('nl')} view={{scale: 'percentage', hidden: ['notVoted']}} onViewChange={onViewChange}/>
+    );
+    expect(screen.getByText(en('pctOfElectorate'))).toBeTruthy();
+    expect(segments(container, SLATE)).toHaveLength(0);
+
+    fireEvent.click(screen.getByText(en('didNotVote')));
+    expect(onViewChange).toHaveBeenLastCalledWith({scale: 'percentage', hidden: []});
+    fireEvent.click(screen.getByText(en('invalid')));
+    expect(onViewChange).toHaveBeenLastCalledWith({scale: 'percentage', hidden: ['invalid']});
+    fireEvent.click(screen.getByText(en('absolute')));
+    expect(onViewChange).toHaveBeenLastCalledWith({scale: 'absolute', hidden: ['invalid']});
   });
 });

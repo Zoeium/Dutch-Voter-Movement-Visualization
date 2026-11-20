@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import {ArrowUp, ArrowDown, ArrowDownUp, ChevronDown, Minus} from 'lucide-react';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {buildComparison} from '@/data/loader';
+import {EmptyState} from '@/components/shared';
 import {
   formatElectionLabel,
   formatNumber,
@@ -52,10 +53,11 @@ function SortIcon({isSorted, direction}: Readonly<{ isSorted: boolean; direction
 }
 
 export default function ElectionCompare({elections, coalitions, parties, yearA, yearB, onYearAChange, onYearBChange}: Readonly<ElectionCompareProps>) {
-  const {t} = useI18n();
+  const {lang, t} = useI18n();
   const [sortKey, setSortKey] = useState<SortKey>('voteChange');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const years = elections.map((e) => e.year);
+  // Newest first, as in every election list of the app.
+  const years = elections.map((e) => e.year).toReversed();
 
   const {rows, totals} = useMemo(
     () => buildComparison(elections, yearA, yearB, coalitions, parties),
@@ -102,14 +104,14 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
   const selectClass = 'app-select';
   const headers: {key: SortKey; label: string; align: 'left' | 'right'}[] = [
     {key: 'label', label: t('compareParty'), align: 'left'},
-    {key: 'votesA', label: `${t('compareVotes')} (${formatElectionLabel(yearA)})`, align: 'right'},
-    {key: 'votesB', label: `${t('compareVotes')} (${formatElectionLabel(yearB)})`, align: 'right'},
+    {key: 'votesA', label: `${t('compareVotes')} (${formatElectionLabel(yearA, lang)})`, align: 'right'},
+    {key: 'votesB', label: `${t('compareVotes')} (${formatElectionLabel(yearB, lang)})`, align: 'right'},
     {key: 'voteChange', label: t('compareVoteChange'), align: 'right'},
-    {key: 'shareA', label: `${t('compareVoteShare')} (${formatElectionLabel(yearA)})`, align: 'right'},
-    {key: 'shareB', label: `${t('compareVoteShare')} (${formatElectionLabel(yearB)})`, align: 'right'},
+    {key: 'shareA', label: `${t('compareVoteShare')} (${formatElectionLabel(yearA, lang)})`, align: 'right'},
+    {key: 'shareB', label: `${t('compareVoteShare')} (${formatElectionLabel(yearB, lang)})`, align: 'right'},
     {key: 'shareChange', label: t('compareShareChange'), align: 'right'},
-    {key: 'seatsA', label: `${t('compareSeats')} (${formatElectionLabel(yearA)})`, align: 'right'},
-    {key: 'seatsB', label: `${t('compareSeats')} (${formatElectionLabel(yearB)})`, align: 'right'},
+    {key: 'seatsA', label: `${t('compareSeats')} (${formatElectionLabel(yearA, lang)})`, align: 'right'},
+    {key: 'seatsB', label: `${t('compareSeats')} (${formatElectionLabel(yearB, lang)})`, align: 'right'},
     {key: 'seatChange', label: t('compareSeatChange'), align: 'right'},
   ];
 
@@ -121,7 +123,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
           <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
           <span className="relative">
             <select value={yearA} onChange={(e) => onYearAChange(e.target.value)} className={selectClass}>
-              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y)}</option>)}
+              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y, lang)}</option>)}
             </select>
             <ChevronDown className="app-select-chevron w-4 h-4"/>
           </span>
@@ -130,7 +132,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
           <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
           <span className="relative">
             <select value={yearB} onChange={(e) => onYearBChange(e.target.value)} className={selectClass}>
-              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y)}</option>)}
+              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y, lang)}</option>)}
             </select>
             <ChevronDown className="app-select-chevron w-4 h-4"/>
           </span>
@@ -138,9 +140,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
       </div>
 
       {emptyMessage ? (
-        <div className="flex items-center justify-center h-48 text-app-muted">
-          <p>{emptyMessage}</p>
-        </div>
+        <EmptyState message={emptyMessage}/>
       ) : (
         <>
           {/* Summary cards */}

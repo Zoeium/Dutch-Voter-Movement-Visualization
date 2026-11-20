@@ -63,6 +63,13 @@ describe('ElectionCompare', () => {
     expect(screen.getByText(en('compareSelectTwo'))).toBeTruthy();
   });
 
+  it('lists the elections newest first, as the coalition explorer does', () => {
+    renderCompare('2021', '2023');
+    const options = [...screen.getAllByRole<HTMLSelectElement>('combobox')[0]?.options ?? []].map((option) => option.value);
+    expect(options[0]).toBe(elections.at(-1)?.year);
+    expect(options.at(-1)).toBe(elections[0]?.year);
+  });
+
   it('reports a different election choice', () => {
     const {onYearAChange, onYearBChange} = renderCompare('2021', '2023');
     const [selectA, selectB] = screen.getAllByRole<HTMLSelectElement>('combobox');
@@ -100,6 +107,32 @@ describe('CoalitionExplorer', () => {
     fireEvent.change(screen.getByRole('combobox'), {target: {value: '2010'}});
     expect(screen.getByText(/Rutte I$/)).toBeTruthy();
     expect(screen.getByText(/^\+ /)).toBeTruthy();
+  });
+
+  it('starts with a given election and parties, and reports every change', () => {
+    const onSelectionChange = vi.fn();
+    renderWithLanguage(
+      <CoalitionExplorer coalitions={coalitions} parties={parties} selection={{year: '2021', parties: ['vvd', 'd66']}}
+        onSelectionChange={onSelectionChange}/>
+    );
+    expect(screen.getByRole<HTMLSelectElement>('combobox').value).toBe('2021');
+    expect(screen.getByText(/^2 /)).toBeTruthy();
+
+    fireEvent.click(screen.getByText(en('coalitionClear')));
+    expect(onSelectionChange).toHaveBeenLastCalledWith({year: '2021', parties: []});
+    fireEvent.change(screen.getByRole('combobox'), {target: {value: '2017'}});
+    expect(onSelectionChange).toHaveBeenLastCalledWith({year: '2017', parties: []});
+  });
+
+  it('ignores a given election without seat data', () => {
+    renderWithLanguage(<CoalitionExplorer coalitions={coalitions} parties={parties} selection={{year: '1800', parties: ['vvd']}}/>);
+    expect(screen.getByRole<HTMLSelectElement>('combobox').value).toBe(coalitions.at(-1)?.electionYear);
+    expect(screen.queryByText(en('coalitionClear'))).toBeNull();
+  });
+
+  it('describes the chamber in the interface language', () => {
+    renderWithLanguage(<CoalitionExplorer coalitions={coalitions} parties={parties}/>, 'nl');
+    expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/^0 van \d+ zetels geselecteerd; \d+ zetels nodig/);
   });
 
   it('shows a note without seat data', () => {

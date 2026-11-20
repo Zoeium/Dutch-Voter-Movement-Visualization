@@ -15,6 +15,21 @@ All notable changes to this project are documented here. The format follows
 - Voter movements for the United Kingdom (2015–2017, 2017–2019 and 2019–2024), Sweden (every election from 2002 to 2022),
   Germany (2002–2005 and 2005–2009), Spain (every election from 2015 to 2023) and Italy (2013–2018 and 2018–2022).
 
+### Changed
+
+- The views work the same way:
+  - Voter movements, turnout and the parliament share one range control with quick ranges, and all three start
+    with the last ten elections or cabinets.
+  - Every chart names what is under the pointer in the same kind of tooltip.
+  - Every election list runs from newest to oldest.
+  - Every view without data shows the same note.
+- Each view keeps its settings when you switch tabs, and a shared link now also includes the parliament's range,
+  the turnout chart's scale and hidden categories, and the coalition explorer's election and parties.
+- Non-voters and "other parties" are named in the interface language in every view, and months in election names
+  follow the interface language too.
+- Screen readers hear the range sliders and the coalition chamber in the interface language.
+- Each column of the parliament diagram is as wide as its cabinet's time in office.
+
 ## [1.1.0] - 2026-10-27
 
 ### Added

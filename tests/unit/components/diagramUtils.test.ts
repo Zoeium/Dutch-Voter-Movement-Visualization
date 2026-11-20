@@ -3,6 +3,8 @@ import {
   buildGradientId,
   buildRibbonPath,
   buildStripeId,
+  defaultRange,
+  formatElectionDate,
   formatElectionLabel,
   formatNumber,
   formatPct,
@@ -15,6 +17,27 @@ import {
   toggleButtonClass,
   zip,
 } from '@/components/diagramUtils';
+
+describe('election months in the interface language', () => {
+  it('names the month of a second election in a year in English or Dutch', () => {
+    expect(formatElectionLabel('1974-02', 'en')).toBe('Feb 1974');
+    expect(formatElectionLabel('1974-10', 'nl')).toBe('okt 1974');
+  });
+
+  it('formats an election date the same way', () => {
+    expect(formatElectionDate('2023-11-22', 'en')).toBe('Nov 2023');
+    expect(formatElectionDate('2023-03-15', 'nl')).toBe('mrt 2023');
+    expect(formatElectionDate('2023', 'en')).toBe('Jan 2023');
+  });
+});
+
+describe('defaultRange', () => {
+  it('starts every view at the last ten items, or all of them when there are fewer', () => {
+    expect(defaultRange(25)).toEqual({start: 15, end: 24});
+    expect(defaultRange(4)).toEqual({start: 0, end: 3});
+    expect(defaultRange(0)).toEqual({start: 0, end: 0});
+  });
+});
 
 describe('zip', () => {
   it('pairs items by position, as far as the shorter list goes', () => {

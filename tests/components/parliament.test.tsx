@@ -10,17 +10,25 @@ const countryData = (country: string) => ({
   parties: loadParties(country),
   elections: loadAllElections(country),
 });
+type Data = ReturnType<typeof countryData>;
 
 const nl = countryData('nl');
 
-function renderParliament(data = nl, lang: 'en' | 'nl' = 'en') {
-  return renderWithLanguage(<ParliamentDiagram {...data}/>, lang);
+function renderParliament(data: Data = nl, lang: 'en' | 'nl' = 'en', range?: {start: number; end: number}) {
+  return renderWithLanguage(<ParliamentDiagram {...data} range={range}/>, lang);
 }
+
+/** Every cabinet of a country, from the first to the last. */
+const everything = (data: Data) => ({start: 0, end: data.coalitions.length - 1});
 
 /** The party blocks: one <g> per block, holding its rectangle and tooltip. */
 const blocks = (container: HTMLElement) =>
   [...container.querySelectorAll('g[style*="cursor"]')].filter((group) => group.querySelector('rect'));
 const blockRect = (group: Element) => group.querySelector('rect') as SVGRectElement;
+
+/** The cabinet names above the columns; a shortened name has the full one in its tooltip. */
+const headers = (container: HTMLElement) =>
+  [...container.querySelectorAll('text.font-bold')].map((text) => text.querySelector('title')?.textContent ?? text.textContent);
 
 describe('ParliamentDiagram', () => {
   it('shows a note without cabinets', () => {
@@ -28,12 +36,16 @@ describe('ParliamentDiagram', () => {
     expect(screen.getByText(en('noCoalitionData'))).toBeTruthy();
   });
 
-  it('shows the last ten cabinets with their election markers', () => {
+  it('shows the last ten cabinets by default, with their election markers', () => {
     const {container} = renderParliament();
-    const shown = nl.coalitions.slice(-10);
-    expect(screen.getByText(new RegExp(`^${shown[0]?.name} \\(\\d{4}\\) — ${shown.at(-1)?.name} \\(\\d{4}\\)$`))).toBeTruthy();
+    expect(headers(container)).toEqual(nl.coalitions.slice(-10).map((coalition) => coalition.name));
     expect(screen.getAllByText(/^Election · \w+ \d{4}$/).length).toBeGreaterThan(0);
     expect(blocks(container).length).toBeGreaterThan(50);
+  });
+
+  it('shows the cabinets of the given range', () => {
+    const {container} = renderParliament(nl, 'en', {start: 0, end: 1});
+    expect(headers(container)).toEqual(nl.coalitions.slice(0, 2).map((coalition) => coalition.name));
   });
 
   it('formats the election markers in Dutch', () => {
@@ -47,8 +59,7 @@ describe('ParliamentDiagram', () => {
   });
 
   it('draws mergers, splits and the tolerating party over all cabinets', () => {
-    const {container} = renderParliament();
-    fireEvent.click(screen.getByText(en('all')));
+    const {container} = renderParliament(nl, 'en', everything(nl));
     const gradients = [...container.querySelectorAll('linearGradient')].map((gradient) => gradient.id);
     expect(gradients.some((id) => id.startsWith('grad-m-'))).toBe(true);
     expect(gradients.some((id) => id.startsWith('grad-s-'))).toBe(true);
@@ -57,23 +68,14 @@ describe('ParliamentDiagram', () => {
     expect(screen.getByText(en('toleratingParty'))).toBeTruthy();
   });
 
-  it('switches between the range presets and moves the range', () => {
+  it('names each party and its seats in its tooltip', () => {
     const {container} = renderParliament();
-    const count = () => blocks(container).length;
-    const lastTen = count();
-    fireEvent.click(screen.getByText(en('last5')));
-    expect(count()).toBeLessThan(lastTen);
-    fireEvent.click(screen.getByText(en('all')));
-    expect(count()).toBeGreaterThan(lastTen);
-
-    fireEvent.change(screen.getByLabelText('Range start'), {target: {value: '0'}});
-    fireEvent.change(screen.getByLabelText('Range end'), {target: {value: '1'}});
-    expect(screen.getByText(new RegExp(`^${nl.coalitions[0]?.name} `))).toBeTruthy();
+    const titles = blocks(container).map((group) => group.querySelector('title')?.textContent ?? '');
+    expect(titles.every((title) => /^.+: \d+ seats$/.test(title))).toBe(true);
   });
 
   it('highlights a hovered party and its merge lineage', () => {
-    const {container} = renderParliament();
-    fireEvent.click(screen.getByText(en('all')));
+    const {container} = renderParliament(nl, 'en', everything(nl));
     const cda = blocks(container).find((group) => group.textContent.startsWith('CDA')) as Element;
     fireEvent.mouseEnter(cda);
     const faded = blocks(container).filter((group) => blockRect(group).getAttribute('opacity') === '0.3');
@@ -86,8 +88,7 @@ describe('ParliamentDiagram', () => {
   });
 
   it('labels blocks to fit: one line, two lines or shortened', () => {
-    const {container} = renderParliament();
-    fireEvent.click(screen.getByText(en('all')));
+    const {container} = renderParliament(nl, 'en', everything(nl));
     const lineCounts = new Set(blocks(container).map((group) => group.querySelectorAll('tspan').length));
     expect([...lineCounts].sort((a, b) => a - b)).toEqual([1, 2]);
     expect(blocks(container).some((group) => group.querySelector('tspan')?.textContent.includes('…'))).toBe(true);
@@ -101,9 +102,8 @@ describe('ParliamentDiagram', () => {
   });
 
   it('draws a split within the first column when the parent is there too', () => {
-    // GroenLinks' predecessors and their splits sit in the same columns in the 1980s.
-    const {container} = renderParliament(countryData('de'));
-    fireEvent.click(screen.getByText(en('all')));
+    const de = countryData('de');
+    const {container} = renderParliament(de, 'en', everything(de));
     expect(container.querySelectorAll('path').length).toBeGreaterThan(10);
   });
 

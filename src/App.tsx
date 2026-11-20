@@ -1,10 +1,11 @@
 import {useDeferredValue, useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef, type ReactNode} from 'react';
-import {Users, Info, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check, ChevronDown, ChevronUp, Shuffle, Landmark, BarChart3, ArrowLeftRight, Handshake} from 'lucide-react';
+import {Users, ArrowDownUp, CalendarRange, Sun, Moon, Languages, Share2, Download, Check, ChevronDown, ChevronUp, Shuffle, Landmark, BarChart3, ArrowLeftRight, Handshake} from 'lucide-react';
 import AlluvialDiagram, {type SortMode} from '@/components/AlluvialDiagram';
 import TurnoutDiagram from '@/components/TurnoutDiagram';
+import {DEFAULT_TURNOUT_VIEW, SEGMENT_KINDS, type ScaleMode, type TurnoutView} from '@/components/turnoutView';
 import ParliamentDiagram from '@/components/ParliamentDiagram';
 import ElectionCompare from '@/components/ElectionCompare';
-import CoalitionExplorer from '@/components/CoalitionExplorer';
+import CoalitionExplorer, {type CoalitionSelection} from '@/components/CoalitionExplorer';
 import CountrySelect from '@/components/CountrySelect';
 import HomePage, {type HomeView} from '@/components/HomePage';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
@@ -20,8 +21,8 @@ import {
   type CountryInfo,
   type DataSourceEntry,
 } from '@/data/loader';
-import {DualRangeSlider} from '@/components/shared';
-import {formatElectionLabel, partyButtonClass, sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
+import {EmptyState, RangeControl} from '@/components/shared';
+import {defaultRange, formatElectionLabel, partyButtonClass, sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
 import {
   ThemeContext,
   LanguageContext,
@@ -59,6 +60,21 @@ function loadAppData(country: string): AppData {
   }
 }
 
+// Non-voters and "other parties" are not parties: their names in the data files are in
+// each country's own language, so every view shows the interface's words instead.
+const INTERFACE_PARTY_NAMES: Partial<Record<string, TranslationKey>> = {
+  not_voted: 'didNotVote',
+  other: 'otherParties',
+};
+
+/** The parties with the non-party groups named in the interface language. */
+function localizeParties(parties: PartyInfo[], t: (key: TranslationKey) => string): PartyInfo[] {
+  return parties.map((party) => {
+    const key = INTERFACE_PARTY_NAMES[party.party];
+    return key ? {...party, display_name: t(key)} : party;
+  });
+}
+
 function getAvailableParties(elections: ElectionYear[], parties: PartyInfo[]): PartyInfo[] {
   const partySet = new Set<string>();
 
@@ -86,6 +102,7 @@ const TAB_KEYS: readonly TabKey[] = ['home', 'alluvial', 'parliament', 'turnout'
 const THEMES: readonly Theme[] = ['dark', 'light'];
 const LANGUAGES: readonly Language[] = ['en', 'nl'];
 const SORT_MODES: readonly SortMode[] = ['votes', 'alphabetical'];
+const SCALE_MODES: readonly ScaleMode[] = ['absolute', 'percentage'];
 
 /** A URL value when it is one of `allowed`, else `fallback`. */
 function pickOption<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
@@ -107,7 +124,12 @@ function getInitialAppStateFromUrl(countries: CountryInfo[]) {
  * Parse a country's initial diagram state from the URL. After a country switch the
  * URL still describes the previous country, so `readUrl` is false and defaults apply.
  */
-function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElections: ElectionYear[], readUrl: boolean) {
+function getInitialStateFromUrl(
+  allElections: ElectionYear[],
+  comparisonElections: ElectionYear[],
+  cabinetCount: number,
+  readUrl: boolean
+) {
   const params = new URLSearchParams(readUrl ? window.location.search : '');
   const electionYears = allElections.map((e) => e.year);
   const comparisonYears = comparisonElections.map((e) => e.year);
@@ -119,12 +141,24 @@ function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElection
     const value = Number(params.get(key));
     return Number.isInteger(value) ? Math.max(0, Math.min(max, value)) : fallback;
   };
-  const maxElectionIndex = Math.max(0, electionYears.length - 1);
-  const maxComparisonIndex = Math.max(0, comparisonYears.length - 1);
-  const yearStart = readIndex('ys', 0, maxElectionIndex);
-  const yearEnd = Math.max(yearStart, readIndex('ye', maxElectionIndex, maxElectionIndex));
-  const turnoutYearStart = readIndex('tys', 0, maxComparisonIndex);
-  const turnoutYearEnd = Math.max(turnoutYearStart, readIndex('tye', maxComparisonIndex, maxComparisonIndex));
+  // A range from the URL, else the default range of every view: the last ten.
+  const readRange = (startKey: string, endKey: string, count: number) => {
+    const fallback = defaultRange(count);
+    const start = readIndex(startKey, fallback.start, fallback.end);
+    return {start, end: Math.max(start, readIndex(endKey, fallback.end, fallback.end))};
+  };
+  const flowRange = readRange('ys', 'ye', electionYears.length);
+  const turnoutRange = readRange('tys', 'tye', comparisonYears.length);
+
+  const hidden = (params.get('hide') ?? '').split(',');
+  const turnoutView: TurnoutView = {
+    scale: pickOption(params.get('scale'), SCALE_MODES, DEFAULT_TURNOUT_VIEW.scale),
+    hidden: SEGMENT_KINDS.filter((segment) => hidden.includes(segment)),
+  };
+  const coalitionYear = params.get('cy');
+  const coalitionSelection: CoalitionSelection | undefined = coalitionYear
+    ? {year: coalitionYear, parties: (params.get('cp') ?? '').split(',').filter(Boolean)}
+    : undefined;
 
   const defaultCompareYearA = comparisonYears[Math.max(0, comparisonYears.length - 2)] ?? '';
   const defaultCompareYearB = comparisonYears.at(-1) ?? '';
@@ -133,10 +167,13 @@ function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElection
 
   return {
     party: party || null,
-    yearStart,
-    yearEnd,
-    turnoutYearStart,
-    turnoutYearEnd,
+    yearStart: flowRange.start,
+    yearEnd: flowRange.end,
+    turnoutYearStart: turnoutRange.start,
+    turnoutYearEnd: turnoutRange.end,
+    parliamentRange: readRange('ps', 'pe', cabinetCount),
+    turnoutView,
+    coalitionSelection,
     sortMode: pickOption(params.get('sort'), SORT_MODES, 'votes'),
     compareYearA: requestedCompareYearA && comparisonYears.includes(requestedCompareYearA)
       ? requestedCompareYearA
@@ -230,42 +267,6 @@ function FeedbackButton({done, icon, label, doneLabel, onClick}: Readonly<{
   );
 }
 
-interface YearRangeControlProps {
-  years: string[];
-  start: number;
-  end: number;
-  onStartChange: (index: number) => void;
-  onEndChange: (index: number) => void;
-  ariaLabelPrefix: string;
-}
-
-/** "Years: A–B" label with the range slider, or a note when there are no years. */
-function YearRangeControl({years, start, end, onStartChange, onEndChange, ariaLabelPrefix}: Readonly<YearRangeControlProps>) {
-  const {t} = useI18n();
-  const first = years[start];
-  const last = years[end];
-  if (first === undefined || last === undefined) {
-    return <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('yearsNone')}</span>;
-  }
-  return (
-    <>
-      <span className="text-sm font-medium text-app-muted whitespace-nowrap">
-        {`${t('years')}: ${formatElectionLabel(first)}–${formatElectionLabel(last)}`}
-      </span>
-      <DualRangeSlider
-        min={0}
-        max={years.length - 1}
-        start={start}
-        end={end}
-        onStartChange={onStartChange}
-        onEndChange={onEndChange}
-        startAriaLabel={`${ariaLabelPrefix} start`}
-        endAriaLabel={`${ariaLabelPrefix} end`}
-      />
-    </>
-  );
-}
-
 /** "All parties" plus one toggle per party with voter movement data. */
 function PartyFilter({parties, activeParty, onSelect}: Readonly<{
   parties: PartyInfo[];
@@ -304,13 +305,13 @@ function PartyFilter({parties, activeParty, onSelect}: Readonly<{
 
 /** Collapsible list of every data source of the selected country. */
 function SourcesFooter({dataSources}: Readonly<{ dataSources: DataSourceEntry[] }>) {
-  const {t} = useI18n();
+  const {lang, t} = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
   const getSourceLabel = (source: DataSourceEntry) =>
     source.kind === 'totals'
-      ? `${t('totals')} (${formatElectionLabel(source.year)})`
-      : `${t('movements')} (${formatElectionLabel(source.fromYear ?? source.year)} → ${formatElectionLabel(source.toYear ?? source.year)})`;
+      ? `${t('totals')} (${formatElectionLabel(source.year, lang)})`
+      : `${t('movements')} (${formatElectionLabel(source.fromYear ?? source.year, lang)} → ${formatElectionLabel(source.toYear ?? source.year, lang)})`;
 
   return (
     <footer className="border-t border-app-border mt-12 py-8">
@@ -375,14 +376,15 @@ function Dashboard({
 }: Readonly<DashboardProps>) {
   const {theme, toggleTheme} = useTheme();
   const {lang, t} = useI18n();
-  const {parties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(
+  const {parties: dataParties, allElections, allElectionsForTurnout, dataSources, coalitions} = useMemo(
     () => loadAppData(country),
     [country]
   );
+  const parties = useMemo(() => localizeParties(dataParties, t), [dataParties, t]);
 
   const initialState = useMemo(
-    () => getInitialStateFromUrl(allElections, allElectionsForTurnout, readUrl),
-    [allElections, allElectionsForTurnout, readUrl]
+    () => getInitialStateFromUrl(allElections, allElectionsForTurnout, coalitions.length, readUrl),
+    [allElections, allElectionsForTurnout, coalitions.length, readUrl]
   );
 
   // A country without any known voter movements has no flow diagram at all.
@@ -406,6 +408,13 @@ function Dashboard({
   const [turnoutYearStart, setTurnoutYearStart] = useState<number>(initialState.turnoutYearStart);
   const [turnoutYearEnd, setTurnoutYearEnd] = useState<number>(initialState.turnoutYearEnd);
 
+  // Each view's own settings, kept here so they survive a tab switch and go into the URL.
+  const [turnoutView, setTurnoutView] = useState<TurnoutView>(initialState.turnoutView);
+  const [parliamentRange, setParliamentRange] = useState(initialState.parliamentRange);
+  const [coalitionSelection, setCoalitionSelection] = useState<CoalitionSelection | undefined>(
+    initialState.coalitionSelection
+  );
+
   const deferredYearStart = useDeferredValue(yearStart);
   const deferredYearEnd = useDeferredValue(yearEnd);
 
@@ -414,7 +423,7 @@ function Dashboard({
     [allElections, deferredYearStart, deferredYearEnd]
   );
 
-  const electionLabels = elections.map((e) => formatElectionLabel(e.year));
+  const electionLabels = elections.map((e) => formatElectionLabel(e.year, lang));
 
   const availableParties = useMemo(() => getAvailableParties(elections, parties), [elections, parties]);
 
@@ -452,12 +461,21 @@ function Dashboard({
     } else if (activeTab === 'turnout') {
       state.tys = turnoutYearStart;
       state.tye = turnoutYearEnd;
+      state.scale = turnoutView.scale === DEFAULT_TURNOUT_VIEW.scale ? null : turnoutView.scale;
+      state.hide = turnoutView.hidden.join(',');
+    } else if (activeTab === 'parliament') {
+      state.ps = parliamentRange.start;
+      state.pe = parliamentRange.end;
     } else if (activeTab === 'compare') {
       state.cmpA = compareYearA;
       state.cmpB = compareYearB;
+    } else if (activeTab === 'coalition' && coalitionSelection) {
+      state.cy = coalitionSelection.year;
+      state.cp = coalitionSelection.parties.join(',');
     }
     return state;
-  }, [country, activeTab, yearStart, yearEnd, activeParty, sortMode, turnoutYearStart, turnoutYearEnd, compareYearA, compareYearB, theme, lang]);
+  }, [country, activeTab, yearStart, yearEnd, activeParty, sortMode, turnoutYearStart, turnoutYearEnd, turnoutView,
+    parliamentRange, compareYearA, compareYearB, coalitionSelection, theme, lang]);
 
   // Debounced: dragging a slider changes urlState on every step, and Safari/Firefox
   // throw once replaceState is called more than ~100-200 times in 10 seconds.
@@ -643,13 +661,14 @@ function Dashboard({
             <div className="mb-6 flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto">
                 <CalendarRange className="w-4 h-4 text-app-muted"/>
-                <YearRangeControl
-                  years={electionYears}
+                <RangeControl
+                  labels={electionYears.map((year) => formatElectionLabel(year, lang))}
                   start={yearStart}
                   end={yearEnd}
-                  onStartChange={setYearStart}
-                  onEndChange={setYearEnd}
-                  ariaLabelPrefix="Range"
+                  onChange={(start, end) => {
+                    setYearStart(start);
+                    setYearEnd(end);
+                  }}
                 />
               </div>
 
@@ -663,12 +682,7 @@ function Dashboard({
 
             <div ref={chartContainerRef} className={CARD_CLASS}>
               {nodes.length === 0 ? (
-                <div className="flex items-center justify-center h-96 text-app-muted">
-                  <div className="text-center">
-                    <Info className="w-12 h-12 mx-auto mb-3 opacity-50"/>
-                    <p>{t('noFlowData')}</p>
-                  </div>
-                </div>
+                <EmptyState message={t('noFlowData')}/>
               ) : (
                 <AlluvialDiagram
                   nodes={nodes}
@@ -690,18 +704,19 @@ function Dashboard({
 
             <div className="mb-6 flex items-center gap-3 flex-wrap">
               <CalendarRange className="w-4 h-4 text-app-muted"/>
-              <YearRangeControl
-                years={turnoutYears}
+              <RangeControl
+                labels={turnoutYears.map((year) => formatElectionLabel(year, lang))}
                 start={turnoutYearStart}
                 end={turnoutYearEnd}
-                onStartChange={setTurnoutYearStart}
-                onEndChange={setTurnoutYearEnd}
-                ariaLabelPrefix="Turnout range"
+                onChange={(start, end) => {
+                  setTurnoutYearStart(start);
+                  setTurnoutYearEnd(end);
+                }}
               />
             </div>
 
             <div ref={chartContainerRef} className={CARD_CLASS}>
-              <TurnoutDiagram elections={turnoutElections}/>
+              <TurnoutDiagram elections={turnoutElections} view={turnoutView} onViewChange={setTurnoutView}/>
             </div>
 
           </>
@@ -712,11 +727,22 @@ function Dashboard({
           <>
             <TabHeading title={t('parliamentTitle')} description={t('parliamentDescription')}/>
 
+            <div className="mb-6 flex items-center gap-3 flex-wrap">
+              <CalendarRange className="w-4 h-4 text-app-muted"/>
+              <RangeControl
+                labels={coalitions.map((coalition) => `${coalition.name} (${coalition.inauguration.slice(0, 4)})`)}
+                start={parliamentRange.start}
+                end={parliamentRange.end}
+                onChange={(start, end) => setParliamentRange({start, end})}
+              />
+            </div>
+
             <div ref={chartContainerRef} className={CARD_CLASS}>
               <ParliamentDiagram
                 coalitions={coalitions}
                 parties={parties}
                 elections={allElectionsForTurnout}
+                range={parliamentRange}
               />
             </div>
 
@@ -748,7 +774,12 @@ function Dashboard({
             <TabHeading title={t('coalitionExplTitle')} description={t('coalitionExplDescription')}/>
 
             <div ref={chartContainerRef} className={CARD_CLASS}>
-              <CoalitionExplorer coalitions={coalitions} parties={parties}/>
+              <CoalitionExplorer
+                coalitions={coalitions}
+                parties={parties}
+                selection={coalitionSelection}
+                onSelectionChange={setCoalitionSelection}
+              />
             </div>
           </>
         )}

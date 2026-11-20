@@ -66,8 +66,8 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', {name: en.sortAlphabetical}));
     fireEvent.click(screen.getByRole('button', {name: en.sortByVotes}));
 
-    fireEvent.change(screen.getByLabelText('Range end'), {target: {value: '1'}});
-    fireEvent.change(screen.getByLabelText('Range start'), {target: {value: '1'}});
+    fireEvent.change(screen.getByLabelText(en.rangeEnd), {target: {value: '1'}});
+    fireEvent.change(screen.getByLabelText(en.rangeStart), {target: {value: '1'}});
     expect(screen.getByText(en.noFlowData)).toBeTruthy();
     expect(container.querySelector('svg[data-export-chart]')).toBeNull();
   });
@@ -81,9 +81,9 @@ describe('App', () => {
     fireEvent.click(tab(en.tabCompare));
     expect(screen.getByText(en.compareTitle)).toBeTruthy();
     fireEvent.click(tab(en.tabTurnout));
-    fireEvent.change(screen.getByLabelText('Turnout range start'), {target: {value: '3'}});
-    fireEvent.change(screen.getByLabelText('Turnout range end'), {target: {value: '5'}});
-    expect(screen.getByText(/^Years: 1956–1963$/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(en.rangeStart), {target: {value: '3'}});
+    fireEvent.change(screen.getByLabelText(en.rangeEnd), {target: {value: '5'}});
+    expect(screen.getByText('1956 — 1963')).toBeTruthy();
   });
 
   it('keeps the URL in step with the view', () => {
@@ -150,9 +150,8 @@ describe('App', () => {
     });
 
     // Comparing an election with itself has no rows, so nothing is exported.
-    const [selectA] = screen.getAllByRole<HTMLSelectElement>('combobox', {name: ''});
-    const lastYear = [...(selectA as HTMLSelectElement).options].at(-1)?.value ?? '';
-    fireEvent.change(selectA as HTMLSelectElement, {target: {value: lastYear}});
+    const [selectA, selectB] = screen.getAllByRole<HTMLSelectElement>('combobox', {name: ''});
+    fireEvent.change(selectA as HTMLSelectElement, {target: {value: (selectB as HTMLSelectElement).value}});
     fireEvent.click(screen.getByRole('button', {name: en.exportData}));
     expect(createObjectURL).toHaveBeenCalledTimes(2);
   });
@@ -172,6 +171,54 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('option', {name: 'France'}));
     expect(screen.getByText(en.turnoutTitle)).toBeTruthy();
     expect(within(screen.getByRole('main')).queryByRole('button', {name: en.tabAlluvial})).toBeNull();
+  });
+
+  it('names non-voters and other parties in the interface language', () => {
+    const {container} = openApp('?tab=alluvial');
+    const labels = [...container.querySelectorAll('svg text')].map((text) => text.textContent);
+    expect(labels).toContain(en.didNotVote);
+    expect(labels).not.toContain('Niet Gestemd');
+    fireEvent.change(screen.getByLabelText(en.language), {target: {value: 'nl'}});
+    expect([...container.querySelectorAll('svg text')].map((text) => text.textContent)).toContain(nl.didNotVote);
+  });
+
+  it('keeps every view’s settings when switching tabs', () => {
+    openApp('?tab=parliament');
+    fireEvent.click(screen.getByRole('button', {name: en.all}));
+    fireEvent.click(tab(en.tabTurnout));
+    fireEvent.click(screen.getByText(en.percentage));
+    fireEvent.click(screen.getByText(en.invalid));
+    fireEvent.click(tab(en.tabCoalition));
+    fireEvent.click(screen.getByText(en.coalitionSelectParties, {selector: 'button'}));
+
+    fireEvent.click(tab(en.tabParliament));
+    expect(screen.getByRole('button', {name: en.all}).className).toContain('bg-emerald-500');
+    fireEvent.click(tab(en.tabTurnout));
+    expect(screen.getByText(en.pctOfElectorate)).toBeTruthy();
+    expect(screen.getByText(en.invalid).className).toContain('line-through');
+    fireEvent.click(tab(en.tabCoalition));
+    expect(screen.getByText(en.coalitionClear)).toBeTruthy();
+  });
+
+  it('shares and restores every view’s settings through the URL', () => {
+    vi.useFakeTimers();
+    openApp('?tab=parliament&ps=0&pe=1');
+    const firstCabinet = screen.getByText(/ — /).textContent;
+    expect(firstCabinet).toMatch(/^Schermerhorn|^Beel/);
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    expect(window.location.search).toContain('ps=0&pe=1');
+  });
+
+  it('opens Turnout and the Coalition Explorer from a shared link', () => {
+    openApp('?tab=turnout&scale=percentage&hide=notVoted,bogus');
+    expect(screen.getByText(en.pctOfElectorate)).toBeTruthy();
+    expect(screen.getByText(en.didNotVote).className).toContain('line-through');
+
+    openApp('?tab=coalition&cy=2021&cp=vvd,d66,cda,cu');
+    expect((screen.getAllByRole('combobox', {name: ''})[0] as HTMLSelectElement).value).toBe('2021');
+    expect(screen.getByText(en.coalitionClear)).toBeTruthy();
   });
 
   it('lists the data sources on request', () => {

@@ -3,6 +3,8 @@
  * ribbon geometry) so those definitions live in exactly one place.
  */
 
+import type {Language} from '@/theme';
+
 /** Tailwind class for an active/inactive toggle button. */
 export const toggleButtonClass = (active: boolean): string =>
   active
@@ -84,16 +86,36 @@ export function scaleToFill(seats: readonly number[], target: number, minHeight:
   return 0;
 }
 
-const MONTH_ABBREVIATIONS =['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DATE_LOCALES: Record<Language, string> = {en: 'en-GB', nl: 'nl-NL'};
+
+/** "Feb 1974" in English, "feb 1974" in Dutch: a month and year in the interface language. */
+function formatMonthYear(year: number, month: number, lang: Language): string {
+  const date = new Date(Date.UTC(year, month - 1, 15));
+  return new Intl.DateTimeFormat(DATE_LOCALES[lang], {month: 'short', year: 'numeric', timeZone: 'UTC'}).format(date);
+}
 
 /**
  * Display label for an election id. Ids are years, or YYYY-MM when a country held
- * two elections in one year (UK 1974): '1974-02' becomes 'Feb 1974'.
+ * two elections in one year (UK 1974): '1974-02' becomes 'Feb 1974' ('feb 1974' in Dutch).
  */
-export function formatElectionLabel(id: string): string {
+export function formatElectionLabel(id: string, lang: Language = 'en'): string {
   const match = /^(\d{4})-(\d{2})$/.exec(id);
-  const month = match ? MONTH_ABBREVIATIONS[Number(match[2]) - 1] : undefined;
-  return match && month ? `${month} ${match[1]}` : id;
+  const month = Number(match?.[2]);
+  return match && month >= 1 && month <= 12 ? formatMonthYear(Number(match[1]), month, lang) : id;
+}
+
+/** The month and year of an election date (YYYY-MM-DD), in the interface language. */
+export function formatElectionDate(date: string, lang: Language = 'en'): string {
+  const [year, month] = date.split('-').map(Number);
+  return formatMonthYear(year ?? 0, month ?? 1, lang);
+}
+
+/** How many of the most recent items a view with a time axis shows at first. */
+export const DEFAULT_RANGE_SIZE = 10;
+
+/** The range such a view starts with: the last DEFAULT_RANGE_SIZE items, or all when fewer. */
+export function defaultRange(count: number): {start: number; end: number} {
+  return {start: Math.max(0, count - DEFAULT_RANGE_SIZE), end: Math.max(0, count - 1)};
 }
 
 /** Filter an array by an inclusive index range. */

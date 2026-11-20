@@ -5,22 +5,42 @@ import {getCoalitionForElection, getPartyColor, getPartyDisplayName} from '@/dat
 import {useI18n} from '@/theme';
 import {formatElectionLabel, partyButtonClass} from '@/components/diagramUtils';
 import {createChamberLayout, type PartySeat} from '@/components/chamberLayout';
+import {EmptyState} from '@/components/shared';
+
+/** The election explored and the parties chosen for a coalition. */
+export interface CoalitionSelection {
+  year: string;
+  parties: string[];
+}
 
 interface CoalitionExplorerProps {
   coalitions: CoalitionData[];
   parties: PartyInfo[];
+  /** The election and parties to start with; the latest election and no parties when left out. */
+  selection?: CoalitionSelection;
+  /** Called when the visitor picks another election or party, so it is kept and shared. */
+  onSelectionChange?: (selection: CoalitionSelection) => void;
 }
 
-export default function CoalitionExplorer({coalitions, parties}: Readonly<CoalitionExplorerProps>) {
-  const {t} = useI18n();
+export default function CoalitionExplorer({coalitions, parties, selection, onSelectionChange}: Readonly<CoalitionExplorerProps>) {
+  const {lang, t} = useI18n();
 
   const yearsWithSeats = useMemo(
     () => Array.from(new Set(coalitions.flatMap((c) => c.electionYear ?? []))).sort((a, b) => b.localeCompare(a)),
     [coalitions]
   );
 
-  const [selectedYear, setSelectedYear] = useState<string>(yearsWithSeats[0] ?? '');
-  const [selectedParties, setSelectedParties] = useState<Set<string>>(new Set());
+  // An election from a shared link only counts when it has seat data.
+  const initialYear = selection && yearsWithSeats.includes(selection.year) ? selection.year : yearsWithSeats[0] ?? '';
+  const [selectedYear, setSelectedYear] = useState<string>(initialYear);
+  const [selectedParties, setSelectedParties] = useState<Set<string>>(
+    new Set(initialYear === selection?.year ? selection.parties : [])
+  );
+  const select = (year: string, chosen: Set<string>) => {
+    setSelectedYear(year);
+    setSelectedParties(chosen);
+    onSelectionChange?.({year, parties: [...chosen]});
+  };
 
   const coalitionForYear = useMemo(
     () => getCoalitionForElection(selectedYear, coalitions),
@@ -66,37 +86,23 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
     [allPartiesWithSeats, selectedParties]
   );
 
-  const handleYearChange = (year: string) => {
-    setSelectedYear(year);
-    setSelectedParties(new Set());
-  };
+  const handleYearChange = (year: string) => select(year, new Set());
 
   const toggleParty = (partyId: string) => {
-    setSelectedParties((prev) => {
-      const next = new Set(prev);
-      if (next.has(partyId)) {
-        next.delete(partyId);
-      } else {
-        next.add(partyId);
-      }
-      return next;
-    });
+    const next = new Set(selectedParties);
+    if (next.has(partyId)) next.delete(partyId);
+    else next.add(partyId);
+    select(selectedYear, next);
   };
 
   const selectActualCoalition = () => {
     if (!coalitionForYear) return;
-    setSelectedParties(new Set(coalitionForYear.coalition));
+    select(selectedYear, new Set(coalitionForYear.coalition));
   };
 
   const selectClass = 'app-select';
 
-  if (yearsWithSeats.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 text-app-muted">
-        <p>{t('coalitionNoSeatData')}</p>
-      </div>
-    );
-  }
+  if (yearsWithSeats.length === 0) return <EmptyState message={t('coalitionNoSeatData')}/>;
 
   return (
     <div className="space-y-6">
@@ -105,7 +111,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
         <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('coalitionSelectElection')}</label>
         <span className="relative">
           <select value={selectedYear} onChange={(e) => handleYearChange(e.target.value)} className={selectClass}>
-            {yearsWithSeats.map((y) => <option key={y} value={y}>{formatElectionLabel(y)}</option>)}
+            {yearsWithSeats.map((y) => <option key={y} value={y}>{formatElectionLabel(y, lang)}</option>)}
           </select>
           <ChevronDown className="app-select-chevron w-4 h-4"/>
         </span>
@@ -128,7 +134,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
           data-export-chart
           viewBox="0 0 600 330"
           role="img"
-          aria-label={`${selectedTotal} of ${totalSeats} seats selected; ${majority} seats needed for a majority`}
+          aria-label={t('chamberSummary').replace('{selected}', String(selectedTotal)).replace('{total}', String(totalSeats)).replace('{majority}', String(majority))}
           className="mx-auto block w-full max-w-3xl"
         >
           <path
@@ -255,7 +261,7 @@ export default function CoalitionExplorer({coalitions, parties}: Readonly<Coalit
             </h4>
             <button
               type="button"
-              onClick={() => setSelectedParties(new Set())}
+              onClick={() => select(selectedYear, new Set())}
               className="text-xs font-medium text-app-muted hover:text-app-text transition-colors"
             >
               {t('coalitionClear')}

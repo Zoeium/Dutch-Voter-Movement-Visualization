@@ -1,13 +1,14 @@
 import {useMemo, useState} from 'react';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {getCoalitionForElection, getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
-import {DualRangeSlider, RibbonGradient} from '@/components/shared';
+import {EmptyState, RibbonGradient} from '@/components/shared';
 import {
   buildGradientId,
   buildRibbonPath,
+  defaultRange,
+  formatElectionDate,
   formatElectionLabel,
   scaleToFill,
-  toggleButtonClass,
 } from '@/components/diagramUtils';
 import {useI18n} from '@/theme';
 import {collectMergeEdges, collectSplitEdges} from '@/components/lineage';
@@ -20,6 +21,8 @@ interface ParliamentDiagramProps {
    * and their votes divide a merged party between its predecessors.
    */
   elections?: ElectionYear[];
+  /** The cabinets shown (indices into `coalitions`); the last ten when left out. */
+  range?: {start: number; end: number};
 }
 
 const NO_ELECTIONS: ElectionYear[] = [];
@@ -237,18 +240,6 @@ function getLabelColor(background: string): string {
 
   return luminance > 0.35 ? '#111827' : '#ffffff';
 }
-
-// How many recent coalitions are shown by default. All coalitions at once (~30 columns)
-// is unreadable, so the initial view is a readable window; quick presets widen it.
-const DEFAULT_VISIBLE_COLUMNS = 10;
-
-// Quick range presets; `size` is how many coalitions to show counting back from the
-// newest one (`0` means every coalition).
-const RANGE_PRESETS = [
-  {labelKey: 'all' as const, size: 0},
-  {labelKey: 'last10' as const, size: 10},
-  {labelKey: 'last5' as const, size: 5},
-];
 
 /**
  * Directed merge lineage of a party: the party itself plus every party it merged FROM
@@ -607,6 +598,7 @@ export default function ParliamentDiagram({
   coalitions,
   parties,
   elections = NO_ELECTIONS,
+  range,
 }: Readonly<ParliamentDiagramProps>) {
   const {lang, t} = useI18n();
 
@@ -626,18 +618,15 @@ export default function ParliamentDiagram({
 
   const electionLabel = (electionYear: string): string => {
     const date = electionsById.get(electionYear)?.voteTotals.date;
-    if (!date) return `${t('election')} ${formatElectionLabel(electionYear)}`;
-    const formatted = new Intl.DateTimeFormat(lang === 'nl' ? 'nl-NL' : 'en-GB', {month: 'short', year: 'numeric'})
-      .format(new Date(`${date}T12:00:00`));
-    return `${t('electionMarker')} · ${formatted}`;
+    if (!date) return `${t('election')} ${formatElectionLabel(electionYear, lang)}`;
+    return `${t('electionMarker')} · ${formatElectionDate(date, lang)}`;
   };
   const cabinetCount = coalitions.length;
   const [hoveredParty, setHoveredParty] = useState<string | null>(null);
-  const [rangeStart, setRangeStart] = useState(Math.max(0, cabinetCount - DEFAULT_VISIBLE_COLUMNS));
-  const [rangeEnd, setRangeEnd] = useState(Math.max(0, cabinetCount - 1));
+  const selectedRange = range ?? defaultRange(cabinetCount);
 
-  const start = Math.max(0, Math.min(rangeStart, cabinetCount - 1));
-  const end = Math.max(start, Math.min(rangeEnd, cabinetCount - 1));
+  const start = Math.max(0, Math.min(selectedRange.start, cabinetCount - 1));
+  const end = Math.max(start, Math.min(selectedRange.end, cabinetCount - 1));
 
   // Derived layout is memoized so hover updates (local state) do not re-run the
   // effectively O(columns x blocks^2) edge/split computation on every mouse move.
@@ -664,11 +653,7 @@ export default function ParliamentDiagram({
   const mergeRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'merge');
   const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
 
-  const firstColumn = columns[0];
-  const lastColumn = columns.at(-1);
-  if (!firstColumn || !lastColumn) {
-    return <div className="text-app-muted text-center py-8">{t('noCoalitionData')}</div>;
-  }
+  if (columns.length === 0) return <EmptyState message={t('noCoalitionData')}/>;
 
   const isPartyHighlighted = (party: string) => !highlightedParties || highlightedParties.has(party);
 
@@ -691,44 +676,6 @@ export default function ParliamentDiagram({
 
   return (
     <div className="relative w-full">
-      {/* Dual-thumb range slider (single control, two thumbs) */}
-      <div className="flex items-center gap-3 flex-wrap mb-3">
-        <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('range')}</span>
-        <DualRangeSlider
-          min={0}
-          max={cabinetCount - 1}
-          start={start}
-          end={end}
-          onStartChange={setRangeStart}
-          onEndChange={setRangeEnd}
-          startAriaLabel="Range start"
-          endAriaLabel="Range end"
-        />
-        <span className="text-xs text-app-muted whitespace-nowrap">
-          {firstColumn.coalition.name} ({cabinetYear(firstColumn.coalition)}) — {lastColumn.coalition.name} ({cabinetYear(lastColumn.coalition)})
-        </span>
-        {/* Quick ranges: reading ~30 columns at once is not useful, so offer a window. */}
-        <div className="flex items-center gap-1.5">
-          {RANGE_PRESETS.filter((preset) => preset.size === 0 || preset.size < cabinetCount).map((preset) => {
-            const size = preset.size === 0 ? cabinetCount : preset.size;
-            const presetStart = Math.max(0, cabinetCount - size);
-            const isActive = start === presetStart && end === cabinetCount - 1;
-            return (
-              <button
-                type="button"
-                key={preset.labelKey}
-                onClick={() => {
-                  setRangeStart(presetStart);
-                  setRangeEnd(cabinetCount - 1);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${toggleButtonClass(isActive)}`}
-              >
-                {t(preset.labelKey)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Horizontal scroll keeps every column at its natural, legible width instead of
           squashing a long selection down to illegible slivers. */}

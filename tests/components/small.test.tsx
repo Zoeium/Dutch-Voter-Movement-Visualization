@@ -2,7 +2,7 @@ import {describe, expect, it, vi} from 'vitest';
 import {fireEvent, render, renderHook, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {ThemeContext, translations, useI18n, useTheme} from '@/theme';
-import {DualRangeSlider, RibbonGradient} from '@/components/shared';
+import {DualRangeSlider, EmptyState, RangeControl, RibbonGradient} from '@/components/shared';
 import {ErrorBoundary} from '@/components/ErrorBoundary';
 import HomePage from '@/components/HomePage';
 import CountrySelect from '@/components/CountrySelect';
@@ -55,6 +55,57 @@ describe('DualRangeSlider', () => {
   it('lifts the start thumb above the end thumb when they meet', () => {
     renderSlider(4, 4);
     expect(screen.getByLabelText('from').style.zIndex).toBe('5');
+  });
+});
+
+describe('RangeControl', () => {
+  const labels = Array.from({length: 12}, (_, index) => `Item ${index + 1}`);
+  const renderRange = (start: number, end: number, items = labels, lang: 'en' | 'nl' = 'en') => {
+    const onChange = vi.fn();
+    renderWithLanguage(<RangeControl labels={items} start={start} end={end} onChange={onChange}/>, lang);
+    return onChange;
+  };
+
+  it('names the first and last item shown', () => {
+    renderRange(2, 11);
+    expect(screen.getByText('Item 3 — Item 12')).toBeTruthy();
+  });
+
+  it('moves either end with the slider', () => {
+    const onChange = renderRange(2, 11);
+    fireEvent.change(screen.getByLabelText(en('rangeStart')), {target: {value: '4'}});
+    expect(onChange).toHaveBeenLastCalledWith(4, 11);
+    fireEvent.change(screen.getByLabelText(en('rangeEnd')), {target: {value: '8'}});
+    expect(onChange).toHaveBeenLastCalledWith(2, 8);
+  });
+
+  it('offers quick ranges and marks the active one', () => {
+    const onChange = renderRange(2, 11);
+    expect(screen.getByRole('button', {name: en('last10')}).className).toContain('bg-emerald-500');
+    fireEvent.click(screen.getByRole('button', {name: en('all')}));
+    expect(onChange).toHaveBeenLastCalledWith(0, 11);
+    fireEvent.click(screen.getByRole('button', {name: en('last5')}));
+    expect(onChange).toHaveBeenLastCalledWith(7, 11);
+  });
+
+  it('leaves out quick ranges that would show everything anyway', () => {
+    renderRange(0, 3, labels.slice(0, 4));
+    expect(screen.queryByRole('button', {name: en('last10')})).toBeNull();
+    expect(screen.queryByRole('button', {name: en('last5')})).toBeNull();
+    expect(screen.getByRole('button', {name: en('all')})).toBeTruthy();
+  });
+
+  it('labels the slider in the interface language', () => {
+    renderRange(0, 3, labels, 'nl');
+    expect(screen.getByLabelText(translations.nl.rangeStart)).toBeTruthy();
+    expect(screen.getByText(translations.nl.range)).toBeTruthy();
+  });
+});
+
+describe('EmptyState', () => {
+  it('shows its message', () => {
+    render(<EmptyState message="Nothing here"/>);
+    expect(screen.getByText('Nothing here')).toBeTruthy();
   });
 });
 

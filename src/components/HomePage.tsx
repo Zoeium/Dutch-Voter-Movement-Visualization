@@ -29,7 +29,7 @@ function Stat({value, label}: Readonly<{ value: string; label: string }>) {
 
 /** Start page: what the app is for, what data the selected country has, and a card per view. */
 export default function HomePage({countryName, electionYears, governmentCount, views, onOpen}: Readonly<HomePageProps>) {
-  const {t} = useI18n();
+  const {lang, t} = useI18n();
   const first = electionYears[0];
   const last = electionYears.at(-1);
 
@@ -46,7 +46,7 @@ export default function HomePage({countryName, electionYears, governmentCount, v
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
           <Stat value={String(electionYears.length)} label={t('homeElections')}/>
-          <Stat value={first && last ? `${formatElectionLabel(first)}–${formatElectionLabel(last)}` : '—'} label={t('homePeriod')}/>
+          <Stat value={first && last ? `${formatElectionLabel(first, lang)}–${formatElectionLabel(last, lang)}` : '—'} label={t('homePeriod')}/>
           <Stat value={String(governmentCount)} label={t('homeGovernments')}/>
         </div>
       </section>

@@ -271,6 +271,8 @@ interface DiagramRibbonProps {
   active: boolean;
   isHovered: boolean;
   gradientId?: string;
+  /** The tooltip: who moved where, and how many. */
+  title: string;
   onHover: (ribbon: PositionedRibbon) => void;
   onLeave: () => void;
 }
@@ -280,6 +282,7 @@ const DiagramRibbon = memo(/** Render one interactive flow ribbon. */ function D
   active,
   isHovered,
   gradientId,
+  title,
   onHover,
   onLeave,
 }: Readonly<DiagramRibbonProps>) {
@@ -299,46 +302,18 @@ const DiagramRibbon = memo(/** Render one interactive flow ribbon. */ function D
       style={{transition: 'fill-opacity 0.2s ease', cursor: 'pointer'}}
       onMouseEnter={() => onHover(ribbon)}
       onMouseLeave={onLeave}
-    />
+    >
+      <title>{title}</title>
+    </path>
   );
 });
-
-interface DiagramTooltipProps {
-  centerX: number;
-  y: number;
-  width: number;
-  text: string;
-}
-
-/** Render an SVG tooltip centered on the requested coordinate. */
-function DiagramTooltip({centerX, y, width, text}: Readonly<DiagramTooltipProps>) {
-  return (
-    <g style={{pointerEvents: 'none'}}>
-      <rect
-        x={centerX - width / 2}
-        y={y}
-        width={width}
-        height={30}
-        rx={6}
-        fill="var(--c-tooltip-bg)"
-        fillOpacity={0.95}
-      />
-      <text
-        x={centerX}
-        y={y + 18}
-        textAnchor="middle"
-        className="fill-app-tooltip-text text-xs font-medium"
-      >
-        {text}
-      </text>
-    </g>
-  );
-}
 
 interface DiagramNodeGlyphProps {
   node: PositionedNode;
   isActive: boolean;
   isLastColumn: boolean;
+  /** The tooltip: the party and its votes. */
+  title: string;
   onHover: (id: string) => void;
   onLeave: () => void;
 }
@@ -347,6 +322,7 @@ const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. 
   node,
   isActive,
   isLastColumn,
+  title,
   onHover,
   onLeave,
 }: Readonly<DiagramNodeGlyphProps>) {
@@ -367,7 +343,9 @@ const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. 
         style={{transition: 'fill-opacity 0.2s ease', cursor: 'pointer'}}
         onMouseEnter={() => onHover(node.id)}
         onMouseLeave={onLeave}
-      />
+      >
+        <title>{title}</title>
+      </rect>
       <text
         x={textProps.x}
         y={node.y + node.nodeHeight / 2}
@@ -440,13 +418,6 @@ export default function AlluvialDiagram({
   const handleRibbonLeave = useCallback(() => setHoveredRibbonKey(null), []);
   const handleNodeLeave = useCallback(() => setHoveredNode(null), []);
 
-  // Resolve the (stable) hovered key back to a live ribbon: storing the object
-  // itself would go stale as soon as the layout memo re-runs (e.g. on resize).
-  const hoveredRibbon = useMemo(
-    () => positionedRibbons.find((ribbon) => getRibbonKey(ribbon) === hoveredRibbonKey) ?? null,
-    [positionedRibbons, hoveredRibbonKey]
-  );
-
   return (
     // On narrow screens the drawing keeps its minimum readable width and scrolls sideways
     // inside its card, instead of being shrunk until the labels are unreadable.
@@ -491,6 +462,7 @@ export default function AlluvialDiagram({
               gradientId={gradId}
               active={isRibbonActive(ribbon)}
               isHovered={hoveredRibbonKey === ribbonKey}
+              title={`${ribbon.source.label} → ${ribbon.target.label}: ${formatNumber(ribbon.value)} ${t('votes')}`}
               onHover={handleRibbonHover}
               onLeave={handleRibbonLeave}
             />
@@ -503,33 +475,11 @@ export default function AlluvialDiagram({
             node={node}
             isActive={!hoveredNode || hoveredNode === node.id}
             isLastColumn={node.columnIndex === numColumns - 1}
+            title={`${node.label}: ${formatNumber(node.value)} ${t('votes')}`}
             onHover={setHoveredNode}
             onLeave={handleNodeLeave}
           />
         ))}
-
-        {hoveredRibbon && (
-          <DiagramTooltip
-            centerX={svgWidth / 2}
-            y={contentHeight - 44}
-            width={280}
-            text={`${hoveredRibbon.source.label} → ${hoveredRibbon.target.label}: ${formatNumber(hoveredRibbon.value)} ${t('votes')}`}
-          />
-        )}
-
-        {hoveredNode && (() => {
-          const node = positionedNodes.find((n) => n.id === hoveredNode);
-          if (!node) return null;
-
-          return (
-            <DiagramTooltip
-              centerX={svgWidth / 2}
-              y={contentHeight - 80}
-              width={280}
-              text={`${node.label}: ${formatNumber(node.value)} ${t('votes')}`}
-            />
-          );
-        })()}
       </svg>
     </div>
   );

@@ -47,18 +47,22 @@ describe('AlluvialDiagram', () => {
     expect(firstColumnLabels(container)[0]).toBe('VVD');
   });
 
-  it('shows the votes of a hovered party and flow', () => {
+  it('names the votes of each party and flow in its tooltip, and highlights the hovered ones', () => {
     const {container} = renderFlows();
     const node = container.querySelector('rect[width="16"]') as Element;
+    expect(node.querySelector('title')?.textContent).toMatch(/^.+: [\d,]+ votes$/);
+    const ribbon = container.querySelector('path') as SVGPathElement;
+    expect(ribbon.querySelector('title')?.textContent).toMatch(/^.+ → .+: [\d,]+ votes$/);
+
     fireEvent.mouseEnter(node);
-    expect(screen.getByText(/: [\d,]+ votes$/)).toBeTruthy();
+    const faded = [...container.querySelectorAll('rect[width="16"]')].filter((rect) => rect.getAttribute('fill-opacity') === '0.3');
+    expect(faded.length).toBeGreaterThan(0);
     fireEvent.mouseLeave(node);
 
-    const ribbon = container.querySelector('path') as Element;
     fireEvent.mouseEnter(ribbon);
-    expect(screen.getByText(/ → .*: [\d,]+ votes$/)).toBeTruthy();
+    expect(ribbon.getAttribute('fill-opacity')).toBe('0.7');
     fireEvent.mouseLeave(ribbon);
-    expect(screen.queryByText(/ → /)).toBeNull();
+    expect(ribbon.getAttribute('fill-opacity')).toBe('0.35');
   });
 
   it('follows the width of its container', () => {
