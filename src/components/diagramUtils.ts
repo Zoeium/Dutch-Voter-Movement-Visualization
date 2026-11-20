@@ -41,6 +41,16 @@ export function formatSignedPP(n: number): string {
   return `${n > 0 ? '+' : ''}${n.toFixed(1)}pp`;
 }
 
+/** Pair up the items of two lists by position, as far as the shorter one goes. */
+export function zip<A, B>(first: readonly A[], second: readonly B[]): [A, B][] {
+  const pairs: [A, B][] = [];
+  const length = Math.min(first.length, second.length);
+  for (let index = 0; index < length; index += 1) {
+    pairs.push([first[index] as A, second[index] as B]);
+  }
+  return pairs;
+}
+
 /** Sum the flow values leaving and entering every source and target id. */
 export function sumFlowValues(
   flows: readonly {source: string; target: string; value: number}[]
@@ -66,10 +76,10 @@ export function sumFlowValues(
 export function scaleToFill(seats: readonly number[], target: number, minHeight: number): number {
   const sorted = seats.filter((count) => count > 0).sort((a, b) => a - b);
   let remainingSeats = sorted.reduce((sum, count) => sum + count, 0);
-  for (let raised = 0; raised < sorted.length; raised += 1) {
+  for (const [raised, smallest] of sorted.entries()) {
     const scale = (target - raised * minHeight) / remainingSeats;
-    if (sorted[raised] * scale >= minHeight) return scale;
-    remainingSeats -= sorted[raised];
+    if (smallest * scale >= minHeight) return scale;
+    remainingSeats -= smallest;
   }
   return 0;
 }

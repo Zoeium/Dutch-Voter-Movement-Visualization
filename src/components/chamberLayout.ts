@@ -1,4 +1,5 @@
 // Hemicycle layout for the coalition explorer: one dot per seat, any chamber size.
+import {zip} from '@/components/diagramUtils';
 
 export interface PartySeat {
   partyId: string;
@@ -55,51 +56,44 @@ export function chamberRows(total: number): { radii: number[]; counts: number[];
 
   // Largest-remainder share of the seats, never more than a row can hold.
   const radiusSum = sum(radii);
-  const exact = radii.map((radius) => (total * radius) / radiusSum);
-  const counts = exact.map((share, row) => Math.min(capacities[row], Math.floor(share)));
-  const byRemainder = exact
-    .map((share, row) => ({row, remainder: share - Math.floor(share)}))
-    .sort((a, b) => b.remainder - a.remainder)
-    .map(({row}) => row);
+  const rowSeats = zip(radii, capacities).map(([radius, capacity]) => {
+    const share = (total * radius) / radiusSum;
+    return {capacity, count: Math.min(capacity, Math.floor(share)), remainder: share - Math.floor(share)};
+  });
+  const byRemainder = [...rowSeats].sort((a, b) => b.remainder - a.remainder);
+  const placed = () => sum(rowSeats.map((row) => row.count));
 
   // Hand out the seats still missing, one per row in order of remainder, skipping rows
   // that are full. The rows hold at least `total` seats, so while seats are missing there
   // is always a row with room, and every round places at least one seat.
-  let missing = total - sum(counts);
+  let missing = total - placed();
   while (missing > 0) {
-    const open = byRemainder.filter((row) => counts[row] < capacities[row]);
-    for (const row of open.slice(0, missing)) counts[row] += 1;
-    missing = total - sum(counts);
+    const open = byRemainder.filter((row) => row.count < row.capacity);
+    for (const row of open.slice(0, missing)) row.count += 1;
+    missing = total - placed();
   }
-  return {radii, counts, spacing};
+  return {radii, counts: rowSeats.map((row) => row.count), spacing};
 }
 
 export function createChamberLayout(parties: PartySeat[], selectedParties: Set<string>): ChamberLayout {
   const positions: {x: number; y: number; row: number; angle: number}[] = [];
-  const selectedSeats = parties.filter((party) => selectedParties.has(party.partyId)).flatMap((party) =>
-    Array.from({length: party.seats}, () => ({
-      partyId: party.partyId,
-      label: party.label,
-      color: party.color,
-      selected: true,
-    }))
-  );
-  const emptySeats = parties.filter((party) => !selectedParties.has(party.partyId)).flatMap((party) =>
-    Array.from({length: party.seats}, () => ({
-      partyId: party.partyId,
-      label: party.label,
-      color: party.color,
-      selected: false,
-    }))
-  );
-  const partySeats = [...selectedSeats, ...emptySeats];
+  // One entry per seat: the selected parties first, so they fill the chamber from the left.
+  const seatsOf = (selected: boolean) =>
+    parties.filter((party) => selectedParties.has(party.partyId) === selected).flatMap((party) =>
+      Array.from({length: party.seats}, () => ({
+        partyId: party.partyId,
+        label: party.label,
+        color: party.color,
+        selected,
+      }))
+    );
+  const partySeats = [...seatsOf(true), ...seatsOf(false)];
   if (partySeats.length === 0) {
     return {seats: [], borderRadius: CHAMBER_OUTER_RADIUS, seatRadius: MAX_SEAT_RADIUS};
   }
 
   const {radii, counts, spacing} = chamberRows(partySeats.length);
-  radii.forEach((radius, row) => {
-    const rowCount = counts[row];
+  zip(radii, counts).forEach(([radius, rowCount], row) => {
     for (let position = 0; position < rowCount; position++) {
       const angle = Math.PI - (Math.PI * position) / Math.max(rowCount - 1, 1);
       positions.push({
@@ -113,7 +107,8 @@ export function createChamberLayout(parties: PartySeat[], selectedParties: Set<s
 
   // Hand out seats by angle, from the left, so each party fills a wedge of the chamber.
   positions.sort((a, b) => b.angle - a.angle || a.row - b.row);
-  const seats = positions.map(({x, y, row}, index) => ({...partySeats[index], x, y, row}));
+  // chamberRows places exactly one position per seat, so seats and positions pair up.
+  const seats = zip(partySeats, positions).map(([seat, {x, y, row}]) => ({...seat, x, y, row}));
   const seatRadius = Math.min(MAX_SEAT_RADIUS, spacing * 0.4);
 
   return {seats, borderRadius: CHAMBER_OUTER_RADIUS + spacing / 2 + seatRadius, seatRadius};

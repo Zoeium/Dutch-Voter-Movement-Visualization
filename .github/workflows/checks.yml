@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   code:
-    name: Code (lint, types, unit tests, build)
+    name: Code (lint, types, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,11 +21,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run test:unit
       - run: npm run build
 
-  data:
-    name: Data consistency
+  tests:
+    # The unit tests and the data consistency tests run together: the data tests read every
+    # country through the real loader, so coverage is only complete with both.
+    name: Tests (unit and data, with coverage)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,4 +35,12 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run test:data
+      # Fails when coverage drops below the thresholds in vite.config.ts.
+      - run: npm run test:coverage
+      - name: Keep the coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14

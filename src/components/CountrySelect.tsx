@@ -76,7 +76,8 @@ export default function CountrySelect({countries: unsortedCountries, value, onCh
       setActiveIndex((index) => Math.max(0, index - 1));
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      choose(countries[activeIndex]);
+      const country = countries[activeIndex];
+      if (country) choose(country);
     } else if (event.key === 'Tab') {
       setOpen(false);
     }

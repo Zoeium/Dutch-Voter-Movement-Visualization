@@ -9,7 +9,7 @@ const pairs = (edges: LineageEdge[], cols: LineageBlock[][]) =>
     const fromCol = cols.findIndex((col) => col.includes(from));
     const toCol = cols.findIndex((col) => col.includes(to));
     return `${from.party}@${fromCol}>${to.party}@${toCol}`;
-  }).sort();
+  }).sort((a, b) => a.localeCompare(b));
 
 const party = (id: string, relations: Partial<PartyInfo> = {}): PartyInfo => ({party: id, display_name: id, color: '#000000', ...relations});
 

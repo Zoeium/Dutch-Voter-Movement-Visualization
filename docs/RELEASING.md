@@ -3,7 +3,7 @@
 Every release is a [semantic version](https://semver.org/) (`MAJOR.MINOR.PATCH`) with a matching git tag
 (`v1.2.0`). Pushing the tag starts the release workflow, which:
 
-1. runs the same checks as CI: lint, type check, code tests, data consistency tests and a build;
+1. runs the same checks as CI: lint, type check, the code and data consistency tests with coverage, and a build;
 2. checks that the tag matches the `version` in `package.json`;
 3. publishes the built site to GitHub Pages;
 4. creates the GitHub release, with the notes from `CHANGELOG.md` and the site as a zip file.

@@ -82,21 +82,24 @@ function pickCountry(countryIds: string[], requested: string): string {
   return countryIds[0] ?? '';
 }
 
+const TAB_KEYS: readonly TabKey[] = ['home', 'alluvial', 'parliament', 'turnout', 'compare', 'coalition'];
+const THEMES: readonly Theme[] = ['dark', 'light'];
+const LANGUAGES: readonly Language[] = ['en', 'nl'];
+const SORT_MODES: readonly SortMode[] = ['votes', 'alphabetical'];
+
+/** A URL value when it is one of `allowed`, else `fallback`. */
+function pickOption<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
+  return allowed.find((option) => option === value) ?? fallback;
+}
+
 /** Parse the state that survives a country switch from the URL. */
 function getInitialAppStateFromUrl(countries: CountryInfo[]) {
   const params = new URLSearchParams(window.location.search);
-  const countryIds = countries.map((c) => c.id);
-  const country = params.get('country') ?? '';
-  const tab = (params.get('tab') as TabKey) || 'home';
-  const validTabs: TabKey[] = ['home', 'alluvial', 'parliament', 'turnout', 'compare', 'coalition'];
-  const theme = (params.get('theme') as Theme) || 'dark';
-  const lang = (params.get('lang') as Language) || 'en';
-
   return {
-    country: pickCountry(countryIds, country),
-    tab: validTabs.includes(tab) ? tab : 'home' as TabKey,
-    theme: (theme === 'light' || theme === 'dark') ? theme : 'dark' as Theme,
-    lang: (lang === 'en' || lang === 'nl') ? lang : 'en' as Language,
+    country: pickCountry(countries.map((c) => c.id), params.get('country') ?? ''),
+    tab: pickOption(params.get('tab'), TAB_KEYS, 'home'),
+    theme: pickOption(params.get('theme'), THEMES, 'dark'),
+    lang: pickOption(params.get('lang'), LANGUAGES, 'en'),
   };
 }
 
@@ -123,7 +126,6 @@ function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElection
   const turnoutYearStart = readIndex('tys', 0, maxComparisonIndex);
   const turnoutYearEnd = Math.max(turnoutYearStart, readIndex('tye', maxComparisonIndex, maxComparisonIndex));
 
-  const sort = (params.get('sort') as SortMode) || 'votes';
   const defaultCompareYearA = comparisonYears[Math.max(0, comparisonYears.length - 2)] ?? '';
   const defaultCompareYearB = comparisonYears.at(-1) ?? '';
   const requestedCompareYearA = params.get('cmpA');
@@ -135,7 +137,7 @@ function getInitialStateFromUrl(allElections: ElectionYear[], comparisonElection
     yearEnd,
     turnoutYearStart,
     turnoutYearEnd,
-    sortMode: (sort === 'alphabetical' || sort === 'votes') ? sort : 'votes' as SortMode,
+    sortMode: pickOption(params.get('sort'), SORT_MODES, 'votes'),
     compareYearA: requestedCompareYearA && comparisonYears.includes(requestedCompareYearA)
       ? requestedCompareYearA
       : defaultCompareYearA,
@@ -240,13 +242,15 @@ interface YearRangeControlProps {
 /** "Years: A–B" label with the range slider, or a note when there are no years. */
 function YearRangeControl({years, start, end, onStartChange, onEndChange, ariaLabelPrefix}: Readonly<YearRangeControlProps>) {
   const {t} = useI18n();
-  if (years.length === 0) {
+  const first = years[start];
+  const last = years[end];
+  if (first === undefined || last === undefined) {
     return <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('yearsNone')}</span>;
   }
   return (
     <>
       <span className="text-sm font-medium text-app-muted whitespace-nowrap">
-        {`${t('years')}: ${formatElectionLabel(years[start])}–${formatElectionLabel(years[end])}`}
+        {`${t('years')}: ${formatElectionLabel(first)}–${formatElectionLabel(last)}`}
       </span>
       <DualRangeSlider
         min={0}
@@ -574,7 +578,7 @@ function Dashboard({
               icon={<Share2 className="w-4 h-4"/>}
               label={t('share')}
               doneLabel={t('shareCopied')}
-              onClick={handleShare}
+              onClick={() => void handleShare()}
             />
             {/* The compare tab exports its table as CSV; the chart tabs their chart as SVG.
                 The front page has nothing to export. */}
@@ -623,7 +627,7 @@ function Dashboard({
             electionYears={turnoutYears}
             governmentCount={coalitions.length}
             views={homeViews}
-            onOpen={(key) => setActiveTab(key as TabKey)}
+            onOpen={(key) => setActiveTab(pickOption(key, TAB_KEYS, 'home'))}
           />
         )}
 

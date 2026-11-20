@@ -21,9 +21,9 @@ export function getSplitParents(party: string, parties: PartyInfo[]): string[] {
 
 export type LineageEdge<T extends LineageBlock = LineageBlock> = { from: T; to: T };
 
-/** Party ids present in each column, to tell appearing and disappearing parties apart. */
-function collectPresence(colBlocks: LineageBlock[][]): Set<string>[] {
-  return colBlocks.map((list) => new Set(list.map((block) => block.party)));
+/** Party ids present in a column, to tell appearing and disappearing parties apart. */
+function partiesIn(list: LineageBlock[]): Set<string> {
+  return new Set(list.map((block) => block.party));
 }
 
 function relationsOf(parties: PartyInfo[]): Map<string, PartyInfo> {
@@ -51,21 +51,25 @@ function pushUnique<T extends LineageBlock>(edges: LineageEdge<T>[], from: T, to
 export function collectMergeEdges<T extends LineageBlock>(colBlocks: T[][], parties: PartyInfo[]): LineageEdge<T>[] {
   const edges: LineageEdge<T>[] = [];
   const relations = relationsOf(parties);
-  const presence = collectPresence(colBlocks);
 
-  for (let colIndex = 1; colIndex < colBlocks.length; colIndex += 1) {
+  for (const [previousList, list] of adjacentPairs(colBlocks)) {
     const step = {
-      previous: new Map(colBlocks[colIndex - 1].map((block) => [block.party, block])),
-      previousPresent: presence[colIndex - 1],
-      current: presence[colIndex],
+      previous: new Map(previousList.map((block) => [block.party, block])),
+      previousPresent: partiesIn(previousList),
+      current: partiesIn(list),
     };
-    for (const block of colBlocks[colIndex]) {
+    for (const block of list) {
       for (const from of mergeSourcesOf(block, relations.get(block.party), step)) pushUnique(edges, from, block);
     }
-    appendDisappearingEdges(edges, colBlocks[colIndex - 1], colBlocks[colIndex], step.current, relations);
+    appendDisappearingEdges(edges, previousList, list, step.current, relations);
   }
 
   return edges;
+}
+
+/** Each column with the one after it. */
+function adjacentPairs<T>(columns: T[][]): [T[], T[]][] {
+  return columns.slice(1).map((list, index): [T[], T[]] => [columns[index] ?? [], list]);
 }
 
 /** Parties of the previous column that are gone now flow into the party they continue in. */
@@ -114,16 +118,16 @@ function continuesInto(from: LineageBlock, to: LineageBlock, relations: Map<stri
 export function collectSplitEdges<T extends LineageBlock>(colBlocks: T[][], parties: PartyInfo[]): LineageEdge<T>[] {
   const edges: LineageEdge<T>[] = [];
   const relations = relationsOf(parties);
-  const presence = collectPresence(colBlocks);
 
-  for (let colIndex = 0; colIndex < colBlocks.length; colIndex += 1) {
-    const list = colBlocks[colIndex];
+  for (const [colIndex, list] of colBlocks.entries()) {
+    const isFirst = colIndex === 0;
     const previousList = colBlocks[colIndex - 1] ?? [];
-    const appearing = list.filter((block) => colIndex === 0 || !presence[colIndex - 1].has(block.party));
+    const previousPresent = partiesIn(previousList);
+    const appearing = list.filter((block) => isFirst || !previousPresent.has(block.party));
 
     for (const block of appearing) {
       // In the first column the parent can only be found in the same column.
-      const from = splitParentBlock(block, colIndex === 0 ? list : previousList, parties);
+      const from = splitParentBlock(block, isFirst ? list : previousList, parties);
       if (from) pushUnique(edges, from, block);
       for (const alliance of alliancesLeftBy(block, previousList, relations)) pushUnique(edges, alliance, block);
     }

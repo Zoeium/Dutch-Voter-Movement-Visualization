@@ -22,3 +22,6 @@ dist-ssr
 *.sw?
 .vite
 .env
+
+# Test coverage reports (npm run test:coverage)
+coverage

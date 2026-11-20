@@ -402,6 +402,7 @@ export default function TurnoutDiagram({elections}: Readonly<TurnoutDiagramProps
             const x = labelSpace + gap + i * (barWidth + gap);
             const yBase = 40 + barHeight;
             const values = modeValues[i];
+            if (!values) return null;
             const stripeId = buildStripeId(bar.year);
 
             const validH = showValid ? values.valid * scale : 0;

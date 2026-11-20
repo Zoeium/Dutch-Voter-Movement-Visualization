@@ -1,11 +1,76 @@
 import {describe, expect, it} from 'vitest';
 import {
   buildGradientId,
+  buildRibbonPath,
+  buildStripeId,
   formatElectionLabel,
+  formatNumber,
+  formatPct,
+  formatSignedNumber,
+  formatSignedPP,
   partyButtonClass,
   scaleToFill,
   sliceByIndexRange,
+  sumFlowValues,
+  toggleButtonClass,
+  zip,
 } from '@/components/diagramUtils';
+
+describe('zip', () => {
+  it('pairs items by position, as far as the shorter list goes', () => {
+    expect(zip([1, 2, 3], ['a', 'b'])).toEqual([[1, 'a'], [2, 'b']]);
+    expect(zip([], ['a'])).toEqual([]);
+  });
+});
+
+describe('number formatting', () => {
+  it('formats counts with thousands separators', () => {
+    expect(formatNumber(1234567)).toBe('1,234,567');
+  });
+
+  it('signs gains but not zero', () => {
+    expect(formatSignedNumber(1500)).toBe('+1,500');
+    expect(formatSignedNumber(-1500)).toBe('-1,500');
+    expect(formatSignedNumber(0)).toBe('0');
+    expect(formatSignedPP(1.25)).toBe('+1.3pp');
+    expect(formatSignedPP(-0.04)).toBe('-0.0pp');
+  });
+
+  it('formats percentages with one decimal', () => {
+    expect(formatPct(12.345)).toBe('12.3%');
+  });
+});
+
+describe('sumFlowValues', () => {
+  it('sums the flows leaving and entering each id', () => {
+    const flows = [
+      {source: 'a', target: 'b', value: 3},
+      {source: 'a', target: 'c', value: 2},
+      {source: 'b', target: 'c', value: 5},
+    ];
+    expect(sumFlowValues(flows)).toEqual({outgoing: {a: 5, b: 5}, incoming: {b: 3, c: 7}});
+  });
+});
+
+describe('buildRibbonPath', () => {
+  it('starts at the source band and closes back to it through the target band', () => {
+    const path = buildRibbonPath(0, 10, 20, 100, 50, 70);
+    expect(path.startsWith('M 0 10 C 50 10, 50 50, 100 50')).toBe(true);
+    expect(path).toContain('L 100 70');
+    expect(path.endsWith('C 50 70, 50 20, 0 20 Z')).toBe(true);
+  });
+});
+
+describe('DOM-safe ids and classes', () => {
+  it('replaces characters that are not allowed in ids', () => {
+    expect(buildStripeId('1974-02', 'a b')).toBe('stripes-1974-02-a-b');
+  });
+
+  it('marks the active toggle button', () => {
+    expect(toggleButtonClass(true)).toContain('bg-emerald-500');
+    expect(toggleButtonClass(false)).not.toContain('bg-emerald-500');
+  });
+});
 
 describe('scaleToFill', () => {
   const MIN = 12;

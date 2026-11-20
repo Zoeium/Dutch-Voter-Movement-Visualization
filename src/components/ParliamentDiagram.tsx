@@ -198,9 +198,7 @@ function fitBlockLabel(
   height: number,
   width: number
 ): { lines: string[]; fontPx: number } {
-  // Heights follow the seat share, so a small party can be thinner than a line of text:
-  // it is then not labelled in the block (the tooltip still names it).
-  if (height < SMALL_LABEL_PX * LABEL_LINE_HEIGHT + 1) return {lines: [], fontPx: SMALL_LABEL_PX};
+  // Every block is at least MIN_BLOCK_HEIGHT tall, which fits one line of the small font.
   const maxWidth = width - 2 * LABEL_PADDING_X;
   const fontPx = height >= MEDIUM_LABEL_HEIGHT ? MEDIUM_LABEL_PX : SMALL_LABEL_PX;
   const seatText = `(${seats})`;
@@ -383,19 +381,25 @@ function shareMergedBlock(
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   if (total === 0) return;
   group.forEach((ribbon, index) => {
-    ribbon.targetSeats = (block.seats * weights[index]) / total;
+    ribbon.targetSeats = (block.seats * (weights[index] ?? 0)) / total;
   });
 }
 
+/** One cabinet's column in the diagram. */
+interface LayoutColumn {
+  coalition: CoalitionData;
+  /** Left edge; the width follows the cabinet's time in office. */
+  x: number;
+  width: number;
+  blocks: PartyBlock[];
+  /** y position of each role divider line (none when the column has one role). */
+  dividers: number[];
+}
+
 interface ParliamentLayout {
-  selected: CoalitionData[];
-  // Left edge and width of each column; the width follows the cabinet's time in office.
-  columnXs: number[];
-  columnWidths: number[];
-  colBlocks: PartyBlock[][];
-  // y position of the role divider line for each column (empty when a column has one role).
-  colDividers: number[][];
-  edges: { block: PartyBlock; next: PartyBlock }[];
+  /** The selected cabinets, left to right. */
+  columns: LayoutColumn[];
+  edges:{ block: PartyBlock; next: PartyBlock }[];
   mergeEdges: { from: PartyBlock; to: PartyBlock }[];
   splitEdges: { from: PartyBlock; to: PartyBlock }[];
   svgWidth: number;
@@ -472,7 +476,7 @@ function sizeColumnBlocks(list: PartyBlock[], target: number, minPxPerSeat: numb
 
 /** Number of role changes (coalition -> support -> opposition) down a column. */
 function countRoleChanges(list: PartyBlock[]): number {
-  return list.filter((block, idx) => idx > 0 && list[idx - 1].role !== block.role).length;
+  return list.filter((block, idx) => idx > 0 && list[idx - 1]?.role !== block.role).length;
 }
 
 /** Room a column needs between its blocks, with the minimum row gap. */
@@ -511,23 +515,15 @@ function layoutColumnBlocks(list: PartyBlock[], columnHeight: number): number[] 
   return dividers;
 }
 
-function collectContinuityEdges(colBlocks: PartyBlock[][], selectedCount: number): { block: PartyBlock; next: PartyBlock }[] {
-  const edges: { block: PartyBlock; next: PartyBlock }[] = [];
-
-  for (let colIndex = 0; colIndex < selectedCount - 1; colIndex += 1) {
-    const list = colBlocks[colIndex];
-    const nextList = colBlocks[colIndex + 1];
-
-    for (const block of list) {
-      for (const next of nextList) {
-        if (next.party === block.party) {
-          edges.push({block, next});
-        }
-      }
-    }
-  }
-
-  return edges;
+/** A party's block in each column joined to its block in the next column. */
+function collectContinuityEdges(colBlocks: PartyBlock[][]): { block: PartyBlock; next: PartyBlock }[] {
+  return colBlocks.slice(1).flatMap((nextList, index) => {
+    const nextByParty = new Map(nextList.map((next) => [next.party, next]));
+    return (colBlocks[index] ?? []).flatMap((block) => {
+      const next = nextByParty.get(block.party);
+      return next ? [{block, next}] : [];
+    });
+  });
 }
 
 /** Start of a cabinet's term in ms. */
@@ -546,8 +542,10 @@ function cabinetYear(coalition: CoalitionData): string {
  * for the sitting cabinet.
  */
 function cabinetColumnWidth(coalitions: CoalitionData[], index: number, now: number): number {
+  const cabinet = coalitions[index];
+  if (!cabinet) return MIN_BLOCK_WIDTH;
   const next = coalitions[index + 1];
-  const years = ((next ? cabinetStart(next) : now) - cabinetStart(coalitions[index])) / MS_PER_YEAR;
+  const years = ((next ? cabinetStart(next) : now) - cabinetStart(cabinet)) / MS_PER_YEAR;
   return Number.isFinite(years) ? Math.max(MIN_BLOCK_WIDTH, years * PX_PER_YEAR) : MIN_BLOCK_WIDTH;
 }
 
@@ -562,32 +560,28 @@ function buildParliamentLayout(
   end: number,
   now: number
 ): ParliamentLayout {
-  const selected = coalitions.slice(start, end + 1);
-  const selectedCount = selected.length;
-
-  const columnWidths = selected.map((_, colIndex) => cabinetColumnWidth(coalitions, start + colIndex, now));
-  const columnXs: number[] = [];
+  // Place the columns side by side, each as wide as its cabinet's time in office.
   let nextX = LABEL_SPACE;
-  for (const width of columnWidths) {
-    columnXs.push(nextX);
+  const placed = coalitions.slice(start, end + 1).map((coalition, colIndex) => {
+    const x = nextX;
+    const width = cabinetColumnWidth(coalitions, start + colIndex, now);
     nextX += width + COLUMN_GAP;
-  }
+    return {coalition, x, width, blocks: buildColumnBlocks(coalition, colIndex, parties, x, width)};
+  });
+  const colBlocks = placed.map((column) => column.blocks);
 
   // One scale for every column, so a column's height follows its number of seats: the
   // Dutch chamber grows from 100 to 150 seats in 1956, Italy's shrinks to 400 in 2022.
   // On top of that, every column gets the same room for raising small parties to label
   // height and for the gaps, so columns with as many seats end at the same height.
-  const colBlocks = selected.map((coalition, colIndex) =>
-    buildColumnBlocks(coalition, colIndex, parties, columnXs[colIndex], columnWidths[colIndex])
-  );
   const maxSeats = Math.max(0, ...colBlocks.map(totalSeatsOf));
   const pxPerSeat = maxSeats > 0 ? CHAMBER_HEIGHT / maxSeats : 0;
   const raise = Math.max(0, ...colBlocks.map((list) => blockHeightsAt(list, pxPerSeat) - totalSeatsOf(list) * pxPerSeat));
   const gapHeight = Math.max(0, ...colBlocks.map(minimumGapHeight));
-  const colDividers = colBlocks.map((list) => {
-    const blocksHeight = totalSeatsOf(list) * pxPerSeat + raise;
-    sizeColumnBlocks(list, blocksHeight, pxPerSeat);
-    return layoutColumnBlocks(list, blocksHeight + gapHeight);
+  const columns = placed.map((column): LayoutColumn => {
+    const blocksHeight = totalSeatsOf(column.blocks) * pxPerSeat + raise;
+    sizeColumnBlocks(column.blocks, blocksHeight, pxPerSeat);
+    return {...column, dividers: layoutColumnBlocks(column.blocks, blocksHeight + gapHeight)};
   });
 
   const columnsWidth = nextX - COLUMN_GAP + LABEL_SPACE;
@@ -601,11 +595,11 @@ function buildParliamentLayout(
   );
   const svgHeight = Math.ceil(maxColHeight + LEGEND_SPACE);
 
-  const edges = collectContinuityEdges(colBlocks, selectedCount);
+  const edges = collectContinuityEdges(colBlocks);
   const mergeEdges = collectMergeEdges(colBlocks, parties);
   const splitEdges = collectSplitEdges(colBlocks, parties);
 
-  return {selected, columnXs, columnWidths, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
+  return {columns, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
 }
 
 /** Render coalition composition and party lineage across cabinets. */
@@ -631,35 +625,23 @@ export default function ParliamentDiagram({
   }, [coalitions]);
 
   const electionLabel = (electionYear: string): string => {
-    const rawDate: unknown = electionsById.get(electionYear)?.voteTotals.date;
-    const date = rawDate ? String(rawDate) : '';
+    const date = electionsById.get(electionYear)?.voteTotals.date;
     if (!date) return `${t('election')} ${formatElectionLabel(electionYear)}`;
     const formatted = new Intl.DateTimeFormat(lang === 'nl' ? 'nl-NL' : 'en-GB', {month: 'short', year: 'numeric'})
       .format(new Date(`${date}T12:00:00`));
     return `${t('electionMarker')} · ${formatted}`;
   };
-  const columns = coalitions.length;
+  const cabinetCount = coalitions.length;
   const [hoveredParty, setHoveredParty] = useState<string | null>(null);
-  const [rangeStart, setRangeStart] = useState(Math.max(0, columns - DEFAULT_VISIBLE_COLUMNS));
-  const [rangeEnd, setRangeEnd] = useState(Math.max(0, columns - 1));
+  const [rangeStart, setRangeStart] = useState(Math.max(0, cabinetCount - DEFAULT_VISIBLE_COLUMNS));
+  const [rangeEnd, setRangeEnd] = useState(Math.max(0, cabinetCount - 1));
 
-  const start = Math.max(0, Math.min(rangeStart, columns - 1));
-  const end = Math.max(start, Math.min(rangeEnd, columns - 1));
+  const start = Math.max(0, Math.min(rangeStart, cabinetCount - 1));
+  const end = Math.max(start, Math.min(rangeEnd, cabinetCount - 1));
 
   // Derived layout is memoized so hover updates (local state) do not re-run the
   // effectively O(columns x blocks^2) edge/split computation on every mouse move.
-  const {
-    selected,
-    columnXs,
-    columnWidths,
-    colBlocks,
-    colDividers,
-    edges,
-    mergeEdges,
-    splitEdges,
-    svgWidth,
-    svgHeight,
-  } = useMemo(
+  const {columns, edges, mergeEdges, splitEdges, svgWidth, svgHeight} = useMemo(
     () => buildParliamentLayout(coalitions, parties, start, end, Date.now()),
     [coalitions, parties, start, end]
   );
@@ -673,20 +655,20 @@ export default function ParliamentDiagram({
   const lineageRibbons = useMemo(() => {
     // A block's votes at the election its column's seats come from.
     const votesOf = (block: PartyBlock) => {
-      const electionYear = selected[block.columnIndex]?.electionYear;
-      return electionYear ? electionsById.get(electionYear)?.voteTotals.parties_votes?.[block.party] : undefined;
+      const electionYear = columns[block.columnIndex]?.coalition.electionYear;
+      return electionYear ? electionsById.get(electionYear)?.voteTotals.parties_votes[block.party] : undefined;
     };
     return buildLineageRibbons(edges, mergeEdges, splitEdges, votesOf);
-  }, [edges, mergeEdges, splitEdges, selected, electionsById]);
+  }, [edges, mergeEdges, splitEdges, columns, electionsById]);
   const continuityRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'continuity');
   const mergeRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'merge');
   const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
 
-  if (columns === 0) {
+  const firstColumn = columns[0];
+  const lastColumn = columns.at(-1);
+  if (!firstColumn || !lastColumn) {
     return <div className="text-app-muted text-center py-8">{t('noCoalitionData')}</div>;
   }
-
-  const selectedCount = selected.length;
 
   const isPartyHighlighted = (party: string) => !highlightedParties || highlightedParties.has(party);
 
@@ -714,7 +696,7 @@ export default function ParliamentDiagram({
         <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('range')}</span>
         <DualRangeSlider
           min={0}
-          max={columns - 1}
+          max={cabinetCount - 1}
           start={start}
           end={end}
           onStartChange={setRangeStart}
@@ -723,21 +705,21 @@ export default function ParliamentDiagram({
           endAriaLabel="Range end"
         />
         <span className="text-xs text-app-muted whitespace-nowrap">
-          {selected[0].name} ({cabinetYear(selected[0])}) — {selected[selectedCount - 1].name} ({cabinetYear(selected[selectedCount - 1])})
+          {firstColumn.coalition.name} ({cabinetYear(firstColumn.coalition)}) — {lastColumn.coalition.name} ({cabinetYear(lastColumn.coalition)})
         </span>
         {/* Quick ranges: reading ~30 columns at once is not useful, so offer a window. */}
         <div className="flex items-center gap-1.5">
-          {RANGE_PRESETS.filter((preset) => preset.size === 0 || preset.size < columns).map((preset) => {
-            const size = preset.size === 0 ? columns : preset.size;
-            const presetStart = Math.max(0, columns - size);
-            const isActive = start === presetStart && end === columns - 1;
+          {RANGE_PRESETS.filter((preset) => preset.size === 0 || preset.size < cabinetCount).map((preset) => {
+            const size = preset.size === 0 ? cabinetCount : preset.size;
+            const presetStart = Math.max(0, cabinetCount - size);
+            const isActive = start === presetStart && end === cabinetCount - 1;
             return (
               <button
                 type="button"
                 key={preset.labelKey}
                 onClick={() => {
                   setRangeStart(presetStart);
-                  setRangeEnd(columns - 1);
+                  setRangeEnd(cabinetCount - 1);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${toggleButtonClass(isActive)}`}
               >
@@ -878,12 +860,8 @@ export default function ParliamentDiagram({
         })}
 
         {/* Party columns */}
-        {selected.map((coalition, colIndex) => {
-          const list = colBlocks[colIndex];
-          const dividers = colDividers[colIndex] ?? [];
+        {columns.map(({coalition, x: columnX, width: columnWidth, blocks: list, dividers}, colIndex) => {
           const columnKey = `${coalition.name}-${coalition.inauguration}`;
-          const columnX = columnXs[colIndex];
-          const columnWidth = columnWidths[colIndex];
           const columnCenter = columnX + columnWidth / 2;
           const markerWidth = Math.max(columnWidth, MIN_MARKER_WIDTH) + 16;
           // A short cabinet has a narrow column: shorten its name to the room up to its neighbours.

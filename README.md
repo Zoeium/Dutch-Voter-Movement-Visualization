@@ -113,6 +113,13 @@ Every change to the data is checked automatically before it is published. Among 
 each party's votes add up to the valid votes, that every party has a name and colour, that a cabinet or government
 with seats follows every election, and that every governing party actually holds seats.
 
+### Code checks
+
+The code is checked the same way: `npm run lint` (ESLint with type-aware and SonarJS rules), `npm run typecheck`
+(strict TypeScript) and `npm run test:coverage` (all tests, with a coverage report in `coverage/index.html`). The tests
+cover the data, the logic and every view, which is rendered in a simulated browser and used like a visitor would. The
+coverage run fails when any file drops below 80% (the thresholds are in `vite.config.ts`).
+
 ## Versions
 
 The app is released in numbered versions; the version shown at the bottom of the page is the one you are looking at.

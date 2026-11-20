@@ -79,33 +79,26 @@ function sortNodesInColumn(
 }
 
 /** Group links by their source or target node identifier. */
-function buildLinkGroups(
-  links: DiagramLink[],
-  key: 'source' | 'target'
-): Record<string, DiagramLink[]> {
-  const groups: Record<string, DiagramLink[]> = {};
-
+function buildLinkGroups(links: DiagramLink[], key: 'source' | 'target'): Map<string, DiagramLink[]> {
+  const groups = new Map<string, DiagramLink[]>();
   for (const link of links) {
-    const groupKey = link[key];
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-    }
-    groups[groupKey].push(link);
+    const group = groups.get(link[key]);
+    if (group) group.push(link);
+    else groups.set(link[key], [link]);
   }
-
   return groups;
 }
 
-/** Sort each link group by the vertical position of its opposite endpoint. */
+/** Sort each link group by the vertical position of the node at its `by` end. */
 function sortGroupsByNodeY(
-  groups: Record<string, DiagramLink[]>,
-  nodeMap: Record<string, PositionedNode>,
-  dimension: 'source' | 'target'
+  groups: Map<string, DiagramLink[]>,
+  nodeMap: Map<string, PositionedNode>,
+  by: 'source' | 'target'
 ): void {
-  for (const groupId in groups) {
-    groups[groupId].sort((a, b) => {
-      const first = dimension === 'source' ? nodeMap[a.source] : nodeMap[a.target];
-      const second = dimension === 'source' ? nodeMap[b.source] : nodeMap[b.target];
+  for (const group of groups.values()) {
+    group.sort((a, b) => {
+      const first = nodeMap.get(a[by]);
+      const second = nodeMap.get(b[by]);
       if (!first || !second) return 0;
       return first.y - second.y;
     });
@@ -115,84 +108,51 @@ function sortGroupsByNodeY(
 /** Assign scaled SVG coordinates and heights to every diagram node. */
 function positionNodes(
   columns: PositionedNode[][],
-  numColumns: number,
   scale: number,
   svgWidth: number,
   selectedParty: string | null,
   sortMode: SortMode
 ): PositionedNode[] {
-  for (let columnIndex = 0; columnIndex < numColumns; columnIndex += 1) {
-    columns[columnIndex] = sortNodesInColumn(columns[columnIndex], selectedParty, sortMode);
-  }
-
-  const allNodesFlat: PositionedNode[] = [];
-  for (let columnIndex = 0; columnIndex < numColumns; columnIndex += 1) {
+  const spacing = getColumnSpacing(columns.length, svgWidth);
+  return columns.flatMap((column, columnIndex) => {
     let yOffset = CHART_PADDING_TOP;
-    for (const node of columns[columnIndex]) {
-      // support a precomputed requiredValue (raw units) so node height can account for
-      // outgoing/incoming flows that exceed the node's own value
-      const requiredRaw = node.requiredValue ?? node.value;
-      const nodeHeight = Math.max(MIN_NODE_HEIGHT, requiredRaw * scale);
-      const positionedNode = {
-        ...node,
-        y: yOffset,
-        x: LABEL_SPACE + columnIndex * getColumnSpacing(numColumns, svgWidth),
-        width: NODE_WIDTH,
-        nodeHeight
-      };
-      allNodesFlat.push(positionedNode);
+    return sortNodesInColumn(column, selectedParty, sortMode).map((node) => {
+      // The height covers the node's own votes and every flow in or out of it.
+      const nodeHeight = Math.max(MIN_NODE_HEIGHT, (node.requiredValue ?? node.value) * scale);
+      const positionedNode = {...node, y: yOffset, x: LABEL_SPACE + columnIndex * spacing, width: NODE_WIDTH, nodeHeight};
       yOffset += nodeHeight + NODE_GAP;
-    }
-  }
-
-  return allNodesFlat;
+      return positionedNode;
+    });
+  });
 }
 
 /**
  * Seed the per-node `id -> y` offset map. Used as the starting cursor for both the
  * incoming (target) and outgoing (source) accumulators so the two cannot drift.
  */
-function buildNodeOffsets(allNodesFlat: PositionedNode[]): Record<string, number> {
-  const offsets: Record<string, number> = {};
-
-  for (const node of allNodesFlat) {
-    offsets[node.id] = node.y;
-  }
-
-  return offsets;
+function buildNodeOffsets(allNodesFlat: PositionedNode[]): Map<string, number> {
+  return new Map(allNodesFlat.map((node) => [node.id, node.y]));
 }
 
-/** Allocate target-side vertical offsets for every link entering one node. */
-function applyIncomingOffsets(
-  nodeId: string,
-  targetOffsets: Record<string, number>,
-  linkTargetOffsets: Record<string, { top: number; bot: number }>,
-  incomingByTarget: Record<string, DiagramLink[]>,
-  scale: number
-): void {
-  const inLinks = incomingByTarget[nodeId];
-  if (!inLinks) return;
+type Span = { top: number; bot: number };
 
-  for (const link of inLinks) {
-    const ribbonHeight = link.value * scale;
-    const targetYTop = targetOffsets[link.target];
-    const targetYBot = targetYTop + ribbonHeight;
-    targetOffsets[link.target] = targetYBot;
-    linkTargetOffsets[`${link.source}->${link.target}`] = {top: targetYTop, bot: targetYBot};
-  }
-}
-
-/** Compute the target-side vertical span allocated to each link. */
+/** Compute the target-side vertical span allocated to each link, keyed `source->target`. */
 function buildTargetOffsets(
   allNodesFlat: PositionedNode[],
-  incomingByTarget: Record<string, DiagramLink[]>,
+  incomingByTarget: Map<string, DiagramLink[]>,
   scale: number
-): Record<string, { top: number; bot: number }> {
+): Map<string, Span> {
   const targetOffsets = buildNodeOffsets(allNodesFlat);
-  const linkTargetOffsets: Record<string, { top: number; bot: number }> = {};
+  const linkTargetOffsets = new Map<string, Span>();
 
   for (const node of allNodesFlat) {
-    applyIncomingOffsets(node.id, targetOffsets, linkTargetOffsets, incomingByTarget, scale);
+    for (const link of incomingByTarget.get(node.id) ?? []) {
+      const top = targetOffsets.get(link.target);
+      if (top === undefined) continue;
+      const bot = top + link.value * scale;
+      targetOffsets.set(link.target, bot);
+      linkTargetOffsets.set(`${link.source}->${link.target}`, {top, bot});
+    }
   }
 
   return linkTargetOffsets;
@@ -200,33 +160,26 @@ function buildTargetOffsets(
 
 /** Convert links between positioned nodes into drawable ribbon geometry. */
 function buildRibbons(
-  nodeMap: Record<string, PositionedNode>,
-  outgoingBySource: Record<string, DiagramLink[]>,
-  incomingByTarget: Record<string, DiagramLink[]>,
+  nodeMap: Map<string, PositionedNode>,
+  outgoingBySource: Map<string, DiagramLink[]>,
+  incomingByTarget: Map<string, DiagramLink[]>,
   scale: number,
   allNodesFlat: PositionedNode[]
 ): PositionedRibbon[] {
   const sourceOffsets = buildNodeOffsets(allNodesFlat);
-
   const linkTargetOffsets = buildTargetOffsets(allNodesFlat, incomingByTarget, scale);
   const ribbons: PositionedRibbon[] = [];
 
   for (const node of allNodesFlat) {
-    const outLinks = outgoingBySource[node.id];
-    if (!outLinks) continue;
+    for (const link of outgoingBySource.get(node.id) ?? []) {
+      const source = nodeMap.get(link.source);
+      const target = nodeMap.get(link.target);
+      const targetInfo = linkTargetOffsets.get(`${link.source}->${link.target}`);
+      const sourceYTop = sourceOffsets.get(link.source);
+      if (!source || !target || !targetInfo || sourceYTop === undefined) continue;
 
-    for (const link of outLinks) {
-      const source = nodeMap[link.source];
-      const target = nodeMap[link.target];
-      if (!source || !target) continue;
-
-      const targetInfo = linkTargetOffsets[`${link.source}->${link.target}`];
-      if (!targetInfo) continue;
-
-      const ribbonHeight = link.value * scale;
-      const sourceYTop = sourceOffsets[link.source];
-      const sourceYBot = sourceYTop + ribbonHeight;
-      sourceOffsets[link.source] = sourceYBot;
+      const sourceYBot = sourceYTop + link.value * scale;
+      sourceOffsets.set(link.source, sourceYBot);
 
       ribbons.push({
         source,
@@ -266,53 +219,25 @@ function computeDiagramLayout(
 
   for (const node of nodes) {
     const requiredValue = Math.max(node.value, outgoing[node.id] ?? 0, incoming[node.id] ?? 0);
-    columns[node.columnIndex].push({
-      ...node,
-      x: 0,
-      y: 0,
-      width: NODE_WIDTH,
-      nodeHeight: 0,
-      requiredValue,
-    });
+    columns[node.columnIndex]?.push({...node, x: 0, y: 0, width: NODE_WIDTH, nodeHeight: 0, requiredValue});
   }
 
-  let maxColumnTotal = 0;
-  for (const column of columns) {
-    const total = column.reduce((sum, node) => sum + (node.requiredValue ?? node.value), 0);
-    if (total > maxColumnTotal) {
-      maxColumnTotal = total;
-    }
-  }
-
+  const maxColumnTotal = Math.max(
+    0,
+    ...columns.map((column) => column.reduce((sum, node) => sum + (node.requiredValue ?? node.value), 0))
+  );
   const availableHeight = DIAGRAM_HEIGHT - CHART_PADDING_TOP - CHART_PADDING_BOTTOM;
   const scale = maxColumnTotal > 0 ? availableHeight / maxColumnTotal : 1;
-  const positionedNodes = positionNodes(columns, numColumns, scale, availableWidth, selectedParty, sortMode);
-
-  const nodeMap: Record<string, PositionedNode> = {};
-  for (const node of positionedNodes) {
-    nodeMap[node.id] = node;
-  }
+  const positionedNodes = positionNodes(columns, scale, availableWidth, selectedParty, sortMode);
+  const nodeMap = new Map(positionedNodes.map((node) => [node.id, node]));
 
   const outgoingBySource = buildLinkGroups(links, 'source');
   const incomingByTarget = buildLinkGroups(links, 'target');
   sortGroupsByNodeY(outgoingBySource, nodeMap, 'target');
   sortGroupsByNodeY(incomingByTarget, nodeMap, 'source');
 
-  const positionedRibbons = buildRibbons(
-    nodeMap,
-    outgoingBySource,
-    incomingByTarget,
-    scale,
-    positionedNodes
-  );
-
-  let maxBottom = 0;
-  for (const node of positionedNodes) {
-    const bottom = node.y + node.nodeHeight;
-    if (bottom > maxBottom) {
-      maxBottom = bottom;
-    }
-  }
+  const positionedRibbons = buildRibbons(nodeMap, outgoingBySource, incomingByTarget, scale, positionedNodes);
+  const maxBottom = Math.max(0, ...positionedNodes.map((node) => node.y + node.nodeHeight));
 
   return {
     positionedNodes,
