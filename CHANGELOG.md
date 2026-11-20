@@ -17,6 +17,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- The app loads faster: it downloads only the election data of the country shown (a 6–17 kB download per
+  country instead of all of them at once), and React is a separate file that browsers keep cached between versions.
 - The views work the same way:
   - Voter movements, turnout and the parliament share one range control with quick ranges, and all three start
     with the last ten elections or cabinets.

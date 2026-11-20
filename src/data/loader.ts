@@ -32,35 +32,24 @@ const flagByCode = new Map(
   Object.entries(flagUrls).map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1, -'.svg'.length), url])
 );
 
-const allPartyModules = import.meta.glob<string>('@/../resources/countries/*/parties/*.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-});
+// A country's data files are only downloaded when the country is shown (loadCountryData);
+// the build bundles each country's files into one data-<country> chunk (vite.config.ts).
+const countryFileLoaders = import.meta.glob<string>(
+  [
+    '@/../resources/countries/*/parties/*.yaml',
+    '@/../resources/countries/*/coalitions/*.yaml',
+    '@/../resources/countries/*/elections/*/vote_totals.yaml',
+    '@/../resources/countries/*/elections/*/voters_movement/*.yaml',
+  ],
+  {query: '?raw', import: 'default'}
+);
 
-const allTotalsModules = import.meta.glob<string>('@/../resources/countries/*/elections/*/vote_totals.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-});
-
-const allCoalitionModules = import.meta.glob<string>('@/../resources/countries/*/coalitions/*.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-});
-
-const allMovementModules = import.meta.glob<string>('@/../resources/countries/*/elections/*/voters_movement/*.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-});
-
-const allMovementSourceModules = import.meta.glob<string>('@/../resources/countries/*/elections/*/voters_movement/source.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-});
+// The files of the countries loaded so far, by kind. Everything below reads from these.
+const allPartyModules: Record<string, string> = {};
+const allTotalsModules: Record<string, string> = {};
+const allCoalitionModules: Record<string, string> = {};
+const allMovementModules: Record<string, string> = {};
+const allMovementSourceModules: Record<string, string> = {};
 
 const DEFAULT_PARTY_COLOR = '#6b7280';
 const MOVEMENT_SOURCE_PATH_SUFFIX = '/voters_movement/source.yaml';
@@ -119,18 +108,51 @@ function isMovementDataFile(path: string): boolean {
 /** Key for per-country, per-election lookups. */
 const electionKey = (country: string, year: string): string => `${country}/${year}`;
 
-// Bucket the movement modules by country and election once, so per-election
-// lookups are O(1) instead of re-running the regexes over every module on each call.
+// Movement files by country and election, so per-election lookups are O(1) instead of
+// re-running the regexes over every module on each call. Filled as countries load.
 const movementFilesByElection = new Map<string, string[]>();
-for (const [path, raw] of Object.entries(allMovementModules)) {
-  if (!isMovementDataFile(path)) continue;
-  const year = extractYear(path);
-  if (!year || !raw) continue;
 
-  const key = electionKey(extractCountry(path), year);
-  const files = movementFilesByElection.get(key) ?? [];
-  files.push(raw);
-  movementFilesByElection.set(key, files);
+/** The group a data file belongs to, by its path. */
+function groupOf(path: string): Record<string, string> {
+  if (path.includes('/parties/')) return allPartyModules;
+  if (path.includes('/coalitions/')) return allCoalitionModules;
+  if (path.endsWith('/vote_totals.yaml')) return allTotalsModules;
+  return isMovementDataFile(path) ? allMovementModules : allMovementSourceModules;
+}
+
+const loadingCountries = new Map<string, Promise<void>>();
+const loadedCountries = new Set<string>();
+
+/** True once a country's data files are loaded, so its data can be read. */
+export function isCountryLoaded(country: string): boolean {
+  return loadedCountries.has(country);
+}
+
+/**
+ * Download a country's data files (once) so the load* functions below can read them.
+ * Resolves when they are in; a second call for the same country reuses the first.
+ */
+export function loadCountryData(country: string): Promise<void> {
+  const pending = loadingCountries.get(country);
+  if (pending) return pending;
+  const paths = Object.keys(countryFileLoaders).filter((path) => extractCountry(path) === country);
+  const loading = Promise.all(
+    paths.map(async (path) => {
+      const load = countryFileLoaders[path];
+      if (load) groupOf(path)[path] = await load();
+    })
+  ).then(() => {
+    for (const path of paths) {
+      const raw = allMovementModules[path];
+      const year = extractYear(path);
+      if (!raw || !year) continue;
+      const key = electionKey(country, year);
+      movementFilesByElection.set(key, [...(movementFilesByElection.get(key) ?? []), raw]);
+    }
+    loadedCountries.add(country);
+  });
+  loadingCountries.set(country, loading);
+  return loading;
 }
 
 // Totals are read by the election loaders, the citation list and the coalition

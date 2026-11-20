@@ -8,7 +8,9 @@ import {
   getPartyColor,
   getPartyDisplayName,
   loadCoalitions,
+  isCountryLoaded,
   loadCountries,
+  loadCountryData,
   normalizeDataSource,
   resolvePartyName,
 } from '@/data/loader';
@@ -219,5 +221,15 @@ describe('loadCountries', () => {
       expect(country.name.en).not.toBe('');
       expect(country.name.nl).not.toBe('');
     }
+  });
+});
+
+describe('loadCountryData', () => {
+  it('downloads a country once, and reports it as loaded', async () => {
+    const first = loadCountryData('nl');
+    expect(loadCountryData('nl')).toBe(first);
+    await first;
+    expect(isCountryLoaded('nl')).toBe(true);
+    expect(isCountryLoaded('xx')).toBe(false);
   });
 });

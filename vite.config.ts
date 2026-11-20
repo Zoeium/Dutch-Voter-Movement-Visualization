@@ -22,7 +22,24 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  assetsInclude: ['**/*.yaml'],
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            // One file per country: its data is downloaded only when the country is shown.
+            // country.yaml stays in the main bundle: the country list needs every one of them.
+            {
+              name: (id) => `data-${/countries\/([^/]+)\//.exec(id)?.[1] ?? 'other'}`,
+              test: /resources\/countries\/[^/]+\/(parties|coalitions|elections)\//,
+            },
+            // React rarely changes, so browsers keep it cached across new versions of the app.
+            {name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/},
+          ],
+        },
+      },
+    },
+  },
   test: {
     coverage: {
       provider: 'v8',
@@ -47,9 +64,9 @@ export default defineConfig({
     },
     projects: [
       // Code: behaviour of the loader, comparison and formatting logic on small fixtures.
-      { extends: true, test: { name: 'unit', include: ['tests/unit/**/*.test.ts'], environment: 'node' } },
+      { extends: true, test: { name: 'unit', include: ['tests/unit/**/*.test.ts'], environment: 'node', setupFiles: ['tests/preload.ts'] } },
       // Data: consistency of every country's resource files, read through the real loader.
-      { extends: true, test: { name: 'data', include: ['tests/data/**/*.test.ts'], environment: 'node' } },
+      { extends: true, test: { name: 'data', include: ['tests/data/**/*.test.ts'], environment: 'node', setupFiles: ['tests/preload.ts'] } },
       // Components: the views rendered in a simulated browser and used like a visitor would.
       {
         extends: true,
@@ -57,7 +74,7 @@ export default defineConfig({
           name: 'components',
           include: ['tests/components/**/*.test.tsx'],
           environment: 'jsdom',
-          setupFiles: ['tests/components/setup.ts'],
+          setupFiles: ['tests/preload.ts', 'tests/components/setup.ts'],
         },
       },
     ],

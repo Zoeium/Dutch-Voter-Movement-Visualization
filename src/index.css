@@ -1,4 +1,5 @@
-@import 'tailwindcss';
+/* Only src/ holds class names; without this, Tailwind also scans the 1,100+ data files in resources/. */
+@import 'tailwindcss' source('.');
 
 @custom-variant dark (&:is(.dark *));
 

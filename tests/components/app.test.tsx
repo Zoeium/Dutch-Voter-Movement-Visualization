@@ -165,11 +165,39 @@ describe('App', () => {
     expect(screen.queryByText(en.exportDone)).toBeNull();
   });
 
-  it('switches country, and leaves out the flow view where no movements are known', () => {
+  it('switches country once its data is in, and leaves out the flow view where no movements are known', async () => {
     openApp('?tab=alluvial');
     chooseOption(en.countryData, 'France');
-    expect(screen.getByText(en.turnoutTitle)).toBeTruthy();
+    expect(await screen.findByText(en.turnoutTitle)).toBeTruthy();
     expect(within(screen.getByRole('main')).queryByRole('button', {name: en.tabAlluvial})).toBeNull();
+  });
+
+  it('shows a loading note until a country’s data is downloaded on the first visit', async () => {
+    // A fresh loader has no country loaded yet, as on a visitor's first page load.
+    vi.resetModules();
+    const {default: FreshApp} = await import('@/App');
+    window.history.replaceState({}, '', '/app/');
+    render(<FreshApp/>);
+    expect(screen.getByText(en.loadingData)).toBeTruthy();
+    expect(await screen.findByText(en.homeTitle)).toBeTruthy();
+  });
+
+  it('shows the error page when a country’s data cannot be downloaded', async () => {
+    vi.resetModules();
+    vi.doMock('@/data/loader', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@/data/loader')>()),
+      isCountryLoaded: () => false,
+      loadCountryData: () => Promise.reject(new Error('offline')),
+    }));
+    const [{default: FreshApp}, {ErrorBoundary}] = await Promise.all([import('@/App'), import('@/components/ErrorBoundary')]);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const silence = (event: ErrorEvent) => event.preventDefault();
+    window.addEventListener('error', silence);
+    window.history.replaceState({}, '', '/app/');
+    render(<ErrorBoundary><FreshApp/></ErrorBoundary>);
+    expect(await screen.findByText('offline')).toBeTruthy();
+    window.removeEventListener('error', silence);
+    vi.doUnmock('@/data/loader');
   });
 
   it('names non-voters and other parties in the interface language', () => {

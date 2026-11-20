@@ -11,7 +11,9 @@ import {Dropdown} from '@/components/Dropdown';
 import HomePage, {type HomeView} from '@/components/HomePage';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {
+  isCountryLoaded,
   loadCountries,
+  loadCountryData,
   loadParties,
   loadElections,
   loadAllElections,
@@ -223,6 +225,26 @@ export default function App() {
     setCountry(id);
   }, []);
 
+  // A country's data is downloaded when it is first shown. Until it is in, the previous
+  // country stays on screen (or, on the first visit, a short loading note).
+  const [shownCountry, setShownCountry] = useState<string | null>(isCountryLoaded(country) ? country : null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  useEffect(() => {
+    let current = true;
+    loadCountryData(country).then(
+      () => {
+        if (current) setShownCountry(country);
+      },
+      (error: unknown) =>
+        setLoadError(error instanceof Error ? error : new Error('Could not load the election data', {cause: error}))
+    );
+    return () => {
+      current = false;
+    };
+  }, [country]);
+  // Thrown during render, so the error boundary shows it like any other loading failure.
+  if (loadError) throw loadError;
+
   const t = useCallback((key: TranslationKey) => translations[lang][key], [lang]);
   // Stable context values: a new object every render would re-render every consumer.
   const themeContext = useMemo(() => ({theme, toggleTheme}), [theme, toggleTheme]);
@@ -231,17 +253,21 @@ export default function App() {
   return (
     <ThemeContext.Provider value={themeContext}>
       <LanguageContext.Provider value={languageContext}>
-        {/* Keyed by country: every country starts with its own fresh diagram state. */}
-        <Dashboard
-          key={country}
-          country={country}
-          countries={countries}
-          onCountryChange={changeCountry}
-          readUrl={readUrl}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onLangChange={setLang}
-        />
+        {shownCountry === null ? (
+          <p className="min-h-screen flex items-center justify-center bg-app-bg text-app-muted">{t('loadingData')}</p>
+        ) : (
+          // Keyed by country: every country starts with its own fresh diagram state.
+          <Dashboard
+            key={shownCountry}
+            country={shownCountry}
+            countries={countries}
+            onCountryChange={changeCountry}
+            readUrl={readUrl}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onLangChange={setLang}
+          />
+        )}
       </LanguageContext.Provider>
     </ThemeContext.Provider>
   );

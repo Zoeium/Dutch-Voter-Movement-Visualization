@@ -108,6 +108,7 @@ export const translations = {
 
     // Error
     somethingWrong: 'Something went wrong',
+    loadingData: 'Loading the election data…',
 
     // Theme/Language toggles
     lightMode: 'Light',
@@ -254,6 +255,7 @@ export const translations = {
     movements: 'Migratie',
 
     somethingWrong: 'Er ging iets mis',
+    loadingData: 'De verkiezingsdata wordt geladen…',
 
     lightMode: 'Licht',
     darkMode: 'Donker',
