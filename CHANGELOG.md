@@ -39,6 +39,12 @@ All notable changes to this project are documented here. The format follows
   party colour, whichever reads better.
 - Each column of the parliament diagram is as wide as its cabinet's time in office.
 
+### Fixed
+
+- Three Dutch voter movements now match the NOS publication: BBB's voters from the SGP and the CDA's from DENK in
+  2023, and the SGP's from GL-PvdA in 2025. The 2023 and 2025 sources link to the NOS graphics.
+- Parliament columns could end up to 16 px taller than columns with as many seats.
+
 ## [1.1.0] - 2026-10-27
 
 ### Added
