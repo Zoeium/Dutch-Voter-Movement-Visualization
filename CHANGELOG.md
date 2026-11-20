@@ -32,6 +32,9 @@ All notable changes to this project are documented here. The format follows
   like the country selector, with its flags or icons and full keyboard support.
 - Accessibility: every dropdown has a name screen readers announce, the two compared elections are labelled
   "Election" and "compared with", and headings no longer skip a level.
+- Colour contrast meets WCAG AA in both themes: darker greys, links, status colours and active buttons in the light
+  theme, stronger outlines on dropdowns and sliders, fully opaque turnout bars, and black or white text on every
+  party colour, whichever reads better.
 - Each column of the parliament diagram is as wide as its cabinet's time in office.
 
 ## [1.1.0] - 2026-10-27

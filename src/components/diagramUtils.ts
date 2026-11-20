@@ -8,7 +8,7 @@ import type {Language} from '@/theme';
 /** Tailwind class for an active/inactive toggle button. */
 export const toggleButtonClass = (active: boolean): string =>
   active
-    ? 'bg-emerald-500 text-white'
+    ? 'bg-app-accent text-app-on-accent'
     : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
 
 /**
@@ -108,6 +108,40 @@ export function formatElectionLabel(id: string, lang: Language = 'en'): string {
 export function formatElectionDate(date: string, lang: Language = 'en'): string {
   const [year, month] = date.split('-').map(Number);
   return formatMonthYear(year ?? 0, month ?? 1, lang);
+}
+
+/** The red, green and blue of a #rgb or #rrggbb colour, each 0–1; null for anything else. */
+export function parseHexColor(color: string): [number, number, number] | null {
+  const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!match?.[1]) return null;
+  const digits = match[1].length === 3 ? match[1].replace(/./g, (digit) => digit + digit) : match[1];
+  return [0, 2, 4].map((offset) => Number.parseInt(digits.slice(offset, offset + 2), 16) / 255) as [number, number, number];
+}
+
+/** WCAG relative luminance of an sRGB colour (channels 0–1). */
+export function relativeLuminance([red, green, blue]: readonly number[]): number {
+  const linear = (channel = 0) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue);
+}
+
+/** WCAG contrast ratio of two colours, from 1 (none) to 21 (black on white). */
+export function contrastRatio(first: readonly number[], second: readonly number[]): number {
+  const [lighter, darker] = [relativeLuminance(first), relativeLuminance(second)].sort((a, b) => b - a);
+  return ((lighter ?? 0) + 0.05) / ((darker ?? 0) + 0.05);
+}
+
+const BLACK = [0, 0, 0];
+const WHITE = [1, 1, 1];
+
+/**
+ * Black or white, whichever contrasts more with `background` (a party colour). One of the
+ * two always reaches at least 4.58:1, so text on any colour meets WCAG AA. Colours that
+ * are not hex fall back to white.
+ */
+export function readableTextColor(background: string): '#000000' | '#ffffff' {
+  const rgb = parseHexColor(background);
+  if (!rgb) return '#ffffff';
+  return contrastRatio(BLACK, rgb) > contrastRatio(WHITE, rgb) ? '#000000' : '#ffffff';
 }
 
 /** How many of the most recent items a view with a time axis shows at first. */

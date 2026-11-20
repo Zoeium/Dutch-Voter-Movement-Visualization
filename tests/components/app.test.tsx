@@ -44,14 +44,14 @@ describe('App', () => {
     expect(screen.getByText(nl.alluvialTitle)).toBeTruthy();
     expect(document.documentElement.lang).toBe('nl');
     expect(document.documentElement.classList.contains('light')).toBe(true);
-    expect(screen.getByRole('button', {name: nl.sortAlphabetical}).className).toContain('bg-emerald-500');
+    expect(screen.getByRole('button', {name: nl.sortAlphabetical}).className).toContain('bg-app-accent');
   });
 
   it('ignores URL values it does not know', () => {
     openApp('?country=xx&tab=nope&lang=fr&theme=pink&sort=random&ys=abc&cmpA=1800');
     expect(screen.getByText(en.homeTitle)).toBeTruthy();
     fireEvent.click(tab(en.tabAlluvial));
-    expect(screen.getByRole('button', {name: en.sortByVotes}).className).toContain('bg-emerald-500');
+    expect(screen.getByRole('button', {name: en.sortByVotes}).className).toContain('bg-app-accent');
   });
 
   it('filters the voter movements by party, sorts them and narrows the years', () => {
@@ -191,7 +191,7 @@ describe('App', () => {
     fireEvent.click(screen.getByText(en.coalitionSelectParties, {selector: 'button'}));
 
     fireEvent.click(tab(en.tabParliament));
-    expect(screen.getByRole('button', {name: en.all}).className).toContain('bg-emerald-500');
+    expect(screen.getByRole('button', {name: en.all}).className).toContain('bg-app-accent');
     fireEvent.click(tab(en.tabTurnout));
     expect(screen.getByText(en.pctOfElectorate)).toBeTruthy();
     expect(screen.getByText(en.invalid).className).toContain('line-through');

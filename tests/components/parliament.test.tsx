@@ -113,7 +113,7 @@ describe('ParliamentDiagram', () => {
     const parties = nl.parties.map((party) => ({...party, color: colours[party.party] ?? party.color}));
     const {container} = renderParliament({...nl, parties});
     const fills = new Set([...container.querySelectorAll('text[fill]')].map((text) => text.getAttribute('fill')));
-    expect(fills.has('#111827')).toBe(true);
+    expect(fills.has('#000000')).toBe(true);
     expect(fills.has('#ffffff')).toBe(true);
   });
 });

@@ -48,10 +48,11 @@ interface SegmentValues {
   notVoted: number;
 }
 
-const EMBER = '#f59e0b';
-const RED = '#ef4444';
-const SLATE = '#475569';
-const EMERALD = '#10b981';
+// Theme colours (index.css), checked for contrast against the card in both themes.
+const EMERALD = 'var(--c-turnout-valid)';
+const EMBER = 'var(--c-turnout-blank)';
+const RED = 'var(--c-turnout-invalid)';
+const SLATE = 'var(--c-turnout-not-voted)';
 
 /** Format a scaled axis value into a compact label. */
 function formatAxisValue(value: number, scaleMode: ScaleMode): string {
@@ -385,7 +386,7 @@ export default function TurnoutDiagram({elections, view: initialView, onViewChan
                     width={barWidth}
                     height={notVotedH}
                     color={SLATE}
-                    restOpacity={0.7}
+                    restOpacity={1}
                     rounded
                     hovered={isSegmentHovered(bar.year, 'notVoted')}
                     onHover={() => setHoveredSegment({year: bar.year, segment: 'notVoted'})}
@@ -400,7 +401,7 @@ export default function TurnoutDiagram({elections, view: initialView, onViewChan
                     width={barWidth}
                     height={nonValidH}
                     color={RED}
-                    restOpacity={0.8}
+                    restOpacity={1}
                     hovered={isSegmentHovered(bar.year, 'invalid')}
                     onHover={() => setHoveredSegment({year: bar.year, segment: 'invalid'})}
                     title={segmentTitle(bar, 'invalid', t, lang)}
@@ -415,7 +416,7 @@ export default function TurnoutDiagram({elections, view: initialView, onViewChan
                       width={barWidth}
                       height={blancoH}
                       color={EMBER}
-                      restOpacity={0.8}
+                      restOpacity={1}
                       hovered={isSegmentHovered(bar.year, 'blanco')}
                       onHover={() => setHoveredSegment({year: bar.year, segment: 'blanco'})}
                       title={segmentTitle(bar, 'blanco', t, lang)}
@@ -448,7 +449,7 @@ export default function TurnoutDiagram({elections, view: initialView, onViewChan
                     width={barWidth}
                     height={validH}
                     color={EMERALD}
-                    restOpacity={0.8}
+                    restOpacity={1}
                     rounded
                     hovered={isSegmentHovered(bar.year, 'valid')}
                     onHover={() => setHoveredSegment({year: bar.year, segment: 'valid'})}

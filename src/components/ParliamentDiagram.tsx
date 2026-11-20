@@ -5,6 +5,7 @@ import {EmptyState, RibbonGradient} from '@/components/shared';
 import {
   buildGradientId,
   buildRibbonPath,
+  readableTextColor,
   defaultRange,
   formatElectionDate,
   formatElectionLabel,
@@ -27,7 +28,10 @@ interface ParliamentDiagramProps {
 
 const NO_ELECTIONS: ElectionYear[] = [];
 
-const ELECTION_MARKER_COLOR = '#10b981';
+// Election markers: a theme colour, dark enough in light mode for the 9px label.
+const ELECTION_MARKER_COLOR = 'var(--c-marker)';
+// The pill behind a marker label; pale enough that the label keeps 4.5:1 (see contrast.test.ts).
+const MARKER_PILL_OPACITY = 0.12;
 
 interface PartyBlock {
   party: string;           // literal seat key (each key is its own block)
@@ -214,32 +218,6 @@ function fitBlockLabel(
   return {lines: [`${truncateToWidth(name, fontPx, room)} ${seatText}`], fontPx};
 }
 
-/**
- * Readable text colour for a filled block, picked from the party colour's relative
- * luminance. Light parties (GL-PvdA's bright green, GroenLinks) get dark text instead of
- * the white-on-light outline that made the labels look smeared.
- */
-function getLabelColor(background: string): string {
-  const hex = background.replace('#', '');
-  const expanded = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
-  if (expanded.length !== 6) return '#ffffff';
-
-  const channel = (offset: number) => {
-    const value = Number.parseInt(expanded.slice(offset, offset + 2), 16);
-    return Number.isNaN(value) ? null : value / 255;
-  };
-  const red = channel(0);
-  const green = channel(2);
-  const blue = channel(4);
-  if (red === null || green === null || blue === null) return '#ffffff';
-
-  const linearize = (value: number) =>
-    value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  const luminance =
-    0.2126 * linearize(red) + 0.7152 * linearize(green) + 0.0722 * linearize(blue);
-
-  return luminance > 0.35 ? '#111827' : '#ffffff';
-}
 
 /**
  * Directed merge lineage of a party: the party itself plus every party it merged FROM
@@ -844,7 +822,7 @@ export default function ParliamentDiagram({
                     height={16}
                     rx={8}
                     fill={ELECTION_MARKER_COLOR}
-                    fillOpacity={0.15}
+                    fillOpacity={MARKER_PILL_OPACITY}
                     stroke={ELECTION_MARKER_COLOR}
                     strokeOpacity={0.6}
                   />
@@ -903,7 +881,7 @@ export default function ParliamentDiagram({
                 const firstLineY = block.y + block.height / 2 - ((label.lines.length - 1) * lineHeight) / 2;
                 // Tolerating parties are drawn translucent, so the page shows through: use the
                 // theme's text colour, which is readable on the page in both themes.
-                const labelColor = block.role === 'support' ? 'var(--c-text-heading)' : getLabelColor(block.color);
+                const labelColor = block.role === 'support' ? 'var(--c-text-heading)' : readableTextColor(block.color);
 
                 return (
                   <g
@@ -974,7 +952,7 @@ export default function ParliamentDiagram({
           </text>
         </g>
         <g transform={`translate(${LABEL_SPACE}, ${svgHeight - 12})`} className="pointer-events-none">
-          <rect width={18} height={11} rx={5.5} fill={ELECTION_MARKER_COLOR} fillOpacity={0.15} stroke={ELECTION_MARKER_COLOR} strokeOpacity={0.6}/>
+          <rect width={18} height={11} rx={5.5} fill={ELECTION_MARKER_COLOR} fillOpacity={MARKER_PILL_OPACITY} stroke={ELECTION_MARKER_COLOR} strokeOpacity={0.6}/>
           <text x={26} y={10} className="fill-app-muted text-[10px]">
             {t('electionMarkerLegend')}
           </text>

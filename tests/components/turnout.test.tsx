@@ -4,10 +4,10 @@ import TurnoutDiagram from '@/components/TurnoutDiagram';
 import {loadAllElections} from '@/data/loader';
 import {en, renderWithLanguage} from './render';
 
-const EMERALD = '#10b981';
-const AMBER = '#f59e0b';
-const RED = '#ef4444';
-const SLATE = '#475569';
+const EMERALD = 'var(--c-turnout-valid)';
+const AMBER = 'var(--c-turnout-blank)';
+const RED = 'var(--c-turnout-invalid)';
+const SLATE = 'var(--c-turnout-not-voted)';
 
 const segments = (container: HTMLElement, color: string) =>
   [...container.querySelectorAll<SVGRectElement>(`rect[fill="${color}"]`)];

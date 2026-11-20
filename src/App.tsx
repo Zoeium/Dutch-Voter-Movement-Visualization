@@ -23,7 +23,14 @@ import {
   type DataSourceEntry,
 } from '@/data/loader';
 import {EmptyState, RangeControl} from '@/components/shared';
-import {defaultRange, formatElectionLabel, partyButtonClass, sliceByIndexRange, toggleButtonClass} from '@/components/diagramUtils';
+import {
+  defaultRange,
+  formatElectionLabel,
+  partyButtonClass,
+  readableTextColor,
+  sliceByIndexRange,
+  toggleButtonClass,
+} from '@/components/diagramUtils';
 import {
   ThemeContext,
   LanguageContext,
@@ -263,7 +270,7 @@ function FeedbackButton({done, icon, label, doneLabel, onClick}: Readonly<{
 }>) {
   return (
     <button type="button" onClick={onClick} className={HEADER_BUTTON_CLASS} aria-label={label} title={label}>
-      {done ? <Check className="w-4 h-4 text-emerald-500"/> : icon}
+      {done ? <Check className="w-4 h-4 text-app-good"/> : icon}
       {/* Phones show the icon only; the label stays available through aria-label. */}
       <span className="hidden sm:inline">{done ? doneLabel : label}</span>
     </button>
@@ -295,7 +302,7 @@ function PartyFilter({parties, activeParty, onSelect}: Readonly<{
             key={p.party}
             onClick={() => onSelect(isSelected ? null : p.party)}
             className={partyButtonClass(isSelected, 'ring-offset-app-bg')}
-            style={isSelected ? {backgroundColor: p.color, color: '#fff', boxShadow: `0 0 0 2px ${p.color}`} : undefined}
+            style={isSelected ? {backgroundColor: p.color, color: readableTextColor(p.color), boxShadow: `0 0 0 2px ${p.color}`} : undefined}
           >
             <span className="w-3 h-3 rounded-full" style={{backgroundColor: p.color}}/>
             {p.display_name}
@@ -557,8 +564,8 @@ function Dashboard({
             className="flex items-center gap-3 min-w-0 flex-1 lg:flex-none text-left rounded-lg"
           >
             <span
-              className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white"/>
+              className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-app-accent flex items-center justify-center">
+              <Users className="w-5 h-5 text-app-on-accent"/>
             </span>
             <h1 className="text-base sm:text-lg font-bold leading-tight tracking-tight text-app-heading">{t('appTitle')}</h1>
           </button>

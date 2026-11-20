@@ -104,7 +104,7 @@ export function Dropdown({label, hideLabel = false, buttonIcon, options, value, 
         aria-labelledby={labelId}
         aria-activedescendant={active ? optionId(active) : undefined}
         title={hint}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer select-none bg-app-btn text-app-heading hover:bg-app-btn-hover border border-app-border focus-visible:outline-2 focus-visible:outline-emerald-500"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer select-none bg-app-btn text-app-heading hover:bg-app-btn-hover border border-app-border-strong focus-visible:outline-2 focus-visible:outline-app-accent"
       >
         {buttonIcon}
         {selected.icon}
@@ -138,7 +138,7 @@ export function Dropdown({label, hideLabel = false, buttonIcon, options, value, 
               >
                 {option.icon}
                 <span className="flex-1">{option.label}</span>
-                {isSelected && <Check className="w-4 h-4 text-emerald-500"/>}
+                {isSelected && <Check className="w-4 h-4 text-app-good"/>}
               </div>
             );
           })}

@@ -82,7 +82,7 @@ describe('RangeControl', () => {
 
   it('offers quick ranges and marks the active one', () => {
     const onChange = renderRange(2, 11);
-    expect(screen.getByRole('button', {name: en('last10')}).className).toContain('bg-emerald-500');
+    expect(screen.getByRole('button', {name: en('last10')}).className).toContain('bg-app-accent');
     fireEvent.click(screen.getByRole('button', {name: en('all')}));
     expect(onChange).toHaveBeenLastCalledWith(0, 11);
     fireEvent.click(screen.getByRole('button', {name: en('last5')}));

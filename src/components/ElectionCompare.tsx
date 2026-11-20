@@ -26,15 +26,15 @@ interface ElectionCompareProps {
 type SortKey = 'label' | 'votesA' | 'votesB' | 'voteChange' | 'shareA' | 'shareB' | 'shareChange' | 'seatsA' | 'seatsB' | 'seatChange';
 
 function ChangeIcon({value}: Readonly<{ value: number }>) {
-  if (value > 0) return <ArrowUp className="w-3.5 h-3.5 text-emerald-500"/>;
-  if (value < 0) return <ArrowDown className="w-3.5 h-3.5 text-red-500"/>;
+  if (value > 0) return <ArrowUp className="w-3.5 h-3.5 text-app-good"/>;
+  if (value < 0) return <ArrowDown className="w-3.5 h-3.5 text-app-bad"/>;
   return <Minus className="w-3.5 h-3.5 text-app-subtle"/>;
 }
 
 /** Text colour for a change: green for a gain, red for a loss, muted for none. */
 function changeClass(value: number): string {
-  if (value > 0) return 'text-emerald-500';
-  if (value < 0) return 'text-red-500';
+  if (value > 0) return 'text-app-good';
+  if (value < 0) return 'text-app-bad';
   return 'text-app-subtle';
 }
 
@@ -140,7 +140,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                         <span className="w-3 h-3 rounded-full" style={{backgroundColor: r.color}}/>
                         <span className="text-app-text">{r.label}</span>
                       </div>
-                      <span className="font-semibold text-emerald-500">{formatSignedPP(r.shareChange)}</span>
+                      <span className="font-semibold text-app-good">{formatSignedPP(r.shareChange)}</span>
                     </div>
                   ))}
                 </div>
@@ -156,7 +156,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
                         <span className="w-3 h-3 rounded-full" style={{backgroundColor: r.color}}/>
                         <span className="text-app-text">{r.label}</span>
                       </div>
-                      <span className="font-semibold text-red-500">{formatSignedPP(r.shareChange)}</span>
+                      <span className="font-semibold text-app-bad">{formatSignedPP(r.shareChange)}</span>
                     </div>
                   ))}
                 </div>

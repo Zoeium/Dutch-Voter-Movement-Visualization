@@ -118,7 +118,8 @@ with seats follows every election, and that every governing party actually holds
 The code is checked the same way: `npm run lint` (ESLint with type-aware, SonarJS and accessibility rules),
 `npm run typecheck` (strict TypeScript) and `npm run test:coverage` (all tests, with a coverage report in
 `coverage/index.html`). The tests cover the data, the logic and every view, which is rendered in a simulated browser
-and used like a visitor would; every view is also audited for accessibility with axe-core, in English and Dutch. The
+and used like a visitor would; every view is also audited for accessibility with axe-core, in English and Dutch, and
+every colour pair (both themes, and every party colour) is checked for WCAG AA contrast. The
 coverage run fails when any file drops below 80% (the thresholds are in `vite.config.ts`).
 
 ## Versions

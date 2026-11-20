@@ -3,7 +3,7 @@ import {Check, X, Users} from 'lucide-react';
 import type {CoalitionData, PartyInfo} from '@/types';
 import {getCoalitionForElection, getPartyColor, getPartyDisplayName} from '@/data/loader';
 import {useI18n} from '@/theme';
-import {formatElectionLabel, partyButtonClass} from '@/components/diagramUtils';
+import {formatElectionLabel, partyButtonClass, readableTextColor} from '@/components/diagramUtils';
 import {createChamberLayout, type PartySeat} from '@/components/chamberLayout';
 import {EmptyState} from '@/components/shared';
 import {Dropdown} from '@/components/Dropdown';
@@ -117,7 +117,7 @@ export default function CoalitionExplorer({coalitions, parties, selection, onSel
       <div className="bg-app-card rounded-xl p-5 border border-app-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-emerald-500"/>
+            <Users className="w-5 h-5 text-app-good"/>
             <span className="text-lg font-bold text-app-heading">{t('coalitionTotalSeats')}</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -164,14 +164,14 @@ export default function CoalitionExplorer({coalitions, parties, selection, onSel
         <div className="mt-3 flex items-center gap-2">
           {hasReachedMajority ? (
             <>
-              <Check className="w-5 h-5 text-emerald-500"/>
-              <span className="font-semibold text-emerald-500">{t('coalitionReached')}</span>
+              <Check className="w-5 h-5 text-app-good"/>
+              <span className="font-semibold text-app-good">{t('coalitionReached')}</span>
               <span className="text-app-muted">({t('coalitionSurplus')}: {surplus})</span>
             </>
           ) : (
             <>
-              <X className="w-5 h-5 text-amber-500"/>
-              <span className="font-semibold text-amber-500">{t('coalitionNotReached')}</span>
+              <X className="w-5 h-5 text-app-warn"/>
+              <span className="font-semibold text-app-warn">{t('coalitionNotReached')}</span>
               <span className="text-app-muted">({t('coalitionShortfall')}: {shortfall})</span>
             </>
           )}
@@ -199,7 +199,7 @@ export default function CoalitionExplorer({coalitions, parties, selection, onSel
                 <span
                   key={partyId}
                   className="px-2 py-1 rounded-sm text-xs font-medium"
-                  style={{backgroundColor: color + '33', color}}
+                  style={{backgroundColor: color, color: readableTextColor(color)}}
                 >
                   {getPartyDisplayName(partyId, parties)} ({seats})
                 </span>
@@ -233,7 +233,7 @@ export default function CoalitionExplorer({coalitions, parties, selection, onSel
                   isSelected
                     ? {
                       backgroundColor: p.color,
-                      color: '#fff',
+                      color: readableTextColor(p.color),
                       boxShadow: `0 0 0 2px ${p.color}`,
                     }
                     : undefined

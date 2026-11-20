@@ -59,16 +59,16 @@ export default function HomePage({countryName, electionYears, governmentCount, v
               key={view.key}
               type="button"
               onClick={() => onOpen(view.key)}
-              className="group text-left rounded-2xl border border-app-border bg-app-card p-5 transition-all hover:border-emerald-500 hover:shadow-xl"
+              className="group text-left rounded-2xl border border-app-border bg-app-card p-5 transition-all hover:border-app-accent hover:shadow-xl"
             >
               <div className="flex items-center gap-3 mb-2">
-                <span className="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+                <span className="w-9 h-9 rounded-lg bg-app-good/15 text-app-good flex items-center justify-center shrink-0">
                   {view.icon}
                 </span>
                 <span className="text-lg font-semibold text-app-heading">{view.title}</span>
               </div>
               <p className="text-sm text-app-muted mb-3">{view.description}</p>
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-500">
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-app-good">
                 {t('homeOpen')}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1"/>
               </span>

@@ -3,6 +3,7 @@ import {
   buildGradientId,
   buildRibbonPath,
   buildStripeId,
+  contrastRatio,
   defaultRange,
   formatElectionDate,
   formatElectionLabel,
@@ -10,7 +11,10 @@ import {
   formatPct,
   formatSignedNumber,
   formatSignedPP,
+  parseHexColor,
   partyButtonClass,
+  readableTextColor,
+  relativeLuminance,
   scaleToFill,
   sliceByIndexRange,
   sumFlowValues,
@@ -28,6 +32,27 @@ describe('election months in the interface language', () => {
     expect(formatElectionDate('2023-11-22', 'en')).toBe('Nov 2023');
     expect(formatElectionDate('2023-03-15', 'nl')).toBe('mrt 2023');
     expect(formatElectionDate('2023', 'en')).toBe('Jan 2023');
+  });
+});
+
+describe('colour contrast', () => {
+  it('reads #rgb and #rrggbb colours, and nothing else', () => {
+    expect(parseHexColor('#fff')).toEqual([1, 1, 1]);
+    expect(parseHexColor(' #000000 ')).toEqual([0, 0, 0]);
+    expect(parseHexColor('red')).toBeNull();
+    expect(parseHexColor('#12345')).toBeNull();
+  });
+
+  it('measures contrast the WCAG way', () => {
+    expect(contrastRatio([0, 0, 0], [1, 1, 1])).toBeCloseTo(21);
+    expect(contrastRatio([1, 1, 1], [1, 1, 1])).toBe(1);
+    expect(relativeLuminance([1, 1, 1])).toBeCloseTo(1);
+  });
+
+  it('picks black or white text, whichever reads better on a colour', () => {
+    expect(readableTextColor('#FFFD54')).toBe('#000000');
+    expect(readableTextColor('#0f172a')).toBe('#ffffff');
+    expect(readableTextColor('not-a-colour')).toBe('#ffffff');
   });
 });
 
@@ -90,8 +115,8 @@ describe('DOM-safe ids and classes', () => {
   });
 
   it('marks the active toggle button', () => {
-    expect(toggleButtonClass(true)).toContain('bg-emerald-500');
-    expect(toggleButtonClass(false)).not.toContain('bg-emerald-500');
+    expect(toggleButtonClass(true)).toContain('bg-app-accent');
+    expect(toggleButtonClass(false)).not.toContain('bg-app-accent');
   });
 });
 
