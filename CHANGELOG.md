@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-20
+
 ### Added
 
 - Voter movements for the United Kingdom (2015–2017, 2017–2019 and 2019–2024), Sweden (every election from 2002 to 2022),
@@ -81,6 +83,7 @@ All notable changes to this project are documented here. The format follows
 
 Initial release
 
-[Unreleased]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Zoeium/Dutch-Voter-Movement-Visualization/releases/tag/v1.0.0
