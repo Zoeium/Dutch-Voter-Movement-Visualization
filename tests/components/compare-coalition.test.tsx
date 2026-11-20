@@ -3,7 +3,7 @@ import {fireEvent, screen, within} from '@testing-library/react';
 import ElectionCompare from '@/components/ElectionCompare';
 import CoalitionExplorer from '@/components/CoalitionExplorer';
 import {loadAllElections, loadCoalitions, loadParties} from '@/data/loader';
-import {en, renderWithLanguage} from './render';
+import {chooseOption, dropdownValue, en, renderWithLanguage} from './render';
 
 const elections = loadAllElections('nl');
 const coalitions = loadCoalitions('nl');
@@ -65,16 +65,16 @@ describe('ElectionCompare', () => {
 
   it('lists the elections newest first, as the coalition explorer does', () => {
     renderCompare('2021', '2023');
-    const options = [...screen.getAllByRole<HTMLSelectElement>('combobox')[0]?.options ?? []].map((option) => option.value);
+    fireEvent.click(screen.getByRole('combobox', {name: en('compareFirst')}));
+    const options = screen.getAllByRole('option').map((option) => option.textContent);
     expect(options[0]).toBe(elections.at(-1)?.year);
     expect(options.at(-1)).toBe(elections[0]?.year);
   });
 
   it('reports a different election choice', () => {
     const {onYearAChange, onYearBChange} = renderCompare('2021', '2023');
-    const [selectA, selectB] = screen.getAllByRole<HTMLSelectElement>('combobox');
-    fireEvent.change(selectA as HTMLSelectElement, {target: {value: '2017'}});
-    fireEvent.change(selectB as HTMLSelectElement, {target: {value: '2025'}});
+    chooseOption(en('compareFirst'), '2017');
+    chooseOption(en('compareSecond'), '2025');
     expect(onYearAChange).toHaveBeenCalledWith('2017');
     expect(onYearBChange).toHaveBeenCalledWith('2025');
   });
@@ -86,7 +86,7 @@ describe('CoalitionExplorer', () => {
   it('builds a coalition party by party, up to a majority', () => {
     renderWithLanguage(<CoalitionExplorer coalitions={coalitions} parties={parties}/>);
     // Rutte IV (2021) had a majority: 78 of 150 seats.
-    fireEvent.change(screen.getByRole('combobox'), {target: {value: '2021'}});
+    chooseOption(en('coalitionSelectElection'), '2021');
     expect(screen.getByText(en('coalitionNotReached'))).toBeTruthy();
 
     fireEvent.click(screen.getByText(en('coalitionSelectParties'), {selector: 'button'}));
@@ -104,7 +104,7 @@ describe('CoalitionExplorer', () => {
 
   it('shows the tolerating party of a minority cabinet', () => {
     renderWithLanguage(<CoalitionExplorer coalitions={coalitions} parties={parties}/>);
-    fireEvent.change(screen.getByRole('combobox'), {target: {value: '2010'}});
+    chooseOption(en('coalitionSelectElection'), '2010');
     expect(screen.getByText(/Rutte I$/)).toBeTruthy();
     expect(screen.getByText(/^\+ /)).toBeTruthy();
   });
@@ -115,18 +115,18 @@ describe('CoalitionExplorer', () => {
       <CoalitionExplorer coalitions={coalitions} parties={parties} selection={{year: '2021', parties: ['vvd', 'd66']}}
         onSelectionChange={onSelectionChange}/>
     );
-    expect(screen.getByRole<HTMLSelectElement>('combobox').value).toBe('2021');
+    expect(dropdownValue(en('coalitionSelectElection'))).toBe('2021');
     expect(screen.getByText(/^2 /)).toBeTruthy();
 
     fireEvent.click(screen.getByText(en('coalitionClear')));
     expect(onSelectionChange).toHaveBeenLastCalledWith({year: '2021', parties: []});
-    fireEvent.change(screen.getByRole('combobox'), {target: {value: '2017'}});
+    chooseOption(en('coalitionSelectElection'), '2017');
     expect(onSelectionChange).toHaveBeenLastCalledWith({year: '2017', parties: []});
   });
 
   it('ignores a given election without seat data', () => {
     renderWithLanguage(<CoalitionExplorer coalitions={coalitions} parties={parties} selection={{year: '1800', parties: ['vvd']}}/>);
-    expect(screen.getByRole<HTMLSelectElement>('combobox').value).toBe(coalitions.at(-1)?.electionYear);
+    expect(dropdownValue(en('coalitionSelectElection'))).toBe(coalitions.at(-1)?.electionYear);
     expect(screen.queryByText(en('coalitionClear'))).toBeNull();
   });
 

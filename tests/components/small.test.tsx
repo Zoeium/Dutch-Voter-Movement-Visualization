@@ -6,6 +6,7 @@ import {DualRangeSlider, EmptyState, RangeControl, RibbonGradient} from '@/compo
 import {ErrorBoundary} from '@/components/ErrorBoundary';
 import HomePage from '@/components/HomePage';
 import CountrySelect from '@/components/CountrySelect';
+import {Dropdown} from '@/components/Dropdown';
 import type {CountryInfo} from '@/data/loader';
 import {en, renderWithLanguage} from './render';
 
@@ -166,76 +167,112 @@ describe('HomePage', () => {
   });
 });
 
+describe('Dropdown', () => {
+  const options = [
+    {value: 'a', label: 'Alpha'},
+    {value: 'b', label: 'Bravo'},
+    {value: 'c', label: 'Charlie'},
+  ];
+  const renderDropdown = (value = 'a', extra: {hideLabel?: boolean} = {}) => {
+    const onChange = vi.fn();
+    render(<div><p>outside</p><Dropdown label="Letter" options={options} value={value} onChange={onChange} {...extra}/></div>);
+    return {onChange, combobox: screen.getByRole('combobox', {name: 'Letter'})};
+  };
+
+  it('shows the chosen option and picks another by mouse', () => {
+    const {onChange, combobox} = renderDropdown('b');
+    expect(combobox.textContent).toBe('Bravo');
+    fireEvent.click(combobox);
+    expect(combobox.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('option', {name: 'Bravo'}).getAttribute('aria-selected')).toBe('true');
+    fireEvent.mouseEnter(screen.getByRole('option', {name: 'Charlie'}));
+    fireEvent.click(screen.getByRole('option', {name: 'Charlie'}));
+    expect(onChange).toHaveBeenCalledWith('c');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('works with the keyboard', () => {
+    const {onChange, combobox} = renderDropdown('a');
+    fireEvent.keyDown(combobox, {key: 'x'});
+    expect(screen.queryByRole('listbox')).toBeNull();
+    fireEvent.keyDown(combobox, {key: 'ArrowDown'});
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    fireEvent.keyDown(combobox, {key: 'End'});
+    expect(combobox.getAttribute('aria-activedescendant')).toBe(screen.getByRole('option', {name: 'Charlie'}).id);
+    fireEvent.keyDown(combobox, {key: 'Home'});
+    fireEvent.keyDown(combobox, {key: 'ArrowDown'});
+    fireEvent.keyDown(combobox, {key: 'ArrowDown'});
+    fireEvent.keyDown(combobox, {key: 'ArrowDown'});
+    fireEvent.keyDown(combobox, {key: 'ArrowUp'});
+    fireEvent.keyDown(combobox, {key: 'Enter'});
+    expect(onChange).toHaveBeenCalledWith('b');
+
+    fireEvent.keyDown(combobox, {key: ' '});
+    fireEvent.keyDown(combobox, {key: 'Escape'});
+    expect(screen.queryByRole('listbox')).toBeNull();
+    fireEvent.keyDown(combobox, {key: 'Enter'});
+    fireEvent.keyDown(combobox, {key: 'Tab'});
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('chooses an option activated directly, as assistive technology may', () => {
+    const {onChange, combobox} = renderDropdown('a');
+    fireEvent.click(combobox);
+    fireEvent.keyDown(screen.getByRole('option', {name: 'Charlie'}), {key: 'Enter'});
+    expect(onChange).toHaveBeenCalledWith('c');
+    fireEvent.click(combobox);
+    fireEvent.keyDown(screen.getByRole('option', {name: 'Bravo'}), {key: 'x'});
+    expect(screen.getByRole('listbox')).toBeTruthy();
+  });
+
+  it('keeps the current option when it is chosen again, and closes on a second click or a click outside', () => {
+    const {onChange, combobox} = renderDropdown('a');
+    fireEvent.click(combobox);
+    fireEvent.click(screen.getByRole('option', {name: 'Alpha'}));
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(combobox);
+    fireEvent.click(combobox);
+    expect(screen.queryByRole('listbox')).toBeNull();
+    fireEvent.click(combobox);
+    fireEvent.mouseDown(screen.getByRole('listbox'));
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    fireEvent.mouseDown(screen.getByText('outside'));
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('keeps a hidden label for screen readers, and falls back to the first option', () => {
+    const {combobox} = renderDropdown('zz', {hideLabel: true});
+    expect(screen.getByText('Letter').className).toContain('sr-only');
+    expect(combobox.textContent).toBe('Alpha');
+  });
+
+  it('renders nothing without options', () => {
+    const {container} = render(<Dropdown label="Empty" options={[]} value="" onChange={vi.fn()}/>);
+    expect(container.innerHTML).toBe('');
+  });
+});
+
 describe('CountrySelect', () => {
   const countries: CountryInfo[] = [
     {id: 'se', name: {en: 'Sweden', nl: 'Zweden'}, flagUrl: 'se.svg'},
     {id: 'es', name: {en: 'Spain', nl: 'Spanje'}},
     {id: 'nl', name: {en: 'Netherlands', nl: 'Nederland'}, flagUrl: 'nl.svg'},
   ];
-  const button = () => screen.getByRole('button');
+  const optionNames = () => screen.getAllByRole('option').map((option) => option.textContent);
 
-  it('lists the countries alphabetically and picks one by mouse', async () => {
+  it('lists the countries by name with their flags, and picks one', () => {
     const onChange = vi.fn();
-    renderWithLanguage(<CountrySelect countries={countries} value="nl" onChange={onChange}/>);
-    await userEvent.click(button());
-    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['Netherlands', 'Spain', 'Sweden']);
-    await userEvent.hover(screen.getByText('Sweden'));
-    await userEvent.click(screen.getByText('Sweden'));
+    const {container} = renderWithLanguage(<CountrySelect countries={countries} value="nl" onChange={onChange}/>);
+    fireEvent.click(screen.getByRole('combobox', {name: en('countryData')}));
+    expect(optionNames()).toEqual(['Netherlands', 'Spain', 'Sweden']);
+    expect(container.querySelectorAll('img')).toHaveLength(3);
+    fireEvent.click(screen.getByRole('option', {name: 'Sweden'}));
     expect(onChange).toHaveBeenCalledWith('se');
-    expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('sorts by the Dutch names in Dutch', async () => {
+  it('sorts by the Dutch names in Dutch', () => {
     renderWithLanguage(<CountrySelect countries={countries} value="nl" onChange={vi.fn()}/>, 'nl');
-    await userEvent.click(button());
-    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['Nederland', 'Spanje', 'Zweden']);
-  });
-
-  it('works with the keyboard', () => {
-    const onChange = vi.fn();
-    renderWithLanguage(<CountrySelect countries={countries} value="nl" onChange={onChange}/>);
-    fireEvent.keyDown(button(), {key: 'x'});
-    expect(screen.queryByRole('listbox')).toBeNull();
-    fireEvent.keyDown(button(), {key: 'ArrowDown'});
-    expect(screen.getByRole('listbox')).toBeTruthy();
-    fireEvent.keyDown(button(), {key: 'ArrowDown'});
-    fireEvent.keyDown(button(), {key: 'ArrowDown'});
-    fireEvent.keyDown(button(), {key: 'ArrowDown'});
-    fireEvent.keyDown(button(), {key: 'ArrowUp'});
-    fireEvent.keyDown(button(), {key: 'Enter'});
-    expect(onChange).toHaveBeenCalledWith('es');
-
-    fireEvent.keyDown(button(), {key: 'Enter'});
-    fireEvent.keyDown(button(), {key: 'Escape'});
-    expect(screen.queryByRole('listbox')).toBeNull();
-    fireEvent.keyDown(button(), {key: ' '});
-    fireEvent.keyDown(button(), {key: 'Tab'});
-    expect(screen.queryByRole('listbox')).toBeNull();
-  });
-
-  it('keeps the current country when it is chosen again, and closes on a click outside', async () => {
-    const onChange = vi.fn();
-    renderWithLanguage(<div><p>outside</p><CountrySelect countries={countries} value="nl" onChange={onChange}/></div>);
-    await userEvent.click(button());
-    await userEvent.click(screen.getAllByText('Netherlands')[1] as HTMLElement);
-    expect(onChange).not.toHaveBeenCalled();
-    await userEvent.click(button());
-    await userEvent.click(button());
-    expect(screen.queryByRole('listbox')).toBeNull();
-    await userEvent.click(button());
-    fireEvent.mouseDown(screen.getByText('outside'));
-    expect(screen.queryByRole('listbox')).toBeNull();
-  });
-
-  it('falls back to the first country, and renders nothing without countries', () => {
-    renderWithLanguage(<CountrySelect countries={countries} value="xx" onChange={vi.fn()}/>);
-    expect(button().textContent).toContain('Netherlands');
-    const {container} = renderWithLanguage(<CountrySelect countries={[]} value="nl" onChange={vi.fn()}/>);
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('labels the selector', () => {
-    renderWithLanguage(<CountrySelect countries={countries} value="nl" onChange={vi.fn()}/>);
-    expect(screen.getByText(en('countryData'))).toBeTruthy();
+    fireEvent.click(screen.getByRole('combobox'));
+    expect(optionNames()).toEqual(['Nederland', 'Spanje', 'Zweden']);
   });
 });

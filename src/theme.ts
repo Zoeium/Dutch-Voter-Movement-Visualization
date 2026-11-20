@@ -140,6 +140,8 @@ export const translations = {
     compareDescription:
       'Select two elections to see how party votes and seats changed between them. Gains and losses are shown with percentage-point differences.',
     compareElectionYear: 'Election year',
+    compareFirst: 'Election',
+    compareSecond: 'compared with',
     compareParty: 'Party',
     compareVotes: 'Votes',
     compareVoteChange: 'Vote change',
@@ -282,6 +284,8 @@ export const translations = {
     compareDescription:
       'Selecteer twee verkiezingen om te zien hoe partijstemmen en zetels veranderden. Winst en verlies worden getoond met verschil in procentpunten.',
     compareElectionYear: 'Verkiezingsjaar',
+    compareFirst: 'Verkiezing',
+    compareSecond: 'vergeleken met',
     compareParty: 'Partij',
     compareVotes: 'Stemmen',
     compareVoteChange: 'Stemverschil',

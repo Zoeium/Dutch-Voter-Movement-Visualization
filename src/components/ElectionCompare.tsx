@@ -1,8 +1,9 @@
 import {useMemo, useState} from 'react';
-import {ArrowUp, ArrowDown, ArrowDownUp, ChevronDown, Minus} from 'lucide-react';
+import {ArrowUp, ArrowDown, ArrowDownUp, Minus} from 'lucide-react';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {buildComparison} from '@/data/loader';
 import {EmptyState} from '@/components/shared';
+import {Dropdown} from '@/components/Dropdown';
 import {
   formatElectionLabel,
   formatNumber,
@@ -101,7 +102,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
     setSortDirection('desc');
   };
 
-  const selectClass = 'app-select';
+  const electionOptions = years.map((year) => ({value: year, label: formatElectionLabel(year, lang)}));
   const headers: {key: SortKey; label: string; align: 'left' | 'right'}[] = [
     {key: 'label', label: t('compareParty'), align: 'left'},
     {key: 'votesA', label: `${t('compareVotes')} (${formatElectionLabel(yearA, lang)})`, align: 'right'},
@@ -119,24 +120,8 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
-          <span className="relative">
-            <select value={yearA} onChange={(e) => onYearAChange(e.target.value)} className={selectClass}>
-              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y, lang)}</option>)}
-            </select>
-            <ChevronDown className="app-select-chevron w-4 h-4"/>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-app-muted whitespace-nowrap">{t('compareElectionYear')}</label>
-          <span className="relative">
-            <select value={yearB} onChange={(e) => onYearBChange(e.target.value)} className={selectClass}>
-              {years.map((y) => <option key={y} value={y}>{formatElectionLabel(y, lang)}</option>)}
-            </select>
-            <ChevronDown className="app-select-chevron w-4 h-4"/>
-          </span>
-        </div>
+        <Dropdown label={t('compareFirst')} options={electionOptions} value={yearA} onChange={onYearAChange}/>
+        <Dropdown label={t('compareSecond')} options={electionOptions} value={yearB} onChange={onYearBChange}/>
       </div>
 
       {emptyMessage ? (
@@ -147,7 +132,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {biggestGainers.length > 0 && (
               <div className="bg-app-card rounded-xl p-4 border border-app-border">
-                <h4 className="text-sm font-semibold text-app-heading mb-3">{t('compareGainers')}</h4>
+                <h3 className="text-sm font-semibold text-app-heading mb-3">{t('compareGainers')}</h3>
                 <div className="space-y-2">
                   {biggestGainers.map((r) => (
                     <div key={`g-${r.partyId}`} className="flex items-center justify-between text-sm">
@@ -163,7 +148,7 @@ export default function ElectionCompare({elections, coalitions, parties, yearA, 
             )}
             {biggestLosers.length > 0 && (
               <div className="bg-app-card rounded-xl p-4 border border-app-border">
-                <h4 className="text-sm font-semibold text-app-heading mb-3">{t('compareLosers')}</h4>
+                <h3 className="text-sm font-semibold text-app-heading mb-3">{t('compareLosers')}</h3>
                 <div className="space-y-2">
                   {biggestLosers.map((r) => (
                     <div key={`l-${r.partyId}`} className="flex items-center justify-between text-sm">

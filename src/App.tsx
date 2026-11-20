@@ -7,6 +7,7 @@ import ParliamentDiagram from '@/components/ParliamentDiagram';
 import ElectionCompare from '@/components/ElectionCompare';
 import CoalitionExplorer, {type CoalitionSelection} from '@/components/CoalitionExplorer';
 import CountrySelect from '@/components/CountrySelect';
+import {Dropdown} from '@/components/Dropdown';
 import HomePage, {type HomeView} from '@/components/HomePage';
 import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
 import {
@@ -101,6 +102,8 @@ function pickCountry(countryIds: string[], requested: string): string {
 const TAB_KEYS: readonly TabKey[] = ['home', 'alluvial', 'parliament', 'turnout', 'compare', 'coalition'];
 const THEMES: readonly Theme[] = ['dark', 'light'];
 const LANGUAGES: readonly Language[] = ['en', 'nl'];
+// Each language named in itself, so a visitor finds their own.
+const LANGUAGE_OPTIONS = [{value: 'en', label: 'English'}, {value: 'nl', label: 'Nederlands'}];
 const SORT_MODES: readonly SortMode[] = ['votes', 'alphabetical'];
 const SCALE_MODES: readonly ScaleMode[] = ['absolute', 'percentage'];
 
@@ -569,25 +572,17 @@ function Dashboard({
               </div>
             )}
 
-            <label
-              title={t('languageHint')}
-              className="ml-auto flex items-center gap-1.5 px-2 rounded-lg text-sm font-medium bg-app-btn text-app-btn-text border border-app-border"
-            >
-              <Languages className="w-4 h-4"/>
-              <span className="sr-only">{t('language')}</span>
-              <span className="relative">
-                <select
-                  value={lang}
-                  onChange={(event) => setLang(event.target.value as Language)}
-                  className="app-select app-select-compact"
-                  aria-label={t('language')}
-                >
-                  <option value="en">English</option>
-                  <option value="nl">Nederlands</option>
-                </select>
-                <ChevronDown className="app-select-chevron w-3.5 h-3.5"/>
-              </span>
-            </label>
+            <div className="ml-auto">
+              <Dropdown
+                label={t('language')}
+                hideLabel
+                hint={t('languageHint')}
+                buttonIcon={<Languages className="w-4 h-4 text-app-muted"/>}
+                options={LANGUAGE_OPTIONS}
+                value={lang}
+                onChange={(value) => setLang(pickOption(value, LANGUAGES, lang))}
+              />
+            </div>
           </div>
 
           <div className="order-2 lg:order-3 flex items-center gap-2">

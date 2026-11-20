@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import sonarjs from 'eslint-plugin-sonarjs';
 import tseslint from 'typescript-eslint';
+import jsxA11y from 'eslint-plugin-jsx-a11y-x';
 
 export default [
   {ignores: ['dist', 'coverage']},
@@ -13,6 +14,10 @@ export default [
   ...tseslint.configs.strictTypeChecked.map((config) => ({...config, files: ['**/*.{ts,tsx}']})),
   // Code smells and bug patterns, the same family of rules as SonarLint/SonarQube.
   sonarjs.configs.recommended,
+  // Accessibility of the JSX: labels, keyboard support and valid ARIA. A maintained fork of
+  // eslint-plugin-jsx-a11y that supports ESLint 10. The rendered views are audited with
+  // axe-core in tests/components/a11y.test.tsx.
+  {...jsxA11y.configs.strict, files: ['**/*.tsx']},
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

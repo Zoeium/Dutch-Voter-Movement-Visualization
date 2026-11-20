@@ -28,6 +28,10 @@ All notable changes to this project are documented here. The format follows
 - Non-voters and "other parties" are named in the interface language in every view, and months in election names
   follow the interface language too.
 - Screen readers hear the range sliders and the coalition chamber in the interface language.
+- Every dropdown (country, language, the elections to compare, the coalition explorer's election) looks and works
+  like the country selector, with its flags or icons and full keyboard support.
+- Accessibility: every dropdown has a name screen readers announce, the two compared elections are labelled
+  "Election" and "compared with", and headings no longer skip a level.
 - Each column of the parliament diagram is as wide as its cabinet's time in office.
 
 ## [1.1.0] - 2026-10-27

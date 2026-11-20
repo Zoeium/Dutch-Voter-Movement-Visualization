@@ -2,6 +2,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {act, fireEvent, render, screen, within} from '@testing-library/react';
 import App from '@/App';
 import {translations} from '@/theme';
+import {chooseOption, dropdownValue} from './render';
 
 const en = translations.en;
 const nl = translations.nl;
@@ -103,7 +104,7 @@ describe('App', () => {
 
   it('switches the language and the theme', () => {
     openApp();
-    fireEvent.change(screen.getByLabelText(en.language), {target: {value: 'nl'}});
+    chooseOption(en.language, 'Nederlands');
     expect(screen.getByText(nl.homeTitle)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', {name: nl.lightMode}));
     expect(document.documentElement.classList.contains('light')).toBe(true);
@@ -150,8 +151,7 @@ describe('App', () => {
     });
 
     // Comparing an election with itself has no rows, so nothing is exported.
-    const [selectA, selectB] = screen.getAllByRole<HTMLSelectElement>('combobox', {name: ''});
-    fireEvent.change(selectA as HTMLSelectElement, {target: {value: (selectB as HTMLSelectElement).value}});
+    chooseOption(en.compareFirst, dropdownValue(en.compareSecond));
     fireEvent.click(screen.getByRole('button', {name: en.exportData}));
     expect(createObjectURL).toHaveBeenCalledTimes(2);
   });
@@ -167,8 +167,7 @@ describe('App', () => {
 
   it('switches country, and leaves out the flow view where no movements are known', () => {
     openApp('?tab=alluvial');
-    fireEvent.click(screen.getByRole('button', {name: new RegExp(en.countryData)}));
-    fireEvent.click(screen.getByRole('option', {name: 'France'}));
+    chooseOption(en.countryData, 'France');
     expect(screen.getByText(en.turnoutTitle)).toBeTruthy();
     expect(within(screen.getByRole('main')).queryByRole('button', {name: en.tabAlluvial})).toBeNull();
   });
@@ -178,7 +177,7 @@ describe('App', () => {
     const labels = [...container.querySelectorAll('svg text')].map((text) => text.textContent);
     expect(labels).toContain(en.didNotVote);
     expect(labels).not.toContain('Niet Gestemd');
-    fireEvent.change(screen.getByLabelText(en.language), {target: {value: 'nl'}});
+    chooseOption(en.language, 'Nederlands');
     expect([...container.querySelectorAll('svg text')].map((text) => text.textContent)).toContain(nl.didNotVote);
   });
 
@@ -217,7 +216,7 @@ describe('App', () => {
     expect(screen.getByText(en.didNotVote).className).toContain('line-through');
 
     openApp('?tab=coalition&cy=2021&cp=vvd,d66,cda,cu');
-    expect((screen.getAllByRole('combobox', {name: ''})[0] as HTMLSelectElement).value).toBe('2021');
+    expect(dropdownValue(en.coalitionSelectElection)).toBe('2021');
     expect(screen.getByText(en.coalitionClear)).toBeTruthy();
   });
 
