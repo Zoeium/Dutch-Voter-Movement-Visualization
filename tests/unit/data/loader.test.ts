@@ -1,16 +1,61 @@
 import {describe, expect, it} from 'vitest';
 import type {CoalitionData, ElectionYear, PartyInfo, VoteTotals, VoterMovement} from '@/types';
 import {
-  buildComparisonRows,
+  buildComparison,
   buildMultiElectionFlows,
   getCoalitionForElection,
   getElectionSeats,
   getPartyColor,
   getPartyDisplayName,
   loadCoalitions,
+  isCountryLoaded,
   loadCountries,
+  loadCountryData,
+  normalizeDataSource,
   resolvePartyName,
 } from '@/data/loader';
+
+describe('normalizeDataSource', () => {
+  it('accepts a plain name or a name with a link', () => {
+    expect(normalizeDataSource('Kiesraad')).toEqual({name: 'Kiesraad', url: ''});
+    expect(normalizeDataSource({name: 'SCB', url: ' https://scb.se '})).toEqual({name: 'SCB', url: 'https://scb.se'});
+  });
+
+  it('drops links that are not http(s), and keeps the name', () => {
+    expect(normalizeDataSource({name: 'X', url: 'javascript:alert(1)'})).toEqual({name: 'X', url: ''});
+    expect(normalizeDataSource({name: 'X', url: 42})).toEqual({name: 'X', url: ''});
+  });
+
+  it('rejects a source without a name', () => {
+    expect(normalizeDataSource('')).toBeNull();
+    expect(normalizeDataSource(null)).toBeNull();
+    expect(normalizeDataSource(7)).toBeNull();
+    expect(normalizeDataSource({url: 'https://x.org'})).toBeNull();
+  });
+});
+
+describe('buildMultiElectionFlows across three elections', () => {
+  const elections = [
+    election('2016', {a: 500, b: 500}),
+    election('2020', {a: 600, b: 400, unknown: 50}, [movement('a', {a: 90, b: 10}), movement('b', {b: 100})]),
+    election('2024', {a: 400, b: 600}, [movement('a', {a: 100}), movement('b', {b: 60, a: 40})]),
+  ];
+
+  it('sizes a middle block for the selected party by the larger of its flows in and out', () => {
+    const {nodes} = buildMultiElectionFlows(elections, parties, 'a');
+    // In 2020, 540 voters came into A; 400 + 240 = 640 left it for A and B in 2024.
+    expect(nodes.find((node) => node.id === '1:a')?.value).toBe(640);
+  });
+
+  it('counts votes for parties without a definition as other', () => {
+    const {links} = buildMultiElectionFlows(
+      [election('2020', {a: 500, b: 400, unknown: 100}), election('2024', {a: 500, other: 100}, [movement('other', {other: 100})])],
+      parties,
+      null
+    );
+    expect(links.find((link) => link.source === '0:other')?.value).toBe(100);
+  });
+});
 
 const parties: PartyInfo[] = [
   {party: 'a', display_name: 'Party A', color: '#111111'},
@@ -45,7 +90,7 @@ const movement = (party: string, origins: Record<string, number>): VoterMovement
 
 const cabinet = (name: string, electionYear: string, seats: Record<string, number>): CoalitionData => ({
   name,
-  year: electionYear,
+  inauguration: `${electionYear}-06-01`,
   electionYear,
   coalition: ['a'],
   seats,
@@ -80,7 +125,7 @@ describe('buildMultiElectionFlows', () => {
   it('groups parties without a party file as "other"', () => {
     const withUnknown = election('2024', {a: 1000}, [movement('a', {a: 50, unknown: 50})]);
     const {links} = buildMultiElectionFlows([first, withUnknown], parties, null);
-    expect(links.map((link) => link.source).sort()).toEqual(['0:a', '0:other']);
+    expect(links.map((link) => link.source).sort((a, b) => a.localeCompare(b))).toEqual(['0:a', '0:other']);
   });
 
   it('returns nothing when no election has movement data', () => {
@@ -88,12 +133,12 @@ describe('buildMultiElectionFlows', () => {
   });
 });
 
-describe('buildComparisonRows', () => {
+describe('buildComparison', () => {
   const elections = [election('2020', {a: 600, b: 400}), election('2024', {a: 500, b: 500}), election('2028', {a: 1})];
   const coalitions = [cabinet('One', '2020', {a: 6}), cabinet('Two', '2024', {a: 5, b: 5})];
 
   it('compares votes, shares and seats per party', () => {
-    const rows = buildComparisonRows(elections, '2020', '2024', coalitions, parties);
+    const {rows} = buildComparison(elections, '2020', '2024', coalitions, parties);
     const b = rows.find((row) => row.partyId === 'b');
     expect(b).toMatchObject({label: 'Party B', votesA: 400, votesB: 500, voteChange: 100, seatsB: 5});
     expect(b?.shareA).toBeCloseTo(40);
@@ -101,18 +146,28 @@ describe('buildComparisonRows', () => {
   });
 
   it('counts a party missing from a seat map as 0 seats, not unknown', () => {
-    const b = buildComparisonRows(elections, '2020', '2024', coalitions, parties).find((row) => row.partyId === 'b');
+    const b = buildComparison(elections, '2020', '2024', coalitions, parties).rows.find((row) => row.partyId === 'b');
     expect(b).toMatchObject({seatsA: 0, seatChange: 5});
   });
 
   it('marks seats unknown when the election has no cabinet', () => {
-    const a = buildComparisonRows(elections, '2024', '2028', coalitions, parties).find((row) => row.partyId === 'a');
+    const a = buildComparison(elections, '2024', '2028', coalitions, parties).rows.find((row) => row.partyId === 'a');
     expect(a).toMatchObject({seatsA: 5, seatsB: null, seatChange: null});
   });
 
+  it('totals the valid votes and seats of both elections', () => {
+    expect(buildComparison(elections, '2020', '2024', coalitions, parties).totals).toEqual({
+      validVotesA: elections[0]?.voteTotals.valid_votes,
+      validVotesB: elections[1]?.voteTotals.valid_votes,
+      seatsA: 6,
+      seatsB: 10,
+    });
+    expect(buildComparison(elections, '2024', '2028', coalitions, parties).totals.seatsB).toBeNull();
+  });
+
   it('returns no rows for the same election twice or an unknown election', () => {
-    expect(buildComparisonRows(elections, '2020', '2020', coalitions, parties)).toEqual([]);
-    expect(buildComparisonRows(elections, '2020', '1999', coalitions, parties)).toEqual([]);
+    expect(buildComparison(elections, '2020', '2020', coalitions, parties).rows).toEqual([]);
+    expect(buildComparison(elections, '2020', '1999', coalitions, parties).rows).toEqual([]);
   });
 });
 
@@ -166,5 +221,15 @@ describe('loadCountries', () => {
       expect(country.name.en).not.toBe('');
       expect(country.name.nl).not.toBe('');
     }
+  });
+});
+
+describe('loadCountryData', () => {
+  it('downloads a country once, and reports it as loaded', async () => {
+    const first = loadCountryData('nl');
+    expect(loadCountryData('nl')).toBe(first);
+    await first;
+    expect(isCountryLoaded('nl')).toBe(true);
+    expect(isCountryLoaded('xx')).toBe(false);
   });
 });

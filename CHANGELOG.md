@@ -12,8 +12,38 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Voter movements for the United Kingdom (2015–2017, 2017–2019 and 2019–2024), Sweden (2014–2018 and 2018–2022),
+- Voter movements for the United Kingdom (2015–2017, 2017–2019 and 2019–2024), Sweden (every election from 2002 to 2022),
   Germany (2002–2005 and 2005–2009), Spain (every election from 2015 to 2023) and Italy (2013–2018 and 2018–2022).
+
+### Changed
+
+- The app loads faster: it downloads only the election data of the country shown (a 6–17 kB download per
+  country instead of all of them at once), and React is a separate file that browsers keep cached between versions.
+- The views work the same way:
+  - Voter movements, turnout and the parliament share one range control with quick ranges, and all three start
+    with the last ten elections or cabinets.
+  - Every chart names what is under the pointer in the same kind of tooltip.
+  - Every election list runs from newest to oldest.
+  - Every view without data shows the same note.
+- Each view keeps its settings when you switch tabs, and a shared link now also includes the parliament's range,
+  the turnout chart's scale and hidden categories, and the coalition explorer's election and parties.
+- Non-voters and "other parties" are named in the interface language in every view, and months in election names
+  follow the interface language too.
+- Screen readers hear the range sliders and the coalition chamber in the interface language.
+- Every dropdown (country, language, the elections to compare, the coalition explorer's election) looks and works
+  like the country selector, with its flags or icons and full keyboard support.
+- Accessibility: every dropdown has a name screen readers announce, the two compared elections are labelled
+  "Election" and "compared with", and headings no longer skip a level.
+- Colour contrast meets WCAG AA in both themes: darker greys, links, status colours and active buttons in the light
+  theme, stronger outlines on dropdowns and sliders, fully opaque turnout bars, and black or white text on every
+  party colour, whichever reads better.
+- Each column of the parliament diagram is as wide as its cabinet's time in office.
+
+### Fixed
+
+- Three Dutch voter movements now match the NOS publication: BBB's voters from the SGP and the CDA's from DENK in
+  2023, and the SGP's from GL-PvdA in 2025. The 2023 and 2025 sources link to the NOS graphics.
+- Parliament columns could end up to 16 px taller than columns with as many seats.
 
 ## [1.1.0] - 2026-10-27
 

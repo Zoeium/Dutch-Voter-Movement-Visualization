@@ -72,14 +72,14 @@ describe.each(countries.map((country) => [country.id, country] as const))('%s', 
   describe('elections', () => {
     it('lists elections in date order', () => {
       const dates = elections.map((election) => election.voteTotals.date);
-      expect(dates).toEqual([...dates].sort());
+      expect(dates).toEqual(dates.toSorted((a, b) => a.localeCompare(b)));
     });
 
     it.each(elections.map((election) => [election.year, election] as const))('%s', (year, election) => {
       const t = election.voteTotals;
       expect(year).toMatch(ELECTION_ID);
-      expect(String(t.date)).toMatch(ISO_DATE);
-      expect(String(t.date).slice(0, 4)).toBe(year.slice(0, 4));
+      expect(t.date).toMatch(ISO_DATE);
+      expect(t.date.slice(0, 4)).toBe(year.slice(0, 4));
       expect(t.source.name.trim()).not.toBe('');
 
       const partyVotes = Object.values(t.parties_votes);
@@ -101,8 +101,9 @@ describe.each(countries.map((country) => [country.id, country] as const))('%s', 
       expect(Object.keys(cabinet?.seats ?? {}).length).toBeGreaterThan(0);
     });
 
-    it.each(coalitions.map((coalition) => [`${coalition.name} (${coalition.year})`, coalition] as const))('%s', (_, coalition) => {
+    it.each(coalitions.map((coalition) => [`${coalition.name} (${coalition.inauguration})`, coalition] as const))('%s', (_, coalition) => {
       expect(coalition.name.trim()).not.toBe('');
+      expect(coalition.inauguration, 'inauguration is not a YYYY-MM-DD date').toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(coalition.electionYear, 'not linked to an election').toBeDefined();
 
       const seatParties = Object.keys(coalition.seats);

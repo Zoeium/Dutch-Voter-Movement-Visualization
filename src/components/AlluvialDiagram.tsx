@@ -1,7 +1,7 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {DiagramNode, DiagramLink} from '@/types';
 import {RibbonGradient} from './shared';
-import {buildGradientId, buildRibbonPath} from './diagramUtils';
+import {buildGradientId, buildRibbonPath, formatNumber, sumFlowValues} from './diagramUtils';
 import {useI18n} from '@/theme';
 
 export type SortMode = 'votes' | 'alphabetical';
@@ -9,7 +9,7 @@ export type SortMode = 'votes' | 'alphabetical';
 interface AlluvialDiagramProps {
   nodes: DiagramNode[];
   links: DiagramLink[];
-  numColumns: number;
+  /** One label per column. */
   electionLabels: string[];
   selectedParty: string | null;
   sortMode?: SortMode;
@@ -43,12 +43,6 @@ const LABEL_SPACE = 130;
 const DIAGRAM_HEIGHT = 620;
 const DEFAULT_CONTAINER_WIDTH = 1200;
 
-/** Remove a column prefix from a diagram node identifier. */
-function getBaseId(id: string): string {
-  const idx = id.indexOf(':');
-  return idx >= 0 ? id.slice(idx + 1) : id;
-}
-
 /** Build a stable React key for a positioned ribbon. */
 function getRibbonKey(ribbon: PositionedRibbon): string {
   return `${ribbon.source.id}-${ribbon.target.id}-${ribbon.value}`;
@@ -63,23 +57,20 @@ function getColumnSpacing(numColumns: number, svgWidth: number): number {
 /** Sort one column while keeping selected and synthetic nodes prominent. */
 function sortNodesInColumn(
   column: PositionedNode[],
-  selectedBase: string | null,
+  selectedParty: string | null,
   sortMode: SortMode
 ): PositionedNode[] {
   return [...column].sort((a, b) => {
-    const aBase = getBaseId(a.id);
-    const bBase = getBaseId(b.id);
-
-    if (selectedBase) {
-      const aMatch = aBase === selectedBase;
-      const bMatch = bBase === selectedBase;
+    if (selectedParty) {
+      const aMatch = a.party === selectedParty;
+      const bMatch = b.party === selectedParty;
       if (aMatch && !bMatch) return -1;
       if (bMatch && !aMatch) return 1;
     }
-    if (aBase === 'not_voted') return 1;
-    if (bBase === 'not_voted') return -1;
-    if (aBase === 'other') return 1;
-    if (bBase === 'other') return -1;
+    if (a.party === 'not_voted') return 1;
+    if (b.party === 'not_voted') return -1;
+    if (a.party === 'other') return 1;
+    if (b.party === 'other') return -1;
     if (sortMode === 'alphabetical') {
       return a.label.localeCompare(b.label);
     }
@@ -88,33 +79,26 @@ function sortNodesInColumn(
 }
 
 /** Group links by their source or target node identifier. */
-function buildLinkGroups(
-  links: DiagramLink[],
-  key: 'source' | 'target'
-): Record<string, DiagramLink[]> {
-  const groups: Record<string, DiagramLink[]> = {};
-
+function buildLinkGroups(links: DiagramLink[], key: 'source' | 'target'): Map<string, DiagramLink[]> {
+  const groups = new Map<string, DiagramLink[]>();
   for (const link of links) {
-    const groupKey = link[key];
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-    }
-    groups[groupKey].push(link);
+    const group = groups.get(link[key]);
+    if (group) group.push(link);
+    else groups.set(link[key], [link]);
   }
-
   return groups;
 }
 
-/** Sort each link group by the vertical position of its opposite endpoint. */
+/** Sort each link group by the vertical position of the node at its `by` end. */
 function sortGroupsByNodeY(
-  groups: Record<string, DiagramLink[]>,
-  nodeMap: Record<string, PositionedNode>,
-  dimension: 'source' | 'target'
+  groups: Map<string, DiagramLink[]>,
+  nodeMap: Map<string, PositionedNode>,
+  by: 'source' | 'target'
 ): void {
-  for (const groupId in groups) {
-    groups[groupId].sort((a, b) => {
-      const first = dimension === 'source' ? nodeMap[a.source] : nodeMap[a.target];
-      const second = dimension === 'source' ? nodeMap[b.source] : nodeMap[b.target];
+  for (const group of groups.values()) {
+    group.sort((a, b) => {
+      const first = nodeMap.get(a[by]);
+      const second = nodeMap.get(b[by]);
       if (!first || !second) return 0;
       return first.y - second.y;
     });
@@ -124,86 +108,51 @@ function sortGroupsByNodeY(
 /** Assign scaled SVG coordinates and heights to every diagram node. */
 function positionNodes(
   columns: PositionedNode[][],
-  numColumns: number,
   scale: number,
   svgWidth: number,
   selectedParty: string | null,
   sortMode: SortMode
 ): PositionedNode[] {
-  const selectedBase = selectedParty ? getBaseId(selectedParty) : null;
-
-  for (let columnIndex = 0; columnIndex < numColumns; columnIndex += 1) {
-    columns[columnIndex] = sortNodesInColumn(columns[columnIndex], selectedBase, sortMode);
-  }
-
-  const allNodesFlat: PositionedNode[] = [];
-  for (let columnIndex = 0; columnIndex < numColumns; columnIndex += 1) {
+  const spacing = getColumnSpacing(columns.length, svgWidth);
+  return columns.flatMap((column, columnIndex) => {
     let yOffset = CHART_PADDING_TOP;
-    for (const node of columns[columnIndex]) {
-      // support a precomputed requiredValue (raw units) so node height can account for
-      // outgoing/incoming flows that exceed the node's own value
-      const requiredRaw = node.requiredValue ?? node.value;
-      const nodeHeight = Math.max(MIN_NODE_HEIGHT, requiredRaw * scale);
-      const positionedNode = {
-        ...node,
-        y: yOffset,
-        x: LABEL_SPACE + columnIndex * getColumnSpacing(numColumns, svgWidth),
-        width: NODE_WIDTH,
-        nodeHeight
-      };
-      allNodesFlat.push(positionedNode);
+    return sortNodesInColumn(column, selectedParty, sortMode).map((node) => {
+      // The height covers the node's own votes and every flow in or out of it.
+      const nodeHeight = Math.max(MIN_NODE_HEIGHT, (node.requiredValue ?? node.value) * scale);
+      const positionedNode = {...node, y: yOffset, x: LABEL_SPACE + columnIndex * spacing, width: NODE_WIDTH, nodeHeight};
       yOffset += nodeHeight + NODE_GAP;
-    }
-  }
-
-  return allNodesFlat;
+      return positionedNode;
+    });
+  });
 }
 
 /**
  * Seed the per-node `id -> y` offset map. Used as the starting cursor for both the
  * incoming (target) and outgoing (source) accumulators so the two cannot drift.
  */
-function buildNodeOffsets(allNodesFlat: PositionedNode[]): Record<string, number> {
-  const offsets: Record<string, number> = {};
-
-  for (const node of allNodesFlat) {
-    offsets[node.id] = node.y;
-  }
-
-  return offsets;
+function buildNodeOffsets(allNodesFlat: PositionedNode[]): Map<string, number> {
+  return new Map(allNodesFlat.map((node) => [node.id, node.y]));
 }
 
-/** Allocate target-side vertical offsets for every link entering one node. */
-function applyIncomingOffsets(
-  nodeId: string,
-  targetOffsets: Record<string, number>,
-  linkTargetOffsets: Record<string, { top: number; bot: number }>,
-  incomingByTarget: Record<string, DiagramLink[]>,
-  scale: number
-): void {
-  const inLinks = incomingByTarget[nodeId];
-  if (!inLinks) return;
+type Span = { top: number; bot: number };
 
-  for (const link of inLinks) {
-    const ribbonHeight = link.value * scale;
-    const targetYTop = targetOffsets[link.target];
-    const targetYBot = targetYTop + ribbonHeight;
-    targetOffsets[link.target] = targetYBot;
-    linkTargetOffsets[`${link.source}->${link.target}`] = {top: targetYTop, bot: targetYBot};
-  }
-}
-
-/** Compute the target-side vertical span allocated to each link. */
+/** Compute the target-side vertical span allocated to each link, keyed `source->target`. */
 function buildTargetOffsets(
   allNodesFlat: PositionedNode[],
-  incomingByTarget: Record<string, DiagramLink[]>,
+  incomingByTarget: Map<string, DiagramLink[]>,
   scale: number
-): Record<string, { top: number; bot: number }> {
+): Map<string, Span> {
   const targetOffsets = buildNodeOffsets(allNodesFlat);
-  const linkTargetOffsets: Record<string, { top: number; bot: number }> = {};
+  const linkTargetOffsets = new Map<string, Span>();
 
   for (const node of allNodesFlat) {
-    applyIncomingOffsets(node.id, targetOffsets, linkTargetOffsets, incomingByTarget, scale);
+    for (const link of incomingByTarget.get(node.id) ?? []) {
+      const top = targetOffsets.get(link.target);
+      if (top === undefined) continue;
+      const bot = top + link.value * scale;
+      targetOffsets.set(link.target, bot);
+      linkTargetOffsets.set(`${link.source}->${link.target}`, {top, bot});
+    }
   }
 
   return linkTargetOffsets;
@@ -211,33 +160,26 @@ function buildTargetOffsets(
 
 /** Convert links between positioned nodes into drawable ribbon geometry. */
 function buildRibbons(
-  nodeMap: Record<string, PositionedNode>,
-  outgoingBySource: Record<string, DiagramLink[]>,
-  incomingByTarget: Record<string, DiagramLink[]>,
+  nodeMap: Map<string, PositionedNode>,
+  outgoingBySource: Map<string, DiagramLink[]>,
+  incomingByTarget: Map<string, DiagramLink[]>,
   scale: number,
   allNodesFlat: PositionedNode[]
 ): PositionedRibbon[] {
   const sourceOffsets = buildNodeOffsets(allNodesFlat);
-
   const linkTargetOffsets = buildTargetOffsets(allNodesFlat, incomingByTarget, scale);
   const ribbons: PositionedRibbon[] = [];
 
   for (const node of allNodesFlat) {
-    const outLinks = outgoingBySource[node.id];
-    if (!outLinks) continue;
+    for (const link of outgoingBySource.get(node.id) ?? []) {
+      const source = nodeMap.get(link.source);
+      const target = nodeMap.get(link.target);
+      const targetInfo = linkTargetOffsets.get(`${link.source}->${link.target}`);
+      const sourceYTop = sourceOffsets.get(link.source);
+      if (!source || !target || !targetInfo || sourceYTop === undefined) continue;
 
-    for (const link of outLinks) {
-      const source = nodeMap[link.source];
-      const target = nodeMap[link.target];
-      if (!source || !target) continue;
-
-      const targetInfo = linkTargetOffsets[`${link.source}->${link.target}`];
-      if (!targetInfo) continue;
-
-      const ribbonHeight = link.value * scale;
-      const sourceYTop = sourceOffsets[link.source];
-      const sourceYBot = sourceYTop + ribbonHeight;
-      sourceOffsets[link.source] = sourceYBot;
+      const sourceYBot = sourceYTop + link.value * scale;
+      sourceOffsets.set(link.source, sourceYBot);
 
       ribbons.push({
         source,
@@ -272,64 +214,30 @@ function computeDiagramLayout(
   const availableWidth = Math.max(containerWidth, 600);
   const columns: PositionedNode[][] = Array.from({length: numColumns}, () => []);
 
-  // compute raw incoming/outgoing sums per node id from links (links use node ids like 'col:party')
-  const outgoingRaw: Record<string, number> = {};
-  const incomingRaw: Record<string, number> = {};
-  for (const link of links) {
-    outgoingRaw[link.source] = (outgoingRaw[link.source] ?? 0) + link.value;
-    incomingRaw[link.target] = (incomingRaw[link.target] ?? 0) + link.value;
-  }
+  // A node is drawn tall enough for its own votes and for every flow in or out of it.
+  const {outgoing, incoming} = sumFlowValues(links);
 
   for (const node of nodes) {
-    const requiredValue = Math.max(node.value, outgoingRaw[node.id] ?? 0, incomingRaw[node.id] ?? 0);
-    columns[node.columnIndex].push({
-      ...node,
-      x: 0,
-      y: 0,
-      width: NODE_WIDTH,
-      nodeHeight: 0,
-      value: node.value,
-      requiredValue,
-    });
+    const requiredValue = Math.max(node.value, outgoing[node.id] ?? 0, incoming[node.id] ?? 0);
+    columns[node.columnIndex]?.push({...node, x: 0, y: 0, width: NODE_WIDTH, nodeHeight: 0, requiredValue});
   }
 
-  let maxColumnTotal = 0;
-  for (const column of columns) {
-    const total = column.reduce((sum, node) => sum + (node.requiredValue ?? node.value), 0);
-    if (total > maxColumnTotal) {
-      maxColumnTotal = total;
-    }
-  }
-
+  const maxColumnTotal = Math.max(
+    0,
+    ...columns.map((column) => column.reduce((sum, node) => sum + (node.requiredValue ?? node.value), 0))
+  );
   const availableHeight = DIAGRAM_HEIGHT - CHART_PADDING_TOP - CHART_PADDING_BOTTOM;
   const scale = maxColumnTotal > 0 ? availableHeight / maxColumnTotal : 1;
-  const positionedNodes = positionNodes(columns, numColumns, scale, availableWidth, selectedParty, sortMode);
-
-  const nodeMap: Record<string, PositionedNode> = {};
-  for (const node of positionedNodes) {
-    nodeMap[node.id] = node;
-  }
+  const positionedNodes = positionNodes(columns, scale, availableWidth, selectedParty, sortMode);
+  const nodeMap = new Map(positionedNodes.map((node) => [node.id, node]));
 
   const outgoingBySource = buildLinkGroups(links, 'source');
   const incomingByTarget = buildLinkGroups(links, 'target');
   sortGroupsByNodeY(outgoingBySource, nodeMap, 'target');
   sortGroupsByNodeY(incomingByTarget, nodeMap, 'source');
 
-  const positionedRibbons = buildRibbons(
-    nodeMap,
-    outgoingBySource,
-    incomingByTarget,
-    scale,
-    positionedNodes
-  );
-
-  let maxBottom = 0;
-  for (const node of positionedNodes) {
-    const bottom = node.y + node.nodeHeight;
-    if (bottom > maxBottom) {
-      maxBottom = bottom;
-    }
-  }
+  const positionedRibbons = buildRibbons(nodeMap, outgoingBySource, incomingByTarget, scale, positionedNodes);
+  const maxBottom = Math.max(0, ...positionedNodes.map((node) => node.y + node.nodeHeight));
 
   return {
     positionedNodes,
@@ -363,6 +271,8 @@ interface DiagramRibbonProps {
   active: boolean;
   isHovered: boolean;
   gradientId?: string;
+  /** The tooltip: who moved where, and how many. */
+  title: string;
   onHover: (ribbon: PositionedRibbon) => void;
   onLeave: () => void;
 }
@@ -372,6 +282,7 @@ const DiagramRibbon = memo(/** Render one interactive flow ribbon. */ function D
   active,
   isHovered,
   gradientId,
+  title,
   onHover,
   onLeave,
 }: Readonly<DiagramRibbonProps>) {
@@ -391,46 +302,18 @@ const DiagramRibbon = memo(/** Render one interactive flow ribbon. */ function D
       style={{transition: 'fill-opacity 0.2s ease', cursor: 'pointer'}}
       onMouseEnter={() => onHover(ribbon)}
       onMouseLeave={onLeave}
-    />
+    >
+      <title>{title}</title>
+    </path>
   );
 });
-
-interface DiagramTooltipProps {
-  centerX: number;
-  y: number;
-  width: number;
-  text: string;
-}
-
-/** Render an SVG tooltip centered on the requested coordinate. */
-function DiagramTooltip({centerX, y, width, text}: Readonly<DiagramTooltipProps>) {
-  return (
-    <g style={{pointerEvents: 'none'}}>
-      <rect
-        x={centerX - width / 2}
-        y={y}
-        width={width}
-        height={30}
-        rx={6}
-        fill="var(--c-tooltip-bg)"
-        fillOpacity={0.95}
-      />
-      <text
-        x={centerX}
-        y={y + 18}
-        textAnchor="middle"
-        className="fill-app-tooltip-text text-xs font-medium"
-      >
-        {text}
-      </text>
-    </g>
-  );
-}
 
 interface DiagramNodeGlyphProps {
   node: PositionedNode;
   isActive: boolean;
   isLastColumn: boolean;
+  /** The tooltip: the party and its votes. */
+  title: string;
   onHover: (id: string) => void;
   onLeave: () => void;
 }
@@ -439,6 +322,7 @@ const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. 
   node,
   isActive,
   isLastColumn,
+  title,
   onHover,
   onLeave,
 }: Readonly<DiagramNodeGlyphProps>) {
@@ -459,7 +343,9 @@ const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. 
         style={{transition: 'fill-opacity 0.2s ease', cursor: 'pointer'}}
         onMouseEnter={() => onHover(node.id)}
         onMouseLeave={onLeave}
-      />
+      >
+        <title>{title}</title>
+      </rect>
       <text
         x={textProps.x}
         y={node.y + node.nodeHeight / 2}
@@ -478,12 +364,12 @@ const DiagramNodeGlyph = memo(/** Render one party node and its adjacent label. 
 export default function AlluvialDiagram({
                                           nodes,
                                           links,
-                                          numColumns,
                                           electionLabels,
                                           selectedParty,
                                           sortMode = 'votes',
                                         }: Readonly<AlluvialDiagramProps>) {
   const {t} = useI18n();
+  const numColumns = electionLabels.length;
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredRibbonKey, setHoveredRibbonKey] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -532,13 +418,6 @@ export default function AlluvialDiagram({
   const handleRibbonLeave = useCallback(() => setHoveredRibbonKey(null), []);
   const handleNodeLeave = useCallback(() => setHoveredNode(null), []);
 
-  // Resolve the (stable) hovered key back to a live ribbon: storing the object
-  // itself would go stale as soon as the layout memo re-runs (e.g. on resize).
-  const hoveredRibbon = useMemo(
-    () => positionedRibbons.find((ribbon) => getRibbonKey(ribbon) === hoveredRibbonKey) ?? null,
-    [positionedRibbons, hoveredRibbonKey]
-  );
-
   return (
     // On narrow screens the drawing keeps its minimum readable width and scrolls sideways
     // inside its card, instead of being shrunk until the labels are unreadable.
@@ -583,6 +462,7 @@ export default function AlluvialDiagram({
               gradientId={gradId}
               active={isRibbonActive(ribbon)}
               isHovered={hoveredRibbonKey === ribbonKey}
+              title={`${ribbon.source.label} → ${ribbon.target.label}: ${formatNumber(ribbon.value)} ${t('votes')}`}
               onHover={handleRibbonHover}
               onLeave={handleRibbonLeave}
             />
@@ -595,33 +475,11 @@ export default function AlluvialDiagram({
             node={node}
             isActive={!hoveredNode || hoveredNode === node.id}
             isLastColumn={node.columnIndex === numColumns - 1}
+            title={`${node.label}: ${formatNumber(node.value)} ${t('votes')}`}
             onHover={setHoveredNode}
             onLeave={handleNodeLeave}
           />
         ))}
-
-        {hoveredRibbon && (
-          <DiagramTooltip
-            centerX={svgWidth / 2}
-            y={contentHeight - 44}
-            width={280}
-            text={`${hoveredRibbon.source.label} → ${hoveredRibbon.target.label}: ${hoveredRibbon.value.toLocaleString()} ${t('votes')}`}
-          />
-        )}
-
-        {hoveredNode && (() => {
-          const node = positionedNodes.find((n) => n.id === hoveredNode);
-          if (!node) return null;
-
-          return (
-            <DiagramTooltip
-              centerX={svgWidth / 2}
-              y={contentHeight - 80}
-              width={280}
-              text={`${node.label}: ${node.value.toLocaleString()} ${t('votes')}`}
-            />
-          );
-        })()}
       </svg>
     </div>
   );

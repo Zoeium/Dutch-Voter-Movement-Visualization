@@ -3,10 +3,12 @@
  * ribbon geometry) so those definitions live in exactly one place.
  */
 
+import type {Language} from '@/theme';
+
 /** Tailwind class for an active/inactive toggle button. */
 export const toggleButtonClass = (active: boolean): string =>
   active
-    ? 'bg-emerald-500 text-white'
+    ? 'bg-app-accent text-app-on-accent'
     : 'bg-app-btn text-app-btn-text hover:bg-app-btn-hover';
 
 /**
@@ -18,16 +20,136 @@ export const partyButtonClass = (selected: boolean, ringOffsetClass: string): st
   return `${stateClass} px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`;
 };
 
-const MONTH_ABBREVIATIONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Every diagram formats numbers the same way: English thousands separators.
+const NUMBER_LOCALE = 'en-US';
+
+/** A count with thousands separators: 1,234,567. */
+export function formatNumber(n: number): string {
+  return n.toLocaleString(NUMBER_LOCALE);
+}
+
+/** A count with an explicit sign for gains: +1,234 / -1,234 / 0. */
+export function formatSignedNumber(n: number): string {
+  return `${n > 0 ? '+' : ''}${formatNumber(n)}`;
+}
+
+/** A percentage with one decimal: 12.3%. */
+export function formatPct(n: number): string {
+  return `${n.toFixed(1)}%`;
+}
+
+/** A change in percentage points with an explicit sign for gains: +1.2pp. */
+export function formatSignedPP(n: number): string {
+  return `${n > 0 ? '+' : ''}${n.toFixed(1)}pp`;
+}
+
+/** Pair up the items of two lists by position, as far as the shorter one goes. */
+export function zip<A, B>(first: readonly A[], second: readonly B[]): [A, B][] {
+  const pairs: [A, B][] = [];
+  const length = Math.min(first.length, second.length);
+  for (let index = 0; index < length; index += 1) {
+    pairs.push([first[index] as A, second[index] as B]);
+  }
+  return pairs;
+}
+
+/** Sum the flow values leaving and entering every source and target id. */
+export function sumFlowValues(
+  flows: readonly {source: string; target: string; value: number}[]
+): {outgoing: Record<string, number>; incoming: Record<string, number>} {
+  const outgoing: Record<string, number> = {};
+  const incoming: Record<string, number> = {};
+  for (const flow of flows) {
+    outgoing[flow.source] = (outgoing[flow.source] ?? 0) + flow.value;
+    incoming[flow.target] = (incoming[flow.target] ?? 0) + flow.value;
+  }
+  return {outgoing, incoming};
+}
+
+/**
+ * The scale (pixels per seat) at which a column of blocks is exactly `target` tall, when
+ * every block is drawn `seats * scale` tall but never less than `minHeight`.
+ *
+ * Sorted by seats, the blocks raised to `minHeight` are always the smallest ones. So try
+ * raising none, then the smallest, then the two smallest, and so on: the scale that fills
+ * the rest of the column is the answer as soon as the next block is tall enough by itself.
+ * Returns 0 when there is nothing to scale.
+ */
+export function scaleToFill(seats: readonly number[], target: number, minHeight: number): number {
+  const sorted = seats.filter((count) => count > 0).sort((a, b) => a - b);
+  let remainingSeats = sorted.reduce((sum, count) => sum + count, 0);
+  for (const [raised, smallest] of sorted.entries()) {
+    const scale = (target - raised * minHeight) / remainingSeats;
+    if (smallest * scale >= minHeight) return scale;
+    remainingSeats -= smallest;
+  }
+  return 0;
+}
+
+const DATE_LOCALES: Record<Language, string> = {en: 'en-GB', nl: 'nl-NL'};
+
+/** "Feb 1974" in English, "feb 1974" in Dutch: a month and year in the interface language. */
+function formatMonthYear(year: number, month: number, lang: Language): string {
+  const date = new Date(Date.UTC(year, month - 1, 15));
+  return new Intl.DateTimeFormat(DATE_LOCALES[lang], {month: 'short', year: 'numeric', timeZone: 'UTC'}).format(date);
+}
 
 /**
  * Display label for an election id. Ids are years, or YYYY-MM when a country held
- * two elections in one year (UK 1974): '1974-02' becomes 'Feb 1974'.
+ * two elections in one year (UK 1974): '1974-02' becomes 'Feb 1974' ('feb 1974' in Dutch).
  */
-export function formatElectionLabel(id: string): string {
+export function formatElectionLabel(id: string, lang: Language = 'en'): string {
   const match = /^(\d{4})-(\d{2})$/.exec(id);
-  const month = match ? MONTH_ABBREVIATIONS[Number(match[2]) - 1] : undefined;
-  return match && month ? `${month} ${match[1]}` : id;
+  const month = Number(match?.[2]);
+  return match && month >= 1 && month <= 12 ? formatMonthYear(Number(match[1]), month, lang) : id;
+}
+
+/** The month and year of an election date (YYYY-MM-DD), in the interface language. */
+export function formatElectionDate(date: string, lang: Language = 'en'): string {
+  const [year, month] = date.split('-').map(Number);
+  return formatMonthYear(year ?? 0, month ?? 1, lang);
+}
+
+/** The red, green and blue of a #rgb or #rrggbb colour, each 0–1; null for anything else. */
+export function parseHexColor(color: string): [number, number, number] | null {
+  const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!match?.[1]) return null;
+  const digits = match[1].length === 3 ? match[1].replace(/./g, (digit) => digit + digit) : match[1];
+  return [0, 2, 4].map((offset) => Number.parseInt(digits.slice(offset, offset + 2), 16) / 255) as [number, number, number];
+}
+
+/** WCAG relative luminance of an sRGB colour (channels 0–1). */
+export function relativeLuminance([red, green, blue]: readonly number[]): number {
+  const linear = (channel = 0) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue);
+}
+
+/** WCAG contrast ratio of two colours, from 1 (none) to 21 (black on white). */
+export function contrastRatio(first: readonly number[], second: readonly number[]): number {
+  const [lighter, darker] = [relativeLuminance(first), relativeLuminance(second)].sort((a, b) => b - a);
+  return ((lighter ?? 0) + 0.05) / ((darker ?? 0) + 0.05);
+}
+
+const BLACK = [0, 0, 0];
+const WHITE = [1, 1, 1];
+
+/**
+ * Black or white, whichever contrasts more with `background` (a party colour). One of the
+ * two always reaches at least 4.58:1, so text on any colour meets WCAG AA. Colours that
+ * are not hex fall back to white.
+ */
+export function readableTextColor(background: string): '#000000' | '#ffffff' {
+  const rgb = parseHexColor(background);
+  if (!rgb) return '#ffffff';
+  return contrastRatio(BLACK, rgb) > contrastRatio(WHITE, rgb) ? '#000000' : '#ffffff';
+}
+
+/** How many of the most recent items a view with a time axis shows at first. */
+export const DEFAULT_RANGE_SIZE = 10;
+
+/** The range such a view starts with: the last DEFAULT_RANGE_SIZE items, or all when fewer. */
+export function defaultRange(count: number): {start: number; end: number} {
+  return {start: Math.max(0, count - DEFAULT_RANGE_SIZE), end: Math.max(0, count - 1)};
 }
 
 /** Filter an array by an inclusive index range. */

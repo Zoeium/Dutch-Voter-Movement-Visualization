@@ -70,9 +70,10 @@ The app covers seven countries, chosen with the "Election data" selector in the 
   chamber; since 1970 the Riksdag has had a single chamber. The 2026 figures are the election-night count.
 - **Governments** from Erlander I (1948) to the caretaker government after the 2026 election, including governments
   that continued after an election.
-- **Voter movements** for 2014 to 2018 and 2018 to 2022, from the Swedish National Election Studies (University of
-  Gothenburg). 2018 is the study's own table of where each party's voters came from; for 2022 the study's table of
-  where each party's 2018 voters went is adjusted to match the official results of both elections.
+- **Voter movements** for every election from 2002 to 2022, from the Swedish National Election Studies (University of
+  Gothenburg, published by Statistics Sweden until 2010). 2014 and 2018 are the study's own tables of where each
+  party's voters came from; for 2006, 2010 and 2022 the study's table of where each party's previous voters went is
+  adjusted to match the official results of both elections.
 
 **France**
 
@@ -111,6 +112,15 @@ Every source is listed in the app itself, under "Sources" at the bottom of the p
 Every change to the data is checked automatically before it is published. Among other things, the checks confirm that
 each party's votes add up to the valid votes, that every party has a name and colour, that a cabinet or government
 with seats follows every election, and that every governing party actually holds seats.
+
+### Code checks
+
+The code is checked the same way: `npm run lint` (ESLint with type-aware, SonarJS and accessibility rules),
+`npm run typecheck` (strict TypeScript) and `npm run test:coverage` (all tests, with a coverage report in
+`coverage/index.html`). The tests cover the data, the logic and every view, which is rendered in a simulated browser
+and used like a visitor would; every view is also audited for accessibility with axe-core, in English and Dutch, and
+every colour pair (both themes, and every party colour) is checked for WCAG AA contrast. The
+coverage run fails when any file drops below 80% (the thresholds are in `vite.config.ts`).
 
 ## Versions
 

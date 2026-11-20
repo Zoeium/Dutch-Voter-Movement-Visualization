@@ -1,5 +1,4 @@
 import {describe, expect, it} from 'vitest';
-// @ts-expect-error -- plain JavaScript release script without type declarations
 import {bumpVersion, releaseChangelog} from '../../../scripts/release.mjs';
 
 const URL = 'https://github.com/Zoeium/Dutch-Voter-Movement-Visualization';

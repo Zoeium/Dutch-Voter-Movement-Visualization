@@ -89,6 +89,10 @@ export const translations = {
     all: 'All',
     last10: 'Last 10',
     last5: 'Last 5',
+    rangeStart: 'Start of the range',
+    rangeEnd: 'End of the range',
+    otherParties: 'Other parties',
+    chamberSummary: '{selected} of {total} seats selected; {majority} seats needed for a majority',
     noCoalitionData: 'No coalition data available',
     toleratingParty: 'Supporting party (outside the cabinet)',
     coalitionOpposition: 'Coalition above \u00b7 opposition below',
@@ -104,6 +108,7 @@ export const translations = {
 
     // Error
     somethingWrong: 'Something went wrong',
+    loadingData: 'Loading the election data…',
 
     // Theme/Language toggles
     lightMode: 'Light',
@@ -136,6 +141,8 @@ export const translations = {
     compareDescription:
       'Select two elections to see how party votes and seats changed between them. Gains and losses are shown with percentage-point differences.',
     compareElectionYear: 'Election year',
+    compareFirst: 'Election',
+    compareSecond: 'compared with',
     compareParty: 'Party',
     compareVotes: 'Votes',
     compareVoteChange: 'Vote change',
@@ -231,6 +238,10 @@ export const translations = {
     all: 'Alles',
     last10: 'Laatste 10',
     last5: 'Laatste 5',
+    rangeStart: 'Begin van het bereik',
+    rangeEnd: 'Einde van het bereik',
+    otherParties: 'Overige partijen',
+    chamberSummary: '{selected} van {total} zetels geselecteerd; {majority} zetels nodig voor een meerderheid',
     noCoalitionData: 'Geen coalitiedata beschikbaar',
     toleratingParty: 'Gedoogpartner',
     coalitionOpposition: 'Coalitie boven \u00b7 oppositie onder',
@@ -244,6 +255,7 @@ export const translations = {
     movements: 'Migratie',
 
     somethingWrong: 'Er ging iets mis',
+    loadingData: 'De verkiezingsdata wordt geladen…',
 
     lightMode: 'Licht',
     darkMode: 'Donker',
@@ -274,6 +286,8 @@ export const translations = {
     compareDescription:
       'Selecteer twee verkiezingen om te zien hoe partijstemmen en zetels veranderden. Winst en verlies worden getoond met verschil in procentpunten.',
     compareElectionYear: 'Verkiezingsjaar',
+    compareFirst: 'Verkiezing',
+    compareSecond: 'vergeleken met',
     compareParty: 'Partij',
     compareVotes: 'Stemmen',
     compareVoteChange: 'Stemverschil',

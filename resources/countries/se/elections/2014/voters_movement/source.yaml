@@ -1,0 +1,9 @@
+# Inflow composition from the Swedish National Election Study 2014 (with the European Parliament
+# election study 2014): each party's 2014 voters by their 2010 vote, rescaled to 100 with first-time
+# voters left out. Folkpartiet is listed as l (Liberalerna); FI voters of 2010 are in "other".
+# The "other" party's own 2014 voters rest on only 20 respondents.
+source:
+  name: >-
+    Valforskningsprogrammet, Rapport 2016:4 (Flytande väljare), tabell 3:
+    varifrån kom 2014 års väljare?
+  url: https://www.gu.se/sites/default/files/2020-06/2016%204%20Oscarsson%20-%20Flytande%20va%CC%88ljare.pdf

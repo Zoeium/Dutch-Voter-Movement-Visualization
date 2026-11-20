@@ -9,20 +9,10 @@ export type UrlState = Record<string, string | number | boolean | null>;
 export function stateToSearchParams(state: UrlState): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(state)) {
-    if (value === null || value === undefined || value === '') continue;
+    if (value === null || value === '') continue;
     params.set(key, String(value));
   }
   return params.toString();
-}
-
-/** Parse URL search params into a string record. */
-export function searchParamsToState(): Record<string, string> {
-  const params = new URLSearchParams(window.location.search);
-  const result: Record<string, string> = {};
-  for (const [key, value] of params.entries()) {
-    result[key] = value;
-  }
-  return result;
 }
 
 /** Update the browser URL with new state without a full page reload. */
@@ -83,11 +73,14 @@ export function exportSvg(svgElement: SVGSVGElement, filename: string): void {
   ];
   const originalElements: SVGElement[] = [svgElement, ...svgElement.querySelectorAll<SVGElement>('*')];
   const clonedElements: SVGElement[] = [exportElement, ...exportElement.querySelectorAll<SVGElement>('*')];
+  // The clone has the same elements in the same order, so they pair up by position.
   originalElements.forEach((element, index) => {
+    const clone = clonedElements[index];
+    if (!clone) return;
     const styles = getComputedStyle(element);
     for (const property of visualProperties) {
       const value = styles.getPropertyValue(property);
-      if (value) clonedElements[index].style.setProperty(property, value);
+      if (value) clone.style.setProperty(property, value);
     }
   });
   // On screen the card behind the chart paints the background; without it the export is
@@ -132,7 +125,7 @@ function downloadBlob(blob: Blob, filename: string): void {
   link.download = filename;
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  link.remove();
   // Some browsers start the download asynchronously; revoking right away can cancel it.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

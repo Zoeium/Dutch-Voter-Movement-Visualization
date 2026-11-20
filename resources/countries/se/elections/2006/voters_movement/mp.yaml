@@ -1,0 +1,9 @@
+party: mp
+vote_last_election_in_percentile:
+  mp: 39.2
+  s: 21.1
+  not_voted: 14.6
+  v: 14
+  l: 4.9
+  c: 4.4
+  kd: 1.8

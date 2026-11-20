@@ -12,7 +12,7 @@ describe('chamberRows', () => {
 
   it('gives longer outer rows more seats', () => {
     const {counts} = chamberRows(650);
-    expect(counts[counts.length - 1]).toBeGreaterThan(counts[0]);
+    expect(counts.at(-1) ?? 0).toBeGreaterThan(counts[0] ?? 0);
   });
 });
 

@@ -9,65 +9,54 @@ import type {
   VoteTotals,
   CoalitionData,
 } from '@/types';
+import {sumFlowValues} from '@/components/diagramUtils';
 
 // Every country lives in resources/countries/<id>/ with the same layout:
 // country.yaml, parties/*.yaml, coalitions/*.yaml and
 // elections/<election id>/vote_totals.yaml (+ optional voters_movement/*.yaml).
-const countryModules = import.meta.glob('@/../resources/countries/*/country.yaml', {
+const countryModules = import.meta.glob<string>('@/../resources/countries/*/country.yaml', {
   eager: true,
   query: '?raw',
   import: 'default',
-}) as Record<string, string>;
+});
 
 // Flags come from the flag-icons package, by ISO 3166 country code. Only the flags of the
 // countries with data are bundled: add a new country's code here (the data tests fail
 // for a country without a flag).
-const flagUrls = import.meta.glob('/node_modules/flag-icons/flags/4x3/{nl,gb,de,se,fr,es,it}.svg', {
+const flagUrls = import.meta.glob<string>('/node_modules/flag-icons/flags/4x3/{nl,gb,de,se,fr,es,it}.svg', {
   eager: true,
   query: '?url',
   import: 'default',
-}) as Record<string, string>;
+});
 const flagByCode = new Map(
   Object.entries(flagUrls).map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1, -'.svg'.length), url])
 );
 
-const allPartyModules = import.meta.glob('@/../resources/countries/*/parties/*.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
+// A country's data files are only downloaded when the country is shown (loadCountryData);
+// the build bundles each country's files into one data-<country> chunk (vite.config.ts).
+const countryFileLoaders = import.meta.glob<string>(
+  [
+    '@/../resources/countries/*/parties/*.yaml',
+    '@/../resources/countries/*/coalitions/*.yaml',
+    '@/../resources/countries/*/elections/*/vote_totals.yaml',
+    '@/../resources/countries/*/elections/*/voters_movement/*.yaml',
+  ],
+  {query: '?raw', import: 'default'}
+);
 
-const allTotalsModules = import.meta.glob('@/../resources/countries/*/elections/*/vote_totals.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
-
-const allCoalitionModules = import.meta.glob('@/../resources/countries/*/coalitions/*.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
-
-const allMovementModules = import.meta.glob('@/../resources/countries/*/elections/*/voters_movement/*.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
-
-const allMovementSourceModules = import.meta.glob('@/../resources/countries/*/elections/*/voters_movement/source.yaml', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
+// The files of the countries loaded so far, by kind. Everything below reads from these.
+const allPartyModules: Record<string, string> = {};
+const allTotalsModules: Record<string, string> = {};
+const allCoalitionModules: Record<string, string> = {};
+const allMovementModules: Record<string, string> = {};
+const allMovementSourceModules: Record<string, string> = {};
 
 const DEFAULT_PARTY_COLOR = '#6b7280';
 const MOVEMENT_SOURCE_PATH_SUFFIX = '/voters_movement/source.yaml';
 
 /** Extract the country id from a resource path. */
 function extractCountry(path: string): string {
-  const match = /\/countries\/([^/]+)\//.exec(path);
-  return match ? match[1] : '';
+  return /\/countries\/([^/]+)\//.exec(path)?.[1] ?? '';
 }
 
 /**
@@ -75,8 +64,7 @@ function extractCountry(path: string): string {
  * usually a year, or YYYY-MM when a country held two elections in one year.
  */
 function extractYear(path: string): string {
-  const match = /\/elections\/([^/]+)\//.exec(path);
-  return match ? match[1] : '';
+  return /\/elections\/([^/]+)\//.exec(path)?.[1] ?? '';
 }
 
 /** The subset of a module group that belongs to one country. */
@@ -120,18 +108,51 @@ function isMovementDataFile(path: string): boolean {
 /** Key for per-country, per-election lookups. */
 const electionKey = (country: string, year: string): string => `${country}/${year}`;
 
-// Bucket the movement modules by country and election once, so per-election
-// lookups are O(1) instead of re-running the regexes over every module on each call.
+// Movement files by country and election, so per-election lookups are O(1) instead of
+// re-running the regexes over every module on each call. Filled as countries load.
 const movementFilesByElection = new Map<string, string[]>();
-for (const [path, raw] of Object.entries(allMovementModules)) {
-  if (!isMovementDataFile(path)) continue;
-  const year = extractYear(path);
-  if (!year || !raw) continue;
 
-  const key = electionKey(extractCountry(path), year);
-  const files = movementFilesByElection.get(key) ?? [];
-  files.push(raw);
-  movementFilesByElection.set(key, files);
+/** The group a data file belongs to, by its path. */
+function groupOf(path: string): Record<string, string> {
+  if (path.includes('/parties/')) return allPartyModules;
+  if (path.includes('/coalitions/')) return allCoalitionModules;
+  if (path.endsWith('/vote_totals.yaml')) return allTotalsModules;
+  return isMovementDataFile(path) ? allMovementModules : allMovementSourceModules;
+}
+
+const loadingCountries = new Map<string, Promise<void>>();
+const loadedCountries = new Set<string>();
+
+/** True once a country's data files are loaded, so its data can be read. */
+export function isCountryLoaded(country: string): boolean {
+  return loadedCountries.has(country);
+}
+
+/**
+ * Download a country's data files (once) so the load* functions below can read them.
+ * Resolves when they are in; a second call for the same country reuses the first.
+ */
+export function loadCountryData(country: string): Promise<void> {
+  const pending = loadingCountries.get(country);
+  if (pending) return pending;
+  const paths = Object.keys(countryFileLoaders).filter((path) => extractCountry(path) === country);
+  const loading = Promise.all(
+    paths.map(async (path) => {
+      const load = countryFileLoaders[path];
+      if (load) groupOf(path)[path] = await load();
+    })
+  ).then(() => {
+    for (const path of paths) {
+      const raw = allMovementModules[path];
+      const year = extractYear(path);
+      if (!raw || !year) continue;
+      const key = electionKey(country, year);
+      movementFilesByElection.set(key, [...(movementFilesByElection.get(key) ?? []), raw]);
+    }
+    loadedCountries.add(country);
+  });
+  loadingCountries.set(country, loading);
+  return loading;
 }
 
 // Totals are read by the election loaders, the citation list and the coalition
@@ -140,8 +161,9 @@ const parsedTotalsByPath = new Map<string, VoteTotals | null>();
 
 /** Parse (once) the vote totals resource at `path`. */
 function getParsedTotals(path: string): VoteTotals | null {
-  if (!parsedTotalsByPath.has(path)) {
-    parsedTotalsByPath.set(path, yaml.load(allTotalsModules[path]) as VoteTotals | null);
+  const raw = allTotalsModules[path];
+  if (!parsedTotalsByPath.has(path) && raw !== undefined) {
+    parsedTotalsByPath.set(path, yaml.load(raw) as VoteTotals | null);
   }
   return parsedTotalsByPath.get(path) ?? null;
 }
@@ -218,13 +240,10 @@ export function loadParties(country: string): PartyInfo[] {
  * parsed a single time.
  */
 function buildElections(country: string, years: string[]): ElectionYear[] {
-  const totalsPathByYear = new Map<string, string>();
-  for (const path of Object.keys(modulesForCountry(allTotalsModules, country))) {
-    const year = extractYear(path);
-    if (year && !totalsPathByYear.has(year)) {
-      totalsPathByYear.set(year, path);
-    }
-  }
+  // Every election directory holds one vote_totals.yaml.
+  const totalsPathByYear = new Map(
+    Object.keys(modulesForCountry(allTotalsModules, country)).map((path) => [extractYear(path), path] as const)
+  );
 
   return years.map((year) => {
     const totalsPath = totalsPathByYear.get(year);
@@ -237,7 +256,9 @@ function buildElections(country: string, years: string[]): ElectionYear[] {
 
     const movements = (movementFilesByElection.get(electionKey(country, year)) ?? [])
       .map((raw) => yaml.load(raw) as VoterMovement | null | undefined)
-      .filter((movement): movement is VoterMovement => Boolean(movement && typeof movement.party === 'string'));
+      .filter((movement): movement is VoterMovement =>
+        typeof movement?.party === 'string' && typeof movement.vote_last_election_in_percentile === 'object'
+      );
 
     return {year, voteTotals: totals, movements};
   });
@@ -267,7 +288,7 @@ function sanitizeUrl(url: string): string {
 }
 
 /** Normalize a YAML source value into a safe, structured citation. */
-function normalizeDataSource(source: unknown): {name: string; url: string} | null {
+export function normalizeDataSource(source: unknown): {name: string; url: string} | null {
   if (typeof source === 'string') {
     return source ? {name: source, url: ''} : null;
   }
@@ -351,16 +372,15 @@ export function loadDataSources(country: string): DataSourceEntry[] {
     const year = extractYear(path);
     if (!year || !visibleYearSet.has(year)) continue;
 
-    const doc = yaml.load(raw) as { source?: unknown; from_year?: string; to_year?: string } | null;
+    const doc = yaml.load(raw) as { source?: unknown } | null;
     const source = normalizeDataSource(doc?.source);
     if (!source) {
       console.warn(`[loader] Skipping movement source with no resolvable source block: ${path}`);
       continue;
     }
 
-    const fromYear = doc?.from_year ?? previousYearByYear.get(year) ?? year;
-    const toYear = doc?.to_year ?? year;
-    addUniqueSource(year, 'movement', source, fromYear, toYear);
+    // Movement data describes voters moving from the previous election into this one.
+    addUniqueSource(year, 'movement', source, previousYearByYear.get(year) ?? year, year);
   }
 
   // Load totals for all years (not just visible years)
@@ -380,67 +400,48 @@ export function loadDataSources(country: string): DataSourceEntry[] {
   return sources.sort((a, b) => a.year.localeCompare(b.year));
 }
 
-export interface PartyIndex {
+interface PartyIndex {
+  /** Each party by its own id. */
   byKey: Map<string, PartyInfo>;
-  byPreviousName: Map<string, PartyInfo>;
-  resolveMap: Map<string, string>;
+  /**
+   * The party a name belongs to: a party id or one of its previous names. The first
+   * party in the list that uses a name wins, so a name that is both a party of its own
+   * and a previous name of an earlier party (ppr, before GroenLinks) resolves to the
+   * earlier party.
+   */
+  byName: Map<string, PartyInfo>;
 }
 
-/** Build a reusable party lookup index for a dataset without shared module state. */
-export function createPartyIndex(parties: PartyInfo[]): PartyIndex {
+/** Build a party lookup index for a dataset without shared module state. */
+function createPartyIndex(parties: PartyInfo[]): PartyIndex {
   const byKey = new Map<string, PartyInfo>();
-  const byPreviousName = new Map<string, PartyInfo>();
-  const resolveMap = new Map<string, string>();
+  const byName = new Map<string, PartyInfo>();
+  const addFirst = (map: Map<string, PartyInfo>, name: string, party: PartyInfo) => {
+    if (!map.has(name)) map.set(name, party);
+  };
 
   for (const party of parties) {
-    if (!byKey.has(party.party)) {
-      byKey.set(party.party, party);
-    }
-    if (!resolveMap.has(party.party)) {
-      resolveMap.set(party.party, party.party);
-    }
-
-    for (const previousName of party.previous_names ?? []) {
-      if (!byPreviousName.has(previousName)) {
-        byPreviousName.set(previousName, party);
-      }
-      if (!resolveMap.has(previousName)) {
-        resolveMap.set(previousName, party.party);
-      }
-    }
+    addFirst(byKey, party.party, party);
+    addFirst(byName, party.party, party);
+    for (const previousName of party.previous_names ?? []) addFirst(byName, previousName, party);
   }
 
-  return {byKey, byPreviousName, resolveMap};
+  return {byKey, byName};
+}
+
+/** Resolve a raw party name to its canonical party id, for matching parties over time. */
+export function resolvePartyName(name: string, parties: PartyInfo[]): string {
+  return getPartyIndex(parties).byName.get(name)?.party ?? name;
 }
 
 /**
- * Resolve a raw party name to its canonical party ID for color/lookup.
- */
-export function resolvePartyName(
-  name: string,
-  parties: PartyInfo[]
-): string {
-  const index = getPartyIndex(parties);
-  return index.resolveMap.get(name) ?? name;
-}
-
-/**
- * Get color for a party name. Resolves through previous_names for color matching.
+ * Colour for a party name: the party's own colour, else that of the party that took
+ * the name over (previous_names).
  */
 export function getPartyColor(name: string, parties: PartyInfo[]): string {
   const index = getPartyIndex(parties);
-
-  const exact = index.byKey.get(name);
-  if (exact) return exact.color || DEFAULT_PARTY_COLOR;
-
-  const withPreviousName = index.byPreviousName.get(name);
-  if (withPreviousName) return withPreviousName.color || DEFAULT_PARTY_COLOR;
-
-  const resolved = index.resolveMap.get(name);
-  const party = resolved ? index.byKey.get(resolved) : undefined;
-  if (party) return party.color || DEFAULT_PARTY_COLOR;
-
-  return DEFAULT_PARTY_COLOR;
+  const party = index.byKey.get(name) ?? index.byName.get(name);
+  return party?.color || DEFAULT_PARTY_COLOR;
 }
 
 /**
@@ -458,8 +459,7 @@ export function getPartyDisplayName(name: string, parties: PartyInfo[]): string 
  * Check if two party names refer to the same party (for selectedParty filtering).
  */
 function isSameParty(nameA: string, nameB: string, parties: PartyInfo[]): boolean {
-  const index = getPartyIndex(parties);
-  return (index.resolveMap.get(nameA) ?? nameA) === (index.resolveMap.get(nameB) ?? nameB);
+  return resolvePartyName(nameA, parties) === resolvePartyName(nameB, parties);
 }
 
 /** Decide whether a flow matches the optional selected-party filter. */
@@ -492,10 +492,7 @@ function buildPairFlows(
     const targetVotes = toTotals[targetParty] ?? 0;
     if (targetVotes === 0) continue;
 
-    const sourceMap = movement.vote_last_election_in_percentile;
-    if (!sourceMap) continue;
-
-    for (const [sourceName, pct] of Object.entries(sourceMap)) {
+    for (const [sourceName, pct] of Object.entries(movement.vote_last_election_in_percentile)) {
       if (!shouldIncludeFlow(sourceName, targetParty, selectedParty, parties)) continue;
 
       const value = Math.round((pct / 100) * targetVotes);
@@ -506,6 +503,11 @@ function buildPairFlows(
   }
 
   return flows;
+}
+
+/** Id of a party's block in one column of the flow diagram (a party appears in every column). */
+function nodeId(columnIndex: number, party: string): string {
+  return `${columnIndex}:${party}`;
 }
 
 /** Build diagram nodes for one source or target election column. */
@@ -519,12 +521,7 @@ function buildColumnNodes(
   isSource: boolean
 ): DiagramNode[] {
   // Sum outgoing/incoming flow values once instead of filtering `flows` per node.
-  const outgoingSums: Record<string, number> = {};
-  const incomingSums: Record<string, number> = {};
-  for (const flow of flows) {
-    outgoingSums[flow.source] = (outgoingSums[flow.source] ?? 0) + flow.value;
-    incomingSums[flow.target] = (incomingSums[flow.target] ?? 0) + flow.value;
-  }
+  const {outgoing, incoming} = sumFlowValues(flows);
 
   return Array.from(ids)
     .sort((a, b) => (totals[b] ?? 0) - (totals[a] ?? 0))
@@ -532,11 +529,12 @@ function buildColumnNodes(
       let value = totals[id] ?? 0;
 
       if (selectedParty) {
-        value = isSource ? (outgoingSums[id] ?? 0) : (incomingSums[id] ?? 0);
+        value = isSource ? (outgoing[id] ?? 0) : (incoming[id] ?? 0);
       }
 
       return {
-        id: `${columnIndex}:${id}`,
+        id: nodeId(columnIndex, id),
+        party: id,
         label: getPartyDisplayName(id, parties),
         color: getPartyColor(id, parties),
         columnIndex,
@@ -553,8 +551,8 @@ function buildLinks(
   parties: PartyInfo[]
 ): DiagramLink[] {
   return flows.map((f) => ({
-    source: `${fromCol}:${f.source}`,
-    target: `${toCol}:${f.target}`,
+    source: nodeId(fromCol, f.source),
+    target: nodeId(toCol, f.target),
     value: f.value,
     color: getPartyColor(f.target, parties),
   }));
@@ -579,9 +577,9 @@ function mergeNodeMap(nodes: DiagramNode[]): DiagramNode[] {
 
 /** Build party totals for a column, including abstentions and unknown parties. */
 function getTotals(electionYear: ElectionYear, parties: PartyInfo[]) {
-  const partiesVotes = electionYear.voteTotals.parties_votes ?? {};
-  const totals = {...partiesVotes} as Record<string, number>;
-  totals['not_voted'] = electionYear.voteTotals.not_voted ?? 0;
+  const partiesVotes = electionYear.voteTotals.parties_votes;
+  const totals: Record<string, number> = {...partiesVotes};
+  totals['not_voted'] = electionYear.voteTotals.not_voted;
 
   const partyIds = collectVisiblePartyIds(parties);
   totals['other'] = Object.entries(partiesVotes).reduce((sum, [party, votes]) => {
@@ -675,10 +673,12 @@ export function buildMultiElectionFlows(
   const allLinks: DiagramLink[] = [];
   const visiblePartySet = collectVisiblePartyIds(parties);
 
-  for (let i = 0; i < visibleElections.length - 1; i++) {
+  for (const [i, fromYear] of visibleElections.entries()) {
+    const toYear = visibleElections[i + 1];
+    if (!toYear) break;
     const step = buildStepNodesAndLinks(
-      visibleElections[i],
-      visibleElections[i + 1],
+      fromYear,
+      toYear,
       i,
       i + 1,
       parties,
@@ -710,20 +710,10 @@ export function loadCoalitions(country: string): CoalitionData[] {
   // The election that produced a cabinet's seats is the latest one held before its inauguration.
   const findElectionYear = (inaugurationDate: string): string | undefined => {
     const preceding = electionDates.filter((election) => election.date <= inaugurationDate);
-    return preceding[preceding.length - 1]?.year;
+    return preceding.at(-1)?.year;
   };
 
-  type CoalitionEntry = {
-    sortKey: string;
-    name: string;
-    year: string;
-    coalition: string[];
-    support: string[];
-    seats: Record<string, number>;
-  };
-
-  const entries: CoalitionEntry[] = Object.entries(modulesForCountry(allCoalitionModules, country)).map(([path, raw]) => {
-    const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1] || '';
+  const entries = Object.entries(modulesForCountry(allCoalitionModules, country)).map(([path, raw]) => {
     const data = yaml.load(raw) as {
       inauguration?: unknown;
       name?: unknown;
@@ -731,14 +721,14 @@ export function loadCoalitions(country: string): CoalitionData[] {
       support?: unknown;
       seats?: Record<string, number>;
     } | null;
-    const inauguration = typeof data?.inauguration === 'string' ? data.inauguration : '';
-    const inaugurationMatch = /^(\d{4})/.exec(inauguration);
-    const year = inaugurationMatch ? inaugurationMatch[1] : filenameYear;
+    // Without an inauguration date, fall back to 1 January of the year in the filename.
+    const filenameYear = new RegExp(/(\d{4})\.yaml$/).exec(path)?.[1];
+    const fallback = filenameYear ? `${filenameYear}-01-01` : '';
+    const inauguration = typeof data?.inauguration === 'string' ? data.inauguration : fallback;
 
     return {
-      sortKey: inauguration || year,
       name: typeof data?.name === 'string' ? data.name : '',
-      year,
+      inauguration,
       coalition: data?.coalition || [],
       support: Array.isArray(data?.support)
         ? data.support.filter((party): party is string => typeof party === 'string')
@@ -747,18 +737,9 @@ export function loadCoalitions(country: string): CoalitionData[] {
     };
   });
 
-  const sortedEntries = [...entries].sort(
-    (a, b) => a.sortKey.localeCompare(b.sortKey) || a.name.localeCompare(b.name)
-  );
-
-  return sortedEntries.map((entry) => ({
-    name: entry.name,
-    year: entry.year,
-    electionYear: findElectionYear(entry.sortKey),
-    coalition: entry.coalition,
-    support: entry.support,
-    seats: entry.seats,
-  }));
+  return entries
+    .toSorted((a, b) => a.inauguration.localeCompare(b.inauguration) || a.name.localeCompare(b.name))
+    .map((entry): CoalitionData => ({...entry, electionYear: findElectionYear(entry.inauguration)}));
 }
 
 /**
@@ -795,27 +776,54 @@ export interface ComparisonRow {
   seatChange: number | null;
 }
 
+/** Totals of the two compared elections; seats are null when an election has no cabinet. */
+export interface ComparisonTotals {
+  validVotesA: number;
+  validVotesB: number;
+  seatsA: number | null;
+  seatsB: number | null;
+}
+
+export interface Comparison {
+  rows: ComparisonRow[];
+  totals: ComparisonTotals;
+}
+
+const EMPTY_COMPARISON: Comparison = {
+  rows: [],
+  totals: {validVotesA: 0, validVotesB: 0, seatsA: null, seatsB: null},
+};
+
 /**
- * Per-party vote, share and seat changes between two elections. Shared by the
- * compare table and its CSV export so both always show the same numbers.
+ * Per-party vote, share and seat changes between two elections, plus their totals.
+ * Shared by the compare table and its CSV export so both always show the same numbers.
  */
-export function buildComparisonRows(
+export function buildComparison(
   elections: ElectionYear[],
   yearA: string,
   yearB: string,
   coalitions: CoalitionData[],
   parties: PartyInfo[]
-): ComparisonRow[] {
+): Comparison {
   const elA = elections.find((e) => e.year === yearA);
   const elB = elections.find((e) => e.year === yearB);
-  if (!elA || !elB || yearA === yearB) return [];
+  if (!elA || !elB || yearA === yearB) return EMPTY_COMPARISON;
 
-  const votesA = elA.voteTotals.parties_votes ?? {};
-  const votesB = elB.voteTotals.parties_votes ?? {};
-  const totalValidA = elA.voteTotals.valid_votes || 1;
-  const totalValidB = elB.voteTotals.valid_votes || 1;
+  const votesA = elA.voteTotals.parties_votes;
+  const votesB = elB.voteTotals.parties_votes;
   const seatsA = getElectionSeats(yearA, coalitions);
   const seatsB = getElectionSeats(yearB, coalitions);
+  const sumSeats = (seats: Record<string, number> | null) =>
+    seats ? Object.values(seats).reduce((sum, count) => sum + count, 0) : null;
+  const totals: ComparisonTotals = {
+    validVotesA: elA.voteTotals.valid_votes,
+    validVotesB: elB.voteTotals.valid_votes,
+    seatsA: sumSeats(seatsA),
+    seatsB: sumSeats(seatsB),
+  };
+  // Guard the shares against an election without a valid-vote count.
+  const totalValidA = totals.validVotesA || 1;
+  const totalValidB = totals.validVotesB || 1;
 
   const rows: ComparisonRow[] = [];
   for (const partyId of new Set([...Object.keys(votesA), ...Object.keys(votesB)])) {
@@ -846,5 +854,5 @@ export function buildComparisonRows(
     });
   }
 
-  return rows;
+  return {rows, totals};
 }

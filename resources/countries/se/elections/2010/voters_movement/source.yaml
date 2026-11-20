@@ -1,0 +1,11 @@
+# Gross vote transitions from the Swedish National Election Study 2010 (2010 vote by 2006 vote,
+# whole per cent), raked to the official results of both elections, including blank votes and
+# non-voters. First-time voters and 2006 blank voters are left out. Folkpartiet is listed as l;
+# "other" 2006 voters (FI among them) are split over the other parties by their votes, and FI's
+# 2010 voters are part of "other". Sverigedemokraterna and other parties of 2006 rest on 36 and
+# 37 respondents.
+source:
+  name: >-
+    SCB, Åttapartivalet 2010: Allmänna valen 2010, tabell 14:
+    vart gick 2006 års väljare?
+  url: https://scb.se/contentassets/7587bf18ff7746f38677b0e5b43ea17c/me0106_2010a01_br_me05br1101.pdf

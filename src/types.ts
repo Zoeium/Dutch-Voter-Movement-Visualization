@@ -51,7 +51,9 @@ export interface Flow {
 }
 
 export interface DiagramNode {
+  /** Unique per column: the same party has a node in every column. */
   id: string;
+  party: string;
   label: string;
   color: string;
   columnIndex: number;
@@ -67,8 +69,8 @@ export interface DiagramLink {
 
 export interface CoalitionData {
   name: string;
-  /** Inauguration year of the cabinet. */
-  year: string;
+  /** Inauguration date of the cabinet (YYYY-MM-DD). */
+  inauguration: string;
   /** Year of the election whose result the seats reflect. */
   electionYear?: string;
   coalition: string[];

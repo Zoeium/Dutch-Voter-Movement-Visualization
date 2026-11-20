@@ -1,23 +1,37 @@
 import {useMemo, useState} from 'react';
-import type {CoalitionData, PartyInfo} from '@/types';
-import {getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
-import {DualRangeSlider, RibbonGradient} from '@/components/shared';
-import {buildGradientId, buildRibbonPath, formatElectionLabel, toggleButtonClass} from '@/components/diagramUtils';
+import type {CoalitionData, ElectionYear, PartyInfo} from '@/types';
+import {getCoalitionForElection, getPartyColor, getPartyDisplayName, resolvePartyName} from '@/data/loader';
+import {EmptyState, RibbonGradient} from '@/components/shared';
+import {
+  buildGradientId,
+  buildRibbonPath,
+  readableTextColor,
+  defaultRange,
+  formatElectionDate,
+  formatElectionLabel,
+  scaleToFill,
+} from '@/components/diagramUtils';
 import {useI18n} from '@/theme';
 import {collectMergeEdges, collectSplitEdges} from '@/components/lineage';
 
 interface ParliamentDiagramProps {
   coalitions: CoalitionData[];
   parties: PartyInfo[];
-  /** Election date (YYYY-MM-DD) per election id, for the election markers above the columns. */
-  electionDates?: Record<string, string>;
-  /** Votes per party per election id, to divide a merged party between its predecessors. */
-  electionVotes?: Record<string, Record<string, number>>;
+  /**
+   * The country's elections: their dates label the election markers above the columns,
+   * and their votes divide a merged party between its predecessors.
+   */
+  elections?: ElectionYear[];
+  /** The cabinets shown (indices into `coalitions`); the last ten when left out. */
+  range?: {start: number; end: number};
 }
 
-const NO_VOTES: Record<string, Record<string, number>> = {};
+const NO_ELECTIONS: ElectionYear[] = [];
 
-const ELECTION_MARKER_COLOR = '#10b981';
+// Election markers: a theme colour, dark enough in light mode for the 9px label.
+const ELECTION_MARKER_COLOR = 'var(--c-marker)';
+// The pill behind a marker label; pale enough that the label keeps 4.5:1 (see contrast.test.ts).
+const MARKER_PILL_OPACITY = 0.12;
 
 interface PartyBlock {
   party: string;           // literal seat key (each key is its own block)
@@ -28,6 +42,7 @@ interface PartyBlock {
   role: PartyRole;         // coalition / tolerating party / opposition
   columnIndex: number;     // index within the SELECTED range
   height: number;          // proportional to seats
+  width: number;           // proportional to the cabinet's time in office
   x: number;
   y: number;
 }
@@ -62,9 +77,15 @@ const ROW_GAP = 6;
 // Extra room inserted where a column changes role (coalition -> tolerating party ->
 // opposition), so the three groups read as separate bands.
 const ROLE_GAP = 26;
-// Column pitch (BLOCK_WIDTH + COLUMN_GAP). Kept narrow so that a long selection still fits
-// side by side, and so scrolling through all coalitions stays short.
-const BLOCK_WIDTH = 72;
+// A column's width follows the time its cabinet was in office (until the next cabinet's
+// inauguration, or until today for the sitting one). Kept narrow so that a long selection
+// still fits side by side, and so scrolling through all coalitions stays short.
+const PX_PER_YEAR = 32;
+// A cabinet that fell within months still gets a column wide enough for short labels.
+const MIN_BLOCK_WIDTH = 44;
+// The election pill above a column is at least this wide, so its date stays readable.
+const MIN_MARKER_WIDTH = 72;
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 const COLUMN_GAP = 42;
 const LABEL_SPACE = 40;
 // Cabinet name, year in office and, for a cabinet formed after an election, the election marker.
@@ -146,23 +167,19 @@ function allocateRibbonGroup(
   }
 }
 
-/**
- * Readable text colour for a filled block, picked from the party colour's relative
- * luminance. Light parties (GL-PvdA's bright green, GroenLinks) get dark text instead of
- * the white-on-light outline that made the labels look smeared.
- */
+// Canvas used to measure label widths, created on first use.
 let measureContext: CanvasRenderingContext2D | null | undefined;
 const labelWidthCache = new Map<string, number>();
 
 /** Rendered width of a block label in the page font (cached: blocks re-render on hover). */
-function measureLabel(text: string, fontPx: number): number {
-  const key = `${fontPx}|${text}`;
+function measureLabel(text: string, fontPx: number, fontWeight = 600): number {
+  const key = `${fontWeight}|${fontPx}|${text}`;
   const cached = labelWidthCache.get(key);
   if (cached !== undefined) return cached;
   measureContext ??= document.createElement('canvas').getContext('2d');
   let width = text.length * fontPx * 0.6;
   if (measureContext) {
-    measureContext.font = `600 ${fontPx}px ${getComputedStyle(document.body).fontFamily || 'sans-serif'}`;
+    measureContext.font = `${fontWeight} ${fontPx}px ${getComputedStyle(document.body).fontFamily || 'sans-serif'}`;
     width = measureContext.measureText(text).width;
   }
   labelWidthCache.set(key, width);
@@ -170,10 +187,10 @@ function measureLabel(text: string, fontPx: number): number {
 }
 
 /** Shorten text with an ellipsis until it fits `maxWidth`. */
-function truncateToWidth(text: string, fontPx: number, maxWidth: number): string {
-  if (measureLabel(text, fontPx) <= maxWidth) return text;
+function truncateToWidth(text: string, fontPx: number, maxWidth: number, fontWeight = 600): string {
+  if (measureLabel(text, fontPx, fontWeight) <= maxWidth) return text;
   let end = text.length;
-  while (end > 1 && measureLabel(`${text.slice(0, end).trimEnd()}…`, fontPx) > maxWidth) end--;
+  while (end > 1 && measureLabel(`${text.slice(0, end).trimEnd()}…`, fontPx, fontWeight) > maxWidth) end--;
   return `${text.slice(0, end).trimEnd()}…`;
 }
 
@@ -182,11 +199,14 @@ function truncateToWidth(text: string, fontPx: number, maxWidth: number): string
  * the seat count when the block is tall enough, otherwise a shortened name. A labelled
  * block always shows its seat count; the full name is in the block's tooltip.
  */
-function fitBlockLabel(name: string, seats: number, height: number): { lines: string[]; fontPx: number } {
-  // Heights follow the seat share, so a small party can be thinner than a line of text:
-  // it is then not labelled in the block (the tooltip still names it).
-  if (height < SMALL_LABEL_PX * LABEL_LINE_HEIGHT + 1) return {lines: [], fontPx: SMALL_LABEL_PX};
-  const maxWidth = BLOCK_WIDTH - 2 * LABEL_PADDING_X;
+function fitBlockLabel(
+  name: string,
+  seats: number,
+  height: number,
+  width: number
+): { lines: string[]; fontPx: number } {
+  // Every block is at least MIN_BLOCK_HEIGHT tall, which fits one line of the small font.
+  const maxWidth = width - 2 * LABEL_PADDING_X;
   const fontPx = height >= MEDIUM_LABEL_HEIGHT ? MEDIUM_LABEL_PX : SMALL_LABEL_PX;
   const seatText = `(${seats})`;
   const oneLine = `${name} ${seatText}`;
@@ -198,41 +218,7 @@ function fitBlockLabel(name: string, seats: number, height: number): { lines: st
   return {lines: [`${truncateToWidth(name, fontPx, room)} ${seatText}`], fontPx};
 }
 
-function getLabelColor(background: string): string {
-  const hex = background.replace('#', '');
-  const expanded = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
-  if (expanded.length !== 6) return '#ffffff';
 
-  const channel = (offset: number) => {
-    const value = Number.parseInt(expanded.slice(offset, offset + 2), 16);
-    return Number.isNaN(value) ? null : value / 255;
-  };
-  const red = channel(0);
-  const green = channel(2);
-  const blue = channel(4);
-  if (red === null || green === null || blue === null) return '#ffffff';
-
-  const linearize = (value: number) =>
-    value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  const luminance =
-    0.2126 * linearize(red) + 0.7152 * linearize(green) + 0.0722 * linearize(blue);
-
-  return luminance > 0.35 ? '#111827' : '#ffffff';
-}
-
-// How many recent coalitions are shown by default. All coalitions at once (~30 columns)
-// is unreadable, so the initial view is a readable window; quick presets widen it.
-const DEFAULT_VISIBLE_COLUMNS = 10;
-
-// Quick range presets; `size` is how many coalitions to show counting back from the
-// newest one (`0` means every coalition).
-const RANGE_PRESETS = [
-  {labelKey: 'all' as const, size: 0},
-  {labelKey: 'last10' as const, size: 10},
-  {labelKey: 'last5' as const, size: 5},
-];
-
-/** Return the parties from which a literal party entry split. */
 /**
  * Directed merge lineage of a party: the party itself plus every party it merged FROM
  * and every party it merged INTO (transitively). Sibling predecessors of the same merge
@@ -364,26 +350,32 @@ function shareMergedBlock(
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   if (total === 0) return;
   group.forEach((ribbon, index) => {
-    ribbon.targetSeats = (block.seats * weights[index]) / total;
+    ribbon.targetSeats = (block.seats * (weights[index] ?? 0)) / total;
   });
 }
 
+/** One cabinet's column in the diagram. */
+interface LayoutColumn {
+  coalition: CoalitionData;
+  /** Left edge; the width follows the cabinet's time in office. */
+  x: number;
+  width: number;
+  blocks: PartyBlock[];
+  /** y position of each role divider line (none when the column has one role). */
+  dividers: number[];
+}
+
 interface ParliamentLayout {
-  selected: CoalitionData[];
-  colBlocks: PartyBlock[][];
-  // y position of the role divider line for each column (empty when a column has one role).
-  colDividers: number[][];
-  edges: { block: PartyBlock; next: PartyBlock }[];
+  /** The selected cabinets, left to right. */
+  columns: LayoutColumn[];
+  edges:{ block: PartyBlock; next: PartyBlock }[];
   mergeEdges: { from: PartyBlock; to: PartyBlock }[];
   splitEdges: { from: PartyBlock; to: PartyBlock }[];
   svgWidth: number;
   svgHeight: number;
 }
 
-/**
- * Build every derived item for the currently selected range. Kept pure and
- * module-level so the component can memoize it and hover updates stay cheap.
- */
+/** How a party relates to the cabinet of a column. */
 function getPartyRole(
   coalitionSet: Set<string>,
   supportSet: Set<string>,
@@ -403,45 +395,32 @@ function getPartyRole(
 function buildColumnBlocks(
   coalition: CoalitionData,
   colIndex: number,
-  parties: PartyInfo[]
+  parties: PartyInfo[],
+  x: number,
+  width: number
 ): PartyBlock[] {
   const coalitionSet = new Set(coalition.coalition);
   const supportSet = new Set(coalition.support ?? []);
 
-  const grouped = new Map<string, { seats: number; role: PartyRole }>();
-  Object.entries(coalition.seats).forEach(([key, seats]) => {
-    if (seats <= 0) return;
+  // One block per party with seats (the keys of a seat map are unique).
+  const list = Object.entries(coalition.seats)
+    .filter(([, seats]) => seats > 0)
+    .map(([key, seats]): PartyBlock => ({
+      party: key,
+      canonical: resolvePartyName(key, parties),
+      displayName: getPartyDisplayName(key, parties),
+      color: getPartyColor(key, parties),
+      seats,
+      role: getPartyRole(coalitionSet, supportSet, key),
+      columnIndex: colIndex,
+      height: 0,
+      width,
+      x,
+      y: 0,
+    }));
 
-    const entry = grouped.get(key) ?? {seats: 0, role: 'opposition' as PartyRole};
-    entry.seats += seats;
-
-    const role = getPartyRole(coalitionSet, supportSet, key);
-    if (ROLE_ORDER[role] < ROLE_ORDER[entry.role]) {
-      entry.role = role;
-    }
-
-    grouped.set(key, entry);
-  });
-
-  const list = Array.from(grouped.entries()).map(([key, g]) => ({
-    party: key,
-    canonical: resolvePartyName(key, parties),
-    displayName: getPartyDisplayName(key, parties),
-    color: getPartyColor(key, parties),
-    seats: g.seats,
-    role: g.role,
-    columnIndex: colIndex,
-    height: 0,
-    x: LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP),
-    y: 0,
-  }) as PartyBlock);
-
-  list.sort((a, b) => {
-    if (a.role !== b.role) return ROLE_ORDER[a.role] - ROLE_ORDER[b.role];
-    return b.seats - a.seats;
-  });
-
-  return list;
+  // Coalition first, then a tolerating party, then the opposition; largest first in each.
+  return list.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || b.seats - a.seats);
 }
 
 /** Total block height at `pxPerSeat`, with every block at least MIN_BLOCK_HEIGHT. */
@@ -459,22 +438,14 @@ function totalSeatsOf(list: PartyBlock[]): number {
  * proportion to their seats, so they never shrink below `minPxPerSeat` per seat.
  */
 function sizeColumnBlocks(list: PartyBlock[], target: number, minPxPerSeat: number): void {
-  let pxPerSeat = minPxPerSeat;
-  // Raising pxPerSeat can only lift blocks above the minimum, so this settles quickly.
-  for (let pass = 0; pass < list.length; pass += 1) {
-    const large = list.filter((block) => block.seats * pxPerSeat >= MIN_BLOCK_HEIGHT);
-    const largeSeats = large.reduce((sum, block) => sum + block.seats, 0);
-    if (largeSeats === 0) break;
-    const next = (target - (list.length - large.length) * MIN_BLOCK_HEIGHT) / largeSeats;
-    if (next <= pxPerSeat) break;
-    pxPerSeat = next;
-  }
+  const fill = scaleToFill(list.map((block) => block.seats), target, MIN_BLOCK_HEIGHT);
+  const pxPerSeat = Math.max(minPxPerSeat, fill);
   for (const block of list) block.height = Math.max(MIN_BLOCK_HEIGHT, block.seats * pxPerSeat);
 }
 
 /** Number of role changes (coalition -> support -> opposition) down a column. */
 function countRoleChanges(list: PartyBlock[]): number {
-  return list.filter((block, idx) => idx > 0 && list[idx - 1].role !== block.role).length;
+  return list.filter((block, idx) => idx > 0 && list[idx - 1]?.role !== block.role).length;
 }
 
 /** Room a column needs between its blocks, with the minimum row gap. */
@@ -492,7 +463,7 @@ function minimumColumnHeight(list: PartyBlock[]): number {
  * heights and the row gaps take up the rest, so a column with few parties gets wider
  * gaps instead of ending higher up than a column with as many seats.
  */
-function layoutColumnBlocks(list: PartyBlock[], colIndex: number, columnHeight: number): number[] {
+function layoutColumnBlocks(list: PartyBlock[], columnHeight: number): number[] {
   const rowGaps = Math.max(0, list.length - 1);
   const extra = Math.max(0, columnHeight - minimumColumnHeight(list));
   const rowGap = rowGaps > 0 ? ROW_GAP + extra / rowGaps : ROW_GAP;
@@ -500,7 +471,6 @@ function layoutColumnBlocks(list: PartyBlock[], colIndex: number, columnHeight: 
   const dividers: number[] = [];
 
   list.forEach((block, idx) => {
-    block.x = LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP);
     block.y = y;
     y += block.height + rowGap;
 
@@ -514,108 +484,137 @@ function layoutColumnBlocks(list: PartyBlock[], colIndex: number, columnHeight: 
   return dividers;
 }
 
-function collectContinuityEdges(colBlocks: PartyBlock[][], selectedCount: number): { block: PartyBlock; next: PartyBlock }[] {
-  const edges: { block: PartyBlock; next: PartyBlock }[] = [];
-
-  for (let colIndex = 0; colIndex < selectedCount - 1; colIndex += 1) {
-    const list = colBlocks[colIndex];
-    const nextList = colBlocks[colIndex + 1];
-
-    for (const block of list) {
-      for (const next of nextList) {
-        if (next.party === block.party) {
-          edges.push({block, next});
-        }
-      }
-    }
-  }
-
-  return edges;
+/** A party's block in each column joined to its block in the next column. */
+function collectContinuityEdges(colBlocks: PartyBlock[][]): { block: PartyBlock; next: PartyBlock }[] {
+  return colBlocks.slice(1).flatMap((nextList, index) => {
+    const nextByParty = new Map(nextList.map((next) => [next.party, next]));
+    return (colBlocks[index] ?? []).flatMap((block) => {
+      const next = nextByParty.get(block.party);
+      return next ? [{block, next}] : [];
+    });
+  });
 }
 
+/** Start of a cabinet's term in ms. */
+function cabinetStart(coalition: CoalitionData): number {
+  return Date.parse(`${coalition.inauguration}T12:00:00Z`);
+}
+
+/** Year the cabinet took office, for the labels. */
+function cabinetYear(coalition: CoalitionData): string {
+  return coalition.inauguration.slice(0, 4);
+}
+
+/**
+ * Column width of the cabinet at `index`: its time in office, which runs until the next
+ * cabinet's inauguration (also when that one lies outside the selection), or until `now`
+ * for the sitting cabinet.
+ */
+function cabinetColumnWidth(coalitions: CoalitionData[], index: number, now: number): number {
+  const cabinet = coalitions[index];
+  if (!cabinet) return MIN_BLOCK_WIDTH;
+  const next = coalitions[index + 1];
+  const years = ((next ? cabinetStart(next) : now) - cabinetStart(cabinet)) / MS_PER_YEAR;
+  return Number.isFinite(years) ? Math.max(MIN_BLOCK_WIDTH, years * PX_PER_YEAR) : MIN_BLOCK_WIDTH;
+}
+
+/**
+ * Build every derived item for the currently selected range. Kept pure and
+ * module-level so the component can memoize it and hover updates stay cheap.
+ */
 function buildParliamentLayout(
   coalitions: CoalitionData[],
   parties: PartyInfo[],
   start: number,
-  end: number
+  end: number,
+  now: number
 ): ParliamentLayout {
-  const selected = coalitions.slice(start, end + 1);
-  const selectedCount = selected.length;
+  // Place the columns side by side, each as wide as its cabinet's time in office.
+  let nextX = LABEL_SPACE;
+  const placed = coalitions.slice(start, end + 1).map((coalition, colIndex) => {
+    const x = nextX;
+    const width = cabinetColumnWidth(coalitions, start + colIndex, now);
+    nextX += width + COLUMN_GAP;
+    return {coalition, x, width, blocks: buildColumnBlocks(coalition, colIndex, parties, x, width)};
+  });
+  const colBlocks = placed.map((column) => column.blocks);
 
   // One scale for every column, so a column's height follows its number of seats: the
   // Dutch chamber grows from 100 to 150 seats in 1956, Italy's shrinks to 400 in 2022.
   // On top of that, every column gets the same room for raising small parties to label
   // height and for the gaps, so columns with as many seats end at the same height.
-  const colBlocks = selected.map((coalition, colIndex) => buildColumnBlocks(coalition, colIndex, parties));
   const maxSeats = Math.max(0, ...colBlocks.map(totalSeatsOf));
   const pxPerSeat = maxSeats > 0 ? CHAMBER_HEIGHT / maxSeats : 0;
   const raise = Math.max(0, ...colBlocks.map((list) => blockHeightsAt(list, pxPerSeat) - totalSeatsOf(list) * pxPerSeat));
   const gapHeight = Math.max(0, ...colBlocks.map(minimumGapHeight));
-  const colDividers = colBlocks.map((list, index) => {
-    const blocksHeight = totalSeatsOf(list) * pxPerSeat + raise;
-    sizeColumnBlocks(list, blocksHeight, pxPerSeat);
-    return layoutColumnBlocks(list, index, blocksHeight + gapHeight);
+  const columns = placed.map((column): LayoutColumn => {
+    const blocksHeight = totalSeatsOf(column.blocks) * pxPerSeat + raise;
+    sizeColumnBlocks(column.blocks, blocksHeight, pxPerSeat);
+    return {...column, dividers: layoutColumnBlocks(column.blocks, blocksHeight + gapHeight)};
   });
 
-  const columnWidth = selectedCount * (BLOCK_WIDTH + COLUMN_GAP) + LABEL_SPACE * 2 - COLUMN_GAP;
-  const svgWidth = Math.max(columnWidth, LEGEND_WIDTH);
+  const columnsWidth = nextX - COLUMN_GAP + LABEL_SPACE;
+  const svgWidth = Math.max(columnsWidth, LEGEND_WIDTH);
   const maxColHeight = Math.max(
     0,
     ...colBlocks.map((list) => {
-      const last = list[list.length - 1];
+      const last = list.at(-1);
       return last ? last.y + last.height : 0;
     })
   );
   const svgHeight = Math.ceil(maxColHeight + LEGEND_SPACE);
 
-  const edges = collectContinuityEdges(colBlocks, selectedCount);
+  const edges = collectContinuityEdges(colBlocks);
   const mergeEdges = collectMergeEdges(colBlocks, parties);
   const splitEdges = collectSplitEdges(colBlocks, parties);
 
-  return {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
+  return {columns, edges, mergeEdges, splitEdges, svgWidth, svgHeight};
 }
 
 /** Render coalition composition and party lineage across cabinets. */
 export default function ParliamentDiagram({
   coalitions,
   parties,
-  electionDates = {},
-  electionVotes = NO_VOTES,
+  elections = NO_ELECTIONS,
+  range,
 }: Readonly<ParliamentDiagramProps>) {
   const {lang, t} = useI18n();
+
+  const electionsById = useMemo(
+    () => new Map(elections.map((election) => [election.year, election])),
+    [elections]
+  );
 
   // The first cabinet after an election starts a new parliament: the seats changed there
   // because of the vote, not because of a cabinet change mid-term.
   const electionStarts = useMemo(() => {
-    const firstCabinet = new Map<string, CoalitionData>();
-    for (const coalition of coalitions) {
-      if (coalition.electionYear && !firstCabinet.has(coalition.electionYear)) {
-        firstCabinet.set(coalition.electionYear, coalition);
-      }
-    }
-    return new Set(firstCabinet.values());
+    const electionYears = new Set(coalitions.map((coalition) => coalition.electionYear));
+    return new Set(
+      [...electionYears].map((electionYear) => electionYear && getCoalitionForElection(electionYear, coalitions))
+    );
   }, [coalitions]);
 
   const electionLabel = (electionYear: string): string => {
-    const date = electionDates[electionYear];
-    if (!date) return `${t('election')} ${formatElectionLabel(electionYear)}`;
-    const formatted = new Intl.DateTimeFormat(lang === 'nl' ? 'nl-NL' : 'en-GB', {month: 'short', year: 'numeric'})
-      .format(new Date(`${date}T12:00:00`));
-    return `${t('electionMarker')} · ${formatted}`;
+    const date = electionsById.get(electionYear)?.voteTotals.date;
+    if (!date) return `${t('election')} ${formatElectionLabel(electionYear, lang)}`;
+    return `${t('electionMarker')} · ${formatElectionDate(date, lang)}`;
   };
-  const columns = coalitions.length;
+  const cabinetCount = coalitions.length;
   const [hoveredParty, setHoveredParty] = useState<string | null>(null);
-  const [rangeStart, setRangeStart] = useState(Math.max(0, columns - DEFAULT_VISIBLE_COLUMNS));
-  const [rangeEnd, setRangeEnd] = useState(Math.max(0, columns - 1));
+  const selectedRange = range ?? defaultRange(cabinetCount);
 
-  const start = Math.max(0, Math.min(rangeStart, columns - 1));
-  const end = Math.max(start, Math.min(rangeEnd, columns - 1));
+  const start = Math.max(0, Math.min(selectedRange.start, cabinetCount - 1));
+  const end = Math.max(start, Math.min(selectedRange.end, cabinetCount - 1));
+
+  // The sitting cabinet's column runs until now: taken once, so a re-render does not
+  // change its width.
+  const [now] = useState(() => Date.now());
 
   // Derived layout is memoized so hover updates (local state) do not re-run the
   // effectively O(columns x blocks^2) edge/split computation on every mouse move.
-  const {selected, colBlocks, colDividers, edges, mergeEdges, splitEdges, svgWidth, svgHeight} = useMemo(
-    () => buildParliamentLayout(coalitions, parties, start, end),
-    [coalitions, parties, start, end]
+  const {columns, edges, mergeEdges, splitEdges, svgWidth, svgHeight} = useMemo(
+    () => buildParliamentLayout(coalitions, parties, start, end, now),
+    [coalitions, parties, start, end, now]
   );
 
   // Hover highlight set: the hovered party plus its merge lineage. `null` (nothing
@@ -627,27 +626,23 @@ export default function ParliamentDiagram({
   const lineageRibbons = useMemo(() => {
     // A block's votes at the election its column's seats come from.
     const votesOf = (block: PartyBlock) => {
-      const electionYear = selected[block.columnIndex]?.electionYear;
-      return electionYear ? electionVotes[electionYear]?.[block.party] : undefined;
+      const electionYear = columns[block.columnIndex]?.coalition.electionYear;
+      return electionYear ? electionsById.get(electionYear)?.voteTotals.parties_votes[block.party] : undefined;
     };
     return buildLineageRibbons(edges, mergeEdges, splitEdges, votesOf);
-  }, [edges, mergeEdges, splitEdges, selected, electionVotes]);
+  }, [edges, mergeEdges, splitEdges, columns, electionsById]);
   const continuityRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'continuity');
   const mergeRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'merge');
   const splitRibbons = lineageRibbons.filter((ribbon) => ribbon.kind === 'split');
 
-  if (columns === 0) {
-    return <div className="text-app-muted text-center py-8">{t('noCoalitionData')}</div>;
-  }
-
-  const selectedCount = selected.length;
+  if (columns.length === 0) return <EmptyState message={t('noCoalitionData')}/>;
 
   const isPartyHighlighted = (party: string) => !highlightedParties || highlightedParties.has(party);
 
   // Ribbon paths + gradient ids shared by the definitions and the rendered paths.
   const lineageRibbonPath = (ribbon: LineageRibbon) =>
     buildRibbonPath(
-      ribbon.from.x + BLOCK_WIDTH,
+      ribbon.from.x + ribbon.from.width,
       ribbon.sourceYTop,
       ribbon.sourceYBottom,
       ribbon.to.x,
@@ -663,44 +658,6 @@ export default function ParliamentDiagram({
 
   return (
     <div className="relative w-full">
-      {/* Dual-thumb range slider (single control, two thumbs) */}
-      <div className="flex items-center gap-3 flex-wrap mb-3">
-        <span className="text-sm font-medium text-app-muted whitespace-nowrap">{t('range')}</span>
-        <DualRangeSlider
-          min={0}
-          max={columns - 1}
-          start={start}
-          end={end}
-          onStartChange={setRangeStart}
-          onEndChange={setRangeEnd}
-          startAriaLabel="Range start"
-          endAriaLabel="Range end"
-        />
-        <span className="text-xs text-app-muted whitespace-nowrap">
-          {selected[0].name} ({selected[0].year}) — {selected[selectedCount - 1].name} ({selected[selectedCount - 1].year})
-        </span>
-        {/* Quick ranges: reading ~30 columns at once is not useful, so offer a window. */}
-        <div className="flex items-center gap-1.5">
-          {RANGE_PRESETS.filter((preset) => preset.size === 0 || preset.size < columns).map((preset) => {
-            const size = preset.size === 0 ? columns : preset.size;
-            const presetStart = Math.max(0, columns - size);
-            const isActive = start === presetStart && end === columns - 1;
-            return (
-              <button
-                type="button"
-                key={preset.labelKey}
-                onClick={() => {
-                  setRangeStart(presetStart);
-                  setRangeEnd(columns - 1);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${toggleButtonClass(isActive)}`}
-              >
-                {t(preset.labelKey)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Horizontal scroll keeps every column at its natural, legible width instead of
           squashing a long selection down to illegible slivers. */}
@@ -722,7 +679,7 @@ export default function ParliamentDiagram({
               <RibbonGradient
                 key={gid}
                 id={gid}
-                x1={from.x + BLOCK_WIDTH}
+                x1={from.x + from.width}
                 x2={to.x}
                 sourceColor={from.color}
                 targetColor={to.color}
@@ -737,7 +694,7 @@ export default function ParliamentDiagram({
               <RibbonGradient
                 key={gid}
                 id={gid}
-                x1={from.x + BLOCK_WIDTH}
+                x1={from.x + from.width}
                 x2={to.x}
                 sourceColor={from.color}
                 targetColor={to.color}
@@ -794,7 +751,7 @@ export default function ParliamentDiagram({
           }
           const sameColumn = from.columnIndex === to.columnIndex;
           if (sameColumn) {
-            const x1 = from.x + BLOCK_WIDTH;
+            const x1 = from.x + from.width;
             const y1 = (ribbon.sourceYTop + ribbon.sourceYBottom) / 2;
             const y2 = (ribbon.targetYTop + ribbon.targetYBottom) / 2;
             const o = SPLIT_OFFSET;
@@ -832,11 +789,12 @@ export default function ParliamentDiagram({
         })}
 
         {/* Party columns */}
-        {selected.map((coalition, colIndex) => {
-          const list = colBlocks[colIndex];
-          const dividers = colDividers[colIndex] ?? [];
-          const columnKey = `${coalition.name}-${coalition.year}`;
-          const columnX = LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP);
+        {columns.map(({coalition, x: columnX, width: columnWidth, blocks: list, dividers}, colIndex) => {
+          const columnKey = `${coalition.name}-${coalition.inauguration}`;
+          const columnCenter = columnX + columnWidth / 2;
+          const markerWidth = Math.max(columnWidth, MIN_MARKER_WIDTH) + 16;
+          // A short cabinet has a narrow column: shorten its name to the room up to its neighbours.
+          const headerName = truncateToWidth(coalition.name, 14, columnWidth + COLUMN_GAP - 6, 700);
           const startsAfterElection = electionStarts.has(coalition) && coalition.electionYear !== undefined;
 
           return (
@@ -858,18 +816,18 @@ export default function ParliamentDiagram({
                     />
                   )}
                   <rect
-                    x={columnX - 8}
+                    x={columnCenter - markerWidth / 2}
                     y={HEADER_SPACE - 23}
-                    width={BLOCK_WIDTH + 16}
+                    width={markerWidth}
                     height={16}
                     rx={8}
                     fill={ELECTION_MARKER_COLOR}
-                    fillOpacity={0.15}
+                    fillOpacity={MARKER_PILL_OPACITY}
                     stroke={ELECTION_MARKER_COLOR}
                     strokeOpacity={0.6}
                   />
                   <text
-                    x={columnX + BLOCK_WIDTH / 2}
+                    x={columnCenter}
                     y={HEADER_SPACE - 15}
                     dy="0.35em"
                     textAnchor="middle"
@@ -883,20 +841,21 @@ export default function ParliamentDiagram({
 
               {/* Coalition header */}
               <text
-                x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}
+                x={columnCenter}
                 y={26}
                 textAnchor="middle"
                 className="fill-app-muted text-sm font-bold"
               >
-                {coalition.name}
+                {headerName !== coalition.name && <title>{coalition.name}</title>}
+                {headerName}
               </text>
               <text
-                x={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH / 2}
+                x={columnCenter}
                 y={40}
                 textAnchor="middle"
                 className="fill-app-subtle text-[10px]"
               >
-                {coalition.year}
+                {cabinetYear(coalition)}
               </text>
 
               {/* Role dividers: coalition above the line, opposition below it; a tolerating
@@ -904,8 +863,8 @@ export default function ParliamentDiagram({
               {dividers.map((dividerY) => (
                 <line
                   key={`divider-${dividerY}`}
-                  x1={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) - 10}
-                  x2={LABEL_SPACE + colIndex * (BLOCK_WIDTH + COLUMN_GAP) + BLOCK_WIDTH + 10}
+                  x1={columnX - 10}
+                  x2={columnX + columnWidth + 10}
                   y1={dividerY}
                   y2={dividerY}
                   stroke="var(--c-divider-line)"
@@ -917,12 +876,12 @@ export default function ParliamentDiagram({
               {/* Party blocks */}
               {list.map((block) => {
                 const isHovered = isPartyHighlighted(block.party);
-                const label = fitBlockLabel(block.displayName, block.seats, block.height);
+                const label = fitBlockLabel(block.displayName, block.seats, block.height, block.width);
                 const lineHeight = label.fontPx * LABEL_LINE_HEIGHT;
                 const firstLineY = block.y + block.height / 2 - ((label.lines.length - 1) * lineHeight) / 2;
                 // Tolerating parties are drawn translucent, so the page shows through: use the
                 // theme's text colour, which is readable on the page in both themes.
-                const labelColor = block.role === 'support' ? 'var(--c-text-heading)' : getLabelColor(block.color);
+                const labelColor = block.role === 'support' ? 'var(--c-text-heading)' : readableTextColor(block.color);
 
                 return (
                   <g
@@ -934,7 +893,7 @@ export default function ParliamentDiagram({
                     <rect
                       x={block.x}
                       y={block.y}
-                      width={BLOCK_WIDTH}
+                      width={block.width}
                       height={block.height}
                       fill={block.color}
                       // A tolerating party (gedoogpartner) is drawn see-through with a dashed
@@ -951,7 +910,7 @@ export default function ParliamentDiagram({
                     {/* Always labelled and always inside the block (see fitBlockLabel), so the
                         colour picked from the block colour is the colour behind the text. */}
                     <text
-                      x={block.x + BLOCK_WIDTH / 2}
+                      x={block.x + block.width / 2}
                       y={firstLineY}
                       textAnchor="middle"
                       fill={labelColor}
@@ -959,7 +918,7 @@ export default function ParliamentDiagram({
                       className="font-semibold pointer-events-none"
                     >
                       {label.lines.map((line, index) => (
-                        <tspan key={line} x={block.x + BLOCK_WIDTH / 2} dy={index === 0 ? '0.35em' : lineHeight}>
+                        <tspan key={line} x={block.x + block.width / 2} dy={index === 0 ? '0.35em' : lineHeight}>
                           {line}
                         </tspan>
                       ))}
@@ -993,7 +952,7 @@ export default function ParliamentDiagram({
           </text>
         </g>
         <g transform={`translate(${LABEL_SPACE}, ${svgHeight - 12})`} className="pointer-events-none">
-          <rect width={18} height={11} rx={5.5} fill={ELECTION_MARKER_COLOR} fillOpacity={0.15} stroke={ELECTION_MARKER_COLOR} strokeOpacity={0.6}/>
+          <rect width={18} height={11} rx={5.5} fill={ELECTION_MARKER_COLOR} fillOpacity={MARKER_PILL_OPACITY} stroke={ELECTION_MARKER_COLOR} strokeOpacity={0.6}/>
           <text x={26} y={10} className="fill-app-muted text-[10px]">
             {t('electionMarkerLegend')}
           </text>

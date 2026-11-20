@@ -1,0 +1,9 @@
+party: v
+vote_last_election_in_percentile:
+  v: 58.8
+  s: 21
+  not_voted: 10.9
+  mp: 4.2
+  l: 2.4
+  other: 1.6
+  c: 1.1
